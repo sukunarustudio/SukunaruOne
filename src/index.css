@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Funnel Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+
+  /* ── SKNR Official Palette ─────────────────────────────────── */
+  --color-sknr-navy:      #25343F;
+  --color-sknr-orange:    #FF9B51;
+  --color-sknr-mist:      #EAEFEF;
+  --color-sknr-blue-gray: #BFC9D1;
+  --color-sknr-white:     #FFFFFF;
+
+  /* Primary Tints */
+  --color-primary-500:    #FF9B51;
+  --color-primary-400:    #FFB27D;
+  --color-primary-300:    #FFCCA8;
+  --color-primary-200:    #FFE6D6;
+  --color-primary-100:    #FFF3E8;
+
+  /* Neutral Scale */
+  --color-neutral-900:    #25343F;
+  --color-neutral-700:    #434343;
+  --color-neutral-600:    #898989;
+  --color-neutral-300:    #CACACA;
+  --color-neutral-200:    #E0E0E0;
+
+  /* Semantic System (Official DESIGN_BisnisUrang.md) */
+  --color-semantic-danger:  #FF4267;
+  --color-semantic-info:    #0890FE;
+  --color-semantic-warning: #FFAF2A;
+  --color-semantic-success: #52D5BA;
+  --color-semantic-accent:  #FB6B18;
+
+  /* Legacy aliases kept for internal references */
+  --color-primary: #25343F;
+  --color-surface: #ffffff;
+  --color-background: #EAEFEF;
+}
+
+@layer base {
+  * {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  body {
+    font-family: 'Funnel Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #18181b;
+    background-color: #f8f9fa;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.011em;
+  }
+}
+
+@media print {
+  @page {
+    size: auto;
+    margin: 6mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Hide non-printable UI elements */
+  #main-sidebar,
+  #main-topbar,
+  #global-search-backdrop,
+  .no-print,
+  button,
+  nav,
+  aside,
+  header {
+    display: none !important;
+  }
+
+  /* Make modal content take full page */
+  #receipt-modal-overlay,
+  #invoice-modal-overlay,
+  #batch-print-modal-overlay {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    display: block !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #receipt-modal-content,
+  #invoice-modal-content,
+  #batch-print-modal-content {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #receipt-modal-header,
+  #receipt-modal-footer,
+  #invoice-modal-header,
+  #invoice-modal-footer,
+  #batch-print-modal-header,
+  #batch-print-modal-footer {
+    display: none !important;
+  }
+
+  #printable-receipt-area,
+  #printable-invoice-area,
+  #printable-spk-area,
+  #printable-report-area,
+  #printable-batch-area {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .batch-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .batch-page-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+/* ── CUSTOM CARD ANIMATIONS ───────────────────────────────────────────────── */
+@keyframes premium-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes dot-move {
+  0% {
+    background-position: 0px 0px;
+  }
+  100% {
+    background-position: 32px 32px;
+  }
+}
+
+@keyframes light-sweep {
+  0% {
+    left: -150%;
+  }
+  15%, 100% {
+    left: 150%;
+  }
+}
+
+.premium-fintech-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem; /* rounded-2xl */
+  background: linear-gradient(135deg, #38B6FF 0%, #0B90FE 45%, #0060DC 100%);
+  background-size: 200% 200%;
+  animation: premium-gradient 12s ease-in-out infinite;
+  box-shadow: 0 10px 25px -5px rgba(11, 144, 254, 0.35), 0 8px 10px -6px rgba(11, 144, 254, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.premium-fintech-card:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.02);
+  box-shadow: 0 20px 30px -10px rgba(11, 144, 254, 0.45), 0 10px 15px -3px rgba(11, 144, 254, 0.28);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Layer 2: Radial/ambient gradients for depth */
+.premium-fintech-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.22) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(11, 144, 254, 0.32) 0%, transparent 60%),
+    radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.12) 0%, transparent 40%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Layer 3: Dot Grid */
+.fintech-dot-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-position: 0 0;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: dot-move 30s linear infinite;
+}
+
+/* Layer 4: Light sweep effect */
+.fintech-light-sweep {
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.0) 30%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.0) 70%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  z-index: 5;
+  pointer-events: none;
+  animation: light-sweep 15s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-fintech-card {
+    animation: none;
+  }
+  .fintech-dot-grid {
+    animation: none;
+  }
+  .fintech-light-sweep {
+    animation: none;
+  }
+}
+

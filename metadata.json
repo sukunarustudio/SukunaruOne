@@ -1,0 +1,6 @@
+{
+  "name": "Sukunaru Studio",
+  "description": "Aplikasi Manajemen Bisnis Percetakan & Desain Grafis (POS, HPP, Pesanan, Inventori, Keuangan, Invoice & Laporan)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
