@@ -20,3 +20,4 @@ View your app in AI Studio: https://ai.studio/apps/2acdea4a-6e11-4cda-9a3b-df135
    `npm run dev`
 "# SukunaruOne" 
 "# SukunaruOne" 
+"# SukunaruOne" 
