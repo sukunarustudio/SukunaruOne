@@ -23,6 +23,7 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/multer": "^2.2.0",
+    "@types/react-is": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
     "better-sqlite3": "^13.0.3",
     "canvas-confetti": "^1.9.4",
@@ -35,6 +36,7 @@
     "multer": "^2.2.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "react-is": "^19.2.8",
     "recharts": "^3.10.1",
     "sharp": "^0.35.3",
     "vite": "^6.2.3"
