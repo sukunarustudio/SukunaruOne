@@ -11,102 +11,151 @@ import {
   DashboardStats,
 } from '../types';
 
+export const getApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('sukunaru_server_api_url');
+    if (saved && saved.trim()) {
+      return saved.trim().replace(/\/+$/, '');
+    }
+  }
+  if ((import.meta as any).env?.VITE_API_URL) {
+    return ((import.meta as any).env.VITE_API_URL as string).replace(/\/+$/, '');
+  }
+  return '';
+};
+
+export const setApiBaseUrl = (url: string) => {
+  if (typeof window !== 'undefined') {
+    if (url && url.trim()) {
+      localStorage.setItem('sukunaru_server_api_url', url.trim().replace(/\/+$/, ''));
+    } else {
+      localStorage.removeItem('sukunaru_server_api_url');
+    }
+  }
+};
+
+export const resolveApiUrl = (endpoint: string): string => {
+  if (!endpoint) return '';
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://') || endpoint.startsWith('data:')) {
+    return endpoint;
+  }
+  const base = getApiBaseUrl();
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return base ? `${base}${cleanEndpoint}` : cleanEndpoint;
+};
+
+export async function requestApi<T = any>(endpoint: string, init?: RequestInit): Promise<T> {
+  const url = resolveApiUrl(endpoint);
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (netErr: any) {
+    throw new Error(
+      `Tidak dapat terhubung ke server API (${url || 'localhost'}). Periksa koneksi atau atur Alamat Server di Pengaturan.`
+    );
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    throw new Error(
+      'Koneksi server belum terhubung. Silakan atur URL Server API di menu Pengaturan (misal: http://192.168.1.xxx:3000 atau domain server Anda).'
+    );
+  }
+
+  if (!res.ok) {
+    const errObj = await res.json().catch(() => ({}));
+    throw new Error(errObj.error || errObj.message || `Permintaan gagal (${res.status})`);
+  }
+
+  return res.json();
+}
+
 export const api = {
+  // Connection Tester
+  async checkConnection(testUrl?: string): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const base = testUrl ? testUrl.trim().replace(/\/+$/, '') : getApiBaseUrl();
+      const endpoint = base ? `${base}/api/health` : '/api/health';
+      const res = await fetch(endpoint);
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        return { success: false, message: 'Server merespons halaman web HTML, bukan API Sukunaru Studio.' };
+      }
+      if (!res.ok) {
+        return { success: false, message: `Server merespons error status: ${res.status}` };
+      }
+      const json = await res.json();
+      return { success: true, message: 'Berhasil terhubung ke server Sukunaru Studio!', data: json };
+    } catch (err: any) {
+      return { success: false, message: `Gagal terhubung: ${err.message || 'Koneksi ditolak'}` };
+    }
+  },
+
   // Settings
   async getSettings(): Promise<BusinessSettings> {
-    const res = await fetch('/api/settings');
-    if (!res.ok) throw new Error('Gagal memuat pengaturan');
-    return res.json();
+    return requestApi<BusinessSettings>('/api/settings');
   },
 
   async updateSettings(data: Partial<BusinessSettings>): Promise<BusinessSettings> {
-    const res = await fetch('/api/settings', {
+    return requestApi<BusinessSettings>('/api/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Gagal memperbarui pengaturan');
-    return res.json();
   },
 
   async uploadBusinessLogo(file: File): Promise<{ success: boolean; logoUrl: string; settings: BusinessSettings }> {
     const formData = new FormData();
     formData.append('logo', file);
-    const res = await fetch('/api/settings/logo', {
+    return requestApi('/api/settings/logo', {
       method: 'POST',
       body: formData,
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal mengunggah foto profil bisnis');
-    }
-    return res.json();
   },
 
   async deleteBusinessLogo(): Promise<{ success: boolean; settings: BusinessSettings }> {
-    const res = await fetch('/api/settings/logo', {
+    return requestApi('/api/settings/logo', {
       method: 'DELETE',
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal menghapus foto profil bisnis');
-    }
-    return res.json();
   },
 
   async resetSampleData(): Promise<{ success: boolean; message: string }> {
-    const res = await fetch('/api/reset-sample-data', { method: 'POST' });
-    if (!res.ok) throw new Error('Gagal mereset data sample');
-    return res.json();
+    return requestApi('/api/reset-sample-data', { method: 'POST' });
   },
 
   // Stats
   async getStats(): Promise<DashboardStats & { lowStockItems: Material[] }> {
-    const res = await fetch('/api/stats');
-    if (!res.ok) throw new Error('Gagal memuat statistik');
-    return res.json();
+    return requestApi<DashboardStats & { lowStockItems: Material[] }>('/api/stats');
   },
 
   // Customers
   async getCustomers(): Promise<Customer[]> {
-    const res = await fetch('/api/customers');
-    if (!res.ok) throw new Error('Gagal memuat pelanggan');
-    return res.json();
+    return requestApi<Customer[]>('/api/customers');
   },
 
   async createCustomer(data: { name: string; whatsapp?: string; address?: string; notes?: string }): Promise<Customer> {
-    const res = await fetch('/api/customers', {
+    return requestApi<Customer>('/api/customers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal menambah pelanggan');
-    }
-    return res.json();
   },
 
   async updateCustomer(id: string, data: Partial<Customer>): Promise<Customer> {
-    const res = await fetch(`/api/customers/${id}`, {
+    return requestApi<Customer>(`/api/customers/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Gagal memperbarui pelanggan');
-    return res.json();
   },
 
   async deleteCustomer(id: string): Promise<void> {
-    const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Gagal menghapus pelanggan');
+    return requestApi<void>(`/api/customers/${id}`, { method: 'DELETE' });
   },
 
   // Materials & Inventory
   async getMaterials(): Promise<Material[]> {
-    const res = await fetch('/api/materials');
-    if (!res.ok) throw new Error('Gagal memuat bahan baku');
-    const mats = await res.json();
+    const mats = await requestApi<any[]>('/api/materials');
     return mats.map((m: any) => ({
       ...m,
       unitCost: m.unitCost ?? m.purchasePrice ?? 0,
@@ -119,16 +168,11 @@ export const api = {
       ...data,
       purchasePrice: data.unitCost ?? data.purchasePrice ?? 0,
     };
-    const res = await fetch('/api/materials', {
+    const created = await requestApi<any>('/api/materials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal menambah material');
-    }
-    const created = await res.json();
     return {
       ...created,
       unitCost: created.unitCost ?? created.purchasePrice ?? 0,
@@ -140,13 +184,11 @@ export const api = {
       ...data,
       purchasePrice: data.unitCost ?? data.purchasePrice,
     };
-    const res = await fetch(`/api/materials/${id}`, {
+    const updated = await requestApi<any>(`/api/materials/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error('Gagal memperbarui material');
-    const updated = await res.json();
     return {
       ...updated,
       unitCost: updated.unitCost ?? updated.purchasePrice ?? 0,
@@ -157,16 +199,11 @@ export const api = {
     materialId: string,
     data: { type: 'IN' | 'OUT' | 'ADJUSTMENT'; quantity: number; referenceType?: string; notes?: string }
   ): Promise<{ material: Material; movement: InventoryMovement }> {
-    const res = await fetch(`/api/materials/${materialId}/movement`, {
+    return requestApi<{ material: Material; movement: InventoryMovement }>(`/api/materials/${materialId}/movement`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal mencatat mutasi stok');
-    }
-    return res.json();
   },
 
   async recordMovement(data: {
@@ -185,14 +222,11 @@ export const api = {
   },
 
   async deleteMaterial(id: string): Promise<void> {
-    const res = await fetch(`/api/materials/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Gagal menghapus material');
+    return requestApi<void>(`/api/materials/${id}`, { method: 'DELETE' });
   },
 
   async getInventoryMovements(): Promise<InventoryMovement[]> {
-    const res = await fetch('/api/inventory/movements');
-    if (!res.ok) throw new Error('Gagal memuat riwayat mutasi');
-    return res.json();
+    return requestApi<InventoryMovement[]>('/api/inventory/movements');
   },
 
   async getMovements(): Promise<InventoryMovement[]> {
@@ -201,37 +235,27 @@ export const api = {
 
   // Products
   async getProducts(): Promise<Product[]> {
-    const res = await fetch('/api/products');
-    if (!res.ok) throw new Error('Gagal memuat produk');
-    return res.json();
+    return requestApi<Product[]>('/api/products');
   },
 
   async createProduct(data: Partial<Product>): Promise<Product> {
-    const res = await fetch('/api/products', {
+    return requestApi<Product>('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal membuat produk');
-    }
-    return res.json();
   },
 
   async updateProduct(id: string, data: Partial<Product>): Promise<Product> {
-    const res = await fetch(`/api/products/${id}`, {
+    return requestApi<Product>(`/api/products/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Gagal memperbarui produk');
-    return res.json();
   },
 
   async deleteProduct(id: string): Promise<void> {
-    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Gagal menghapus produk');
+    return requestApi<void>(`/api/products/${id}`, { method: 'DELETE' });
   },
 
   async uploadProductImage(productId: string, file: File): Promise<{
@@ -243,53 +267,32 @@ export const api = {
   }> {
     const formData = new FormData();
     formData.append('image', file);
-    const res = await fetch(`/api/products/${productId}/image`, {
+    return requestApi(`/api/products/${productId}/image`, {
       method: 'POST',
       body: formData,
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal mengunggah gambar produk.');
-    }
-    return res.json();
   },
 
   async deleteProductImage(productId: string): Promise<Product> {
-    const res = await fetch(`/api/products/${productId}/image`, { method: 'DELETE' });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal menghapus gambar produk.');
-    }
-    const data = await res.json();
+    const data = await requestApi<{ product: Product }>(`/api/products/${productId}/image`, { method: 'DELETE' });
     return data.product;
   },
 
   // Transactions (POS)
   async getTransactions(): Promise<Transaction[]> {
-    const res = await fetch('/api/transactions');
-    if (!res.ok) throw new Error('Gagal memuat transaksi');
-    return res.json();
+    return requestApi<Transaction[]>('/api/transactions');
   },
 
   async createTransaction(data: any): Promise<Transaction> {
-    const res = await fetch('/api/transactions', {
+    return requestApi<Transaction>('/api/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal memproses transaksi kasir');
-    }
-    return res.json();
   },
 
   async deleteTransaction(id: string): Promise<void> {
-    const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal menghapus transaksi');
-    }
+    return requestApi<void>(`/api/transactions/${id}`, { method: 'DELETE' });
   },
 
   async clearAllTransactions(options: { resetExpenses?: boolean; resetMovements?: boolean } = {}): Promise<{
@@ -302,68 +305,47 @@ export const api = {
       financialTransactions: number;
     };
   }> {
-    const res = await fetch('/api/transactions/clear-all', {
+    return requestApi('/api/transactions/clear-all', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal mereset semua transaksi');
-    }
-    return res.json();
   },
 
   // Orders
   async getOrders(): Promise<Order[]> {
-    const res = await fetch('/api/orders');
-    if (!res.ok) throw new Error('Gagal memuat pesanan');
-    return res.json();
+    return requestApi<Order[]>('/api/orders');
   },
 
   async getOrder(id: string): Promise<Order> {
-    const res = await fetch(`/api/orders/${id}`);
-    if (!res.ok) throw new Error('Gagal memuat detail pesanan');
-    return res.json();
+    return requestApi<Order>(`/api/orders/${id}`);
   },
 
   async createOrder(data: any): Promise<Order> {
-    const res = await fetch('/api/orders', {
+    return requestApi<Order>('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal membuat pesanan');
-    }
-    return res.json();
   },
 
   async updateOrderStatus(id: string, status: string): Promise<Order> {
-    const res = await fetch(`/api/orders/${id}/status`, {
+    return requestApi<Order>(`/api/orders/${id}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
-    if (!res.ok) throw new Error('Gagal memperbarui status pesanan');
-    return res.json();
   },
 
   async addOrderPayment(
     id: string,
     data: { amount: number; paymentMethod: string; date?: string; notes?: string }
   ): Promise<Order> {
-    const res = await fetch(`/api/orders/${id}/payment`, {
+    return requestApi<Order>(`/api/orders/${id}/payment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal mencatat pembayaran');
-    }
-    return res.json();
   },
 
   async updateOrderPayment(
@@ -371,82 +353,57 @@ export const api = {
     paymentId: string,
     data: { amount?: number; paymentMethod?: string; date?: string; notes?: string }
   ): Promise<Order> {
-    const res = await fetch(`/api/orders/${orderId}/payment/${paymentId}`, {
+    return requestApi<Order>(`/api/orders/${orderId}/payment/${paymentId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal memperbarui pembayaran');
-    }
-    return res.json();
   },
 
   async deleteOrderPayment(orderId: string, paymentId: string): Promise<Order> {
-    const res = await fetch(`/api/orders/${orderId}/payment/${paymentId}`, {
+    return requestApi<Order>(`/api/orders/${orderId}/payment/${paymentId}`, {
       method: 'DELETE',
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal menghapus pembayaran');
-    }
-    return res.json();
   },
 
   async uploadOrderFile(orderId: string, file: File, notes?: string): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
     if (notes) formData.append('notes', notes);
-
-    const res = await fetch(`/api/orders/${orderId}/files`, {
+    return requestApi(`/api/orders/${orderId}/files`, {
       method: 'POST',
       body: formData,
     });
-    if (!res.ok) throw new Error('Gagal mengunggah file');
-    return res.json();
   },
 
   async deleteOrderFile(orderId: string, fileId: string): Promise<void> {
-    const res = await fetch(`/api/orders/${orderId}/files/${fileId}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Gagal menghapus file');
+    return requestApi<void>(`/api/orders/${orderId}/files/${fileId}`, { method: 'DELETE' });
   },
 
   async deleteOrder(id: string): Promise<void> {
-    const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Gagal menghapus pesanan');
+    return requestApi<void>(`/api/orders/${id}`, { method: 'DELETE' });
   },
 
   // Expenses
   async getExpenses(): Promise<Expense[]> {
-    const res = await fetch('/api/expenses');
-    if (!res.ok) throw new Error('Gagal memuat pengeluaran');
-    return res.json();
+    return requestApi<Expense[]>('/api/expenses');
   },
 
   async createExpense(data: Partial<Expense>): Promise<Expense> {
-    const res = await fetch('/api/expenses', {
+    return requestApi<Expense>('/api/expenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal mencatat pengeluaran');
-    }
-    return res.json();
   },
 
   async deleteExpense(id: string): Promise<void> {
-    const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Gagal menghapus pengeluaran');
+    return requestApi<void>(`/api/expenses/${id}`, { method: 'DELETE' });
   },
 
   // Finance / Cash Flow
   async getFinance(): Promise<FinancialTransaction[]> {
-    const res = await fetch('/api/finance');
-    if (!res.ok) throw new Error('Gagal memuat data keuangan');
-    return res.json();
+    return requestApi<FinancialTransaction[]>('/api/finance');
   },
 
   async getFinancialTransactions(): Promise<FinancialTransaction[]> {
@@ -454,13 +411,11 @@ export const api = {
   },
 
   async createFinanceEntry(data: Partial<FinancialTransaction>): Promise<FinancialTransaction> {
-    const res = await fetch('/api/finance', {
+    return requestApi<FinancialTransaction>('/api/finance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Gagal mencatat mutasi kas');
-    return res.json();
   },
 
   async createFinancialTransaction(data: Partial<FinancialTransaction>): Promise<FinancialTransaction> {
@@ -474,9 +429,11 @@ export const api = {
     orders: Order[];
     transactions: Transaction[];
   }> {
-    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-    if (!res.ok) return { customers: [], products: [], orders: [], transactions: [] };
-    return res.json();
+    try {
+      return await requestApi(`/api/search?q=${encodeURIComponent(query)}`);
+    } catch {
+      return { customers: [], products: [], orders: [], transactions: [] };
+    }
   },
 
   // v3-v4: Restock Material with Auto Expense & Finance
@@ -491,35 +448,26 @@ export const api = {
       notes?: string;
     }
   ): Promise<{ success: boolean; material: Material; movement: InventoryMovement }> {
-    const res = await fetch(`/api/materials/${id}/restock`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal merestock bahan');
-    }
-    return res.json();
+    return requestApi<{ success: boolean; material: Material; movement: InventoryMovement }>(
+      `/api/materials/${id}/restock`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }
+    );
   },
 
   // v3-v4: Full Database Backup & Restore
   async getBackupData(): Promise<any> {
-    const res = await fetch('/api/backup');
-    if (!res.ok) throw new Error('Gagal mengunduh backup database');
-    return res.json();
+    return requestApi<any>('/api/backup');
   },
 
   async restoreDatabase(backupData: any): Promise<{ success: boolean; message: string }> {
-    const res = await fetch('/api/restore', {
+    return requestApi<{ success: boolean; message: string }>('/api/restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(backupData),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Gagal memulihkan database');
-    }
-    return res.json();
   },
 };

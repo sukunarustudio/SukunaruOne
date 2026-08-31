@@ -49,7 +49,7 @@ export const BatchPrintOrdersModal: React.FC<BatchPrintOrdersModalProps> = ({
   const toggleOrderSelection = (id: string) => {
     if (selectedIds.includes(id)) {
       if (selectedIds.length === 1) {
-        showToast('Minimal 1 pesanan harus tetap dipilih', 'warning');
+        showToast('Minimal 1 pesanan harus tetap dipilih', 'info');
         return;
       }
       setSelectedIds(prev => prev.filter(i => i !== id));
@@ -64,7 +64,7 @@ export const BatchPrintOrdersModal: React.FC<BatchPrintOrdersModalProps> = ({
 
   const handlePrint = () => {
     if (activeOrders.length === 0) {
-      showToast('Pilih minimal 1 pesanan untuk dicetak', 'warning');
+      showToast('Pilih minimal 1 pesanan untuk dicetak', 'info');
       return;
     }
     const titles: Record<BatchDocType, string> = {
@@ -78,7 +78,7 @@ export const BatchPrintOrdersModal: React.FC<BatchPrintOrdersModalProps> = ({
 
   const handleDownloadPdf = async () => {
     if (activeOrders.length === 0) {
-      showToast('Pilih minimal 1 pesanan untuk diekspor ke PDF', 'warning');
+      showToast('Pilih minimal 1 pesanan untuk diekspor ke PDF', 'info');
       return;
     }
 

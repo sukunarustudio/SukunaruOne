@@ -221,12 +221,17 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
       return;
     }
     const firstMat = materials[0];
+    const cost = firstMat.unitCost ?? firstMat.purchasePrice ?? 0;
     setComponents(prev => [
       ...prev,
       {
+        id: `comp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         materialId: firstMat.id,
+        componentName: firstMat.name,
         quantity: 1,
-        unit: firstMat.unit,
+        unit: firstMat.unit || 'pcs',
+        unitCost: cost,
+        subtotal: cost * 1,
       },
     ]);
   };
@@ -326,7 +331,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
             const imgRes = await api.uploadProductImage(created.id, pendingImageFile);
             created = { ...created, ...imgRes.product };
           } catch (imgErr: any) {
-            showToast('Produk disimpan, tapi gagal mengunggah gambar: ' + imgErr.message, 'warning');
+            showToast('Produk disimpan, tapi gagal mengunggah gambar: ' + imgErr.message, 'info');
           }
         }
 

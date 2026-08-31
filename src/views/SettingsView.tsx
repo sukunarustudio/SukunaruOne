@@ -1,6 +1,22 @@
 import React, { useState, useRef } from 'react';
-import { Cog6ToothIcon, BuildingStorefrontIcon, PhoneIcon, EnvelopeIcon, MapPinIcon, DocumentTextIcon, CreditCardIcon, ArrowPathIcon, DocumentCheckIcon, CheckCircleIcon, PhotoIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { api } from '../services/api';
+import {
+  Cog6ToothIcon,
+  BuildingStorefrontIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  MapPinIcon,
+  DocumentTextIcon,
+  CreditCardIcon,
+  ArrowPathIcon,
+  DocumentCheckIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  PhotoIcon,
+  ArrowLeftIcon,
+  ServerIcon,
+  WifiIcon,
+} from '@heroicons/react/24/outline';
+import { api, getApiBaseUrl, setApiBaseUrl } from '../services/api';
 import { BusinessSettings } from '../types';
 import { useToast } from '../components/Toast';
 
@@ -28,7 +44,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isDeletingLogo, setIsDeletingLogo] = useState(false);
 
+  // Server API URL Configuration (Capacitor Android / Multi-Device support)
+  const [serverUrl, setServerUrl] = useState<string>(() => getApiBaseUrl());
+  const [isTestingServer, setIsTestingServer] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTestConnection = async () => {
+    setIsTestingServer(true);
+    setTestResult(null);
+    try {
+      const res = await api.checkConnection(serverUrl);
+      setTestResult(res);
+      if (res.success) {
+        showToast(res.message, 'success');
+      } else {
+        showToast(res.message, 'error');
+      }
+    } catch (err: any) {
+      setTestResult({ success: false, message: err.message || 'Koneksi gagal' });
+      showToast(err.message || 'Koneksi gagal', 'error');
+    } finally {
+      setIsTestingServer(false);
+    }
+  };
+
+  const handleSaveServerUrl = () => {
+    setApiBaseUrl(serverUrl);
+    showToast('Alamat server API berhasil disimpan!', 'success');
+    if (onRefreshDashboard) onRefreshDashboard();
+  };
 
   // Handle Business Logo / Profile Picture ArrowUpTrayIcon
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,6 +223,79 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
       </form>
+
+      {/* ── KONEKSI SERVER API (UNTUK APK ANDROID & MULTI-DEVICE) ── */}
+      <div className="bg-white p-6 rounded-2xl border border-[#BFC9D1]/25 shadow-md space-y-4 text-xs">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+          <div className="p-2 bg-[#FF9B51]/15 text-[#FF9B51] rounded-xl">
+            <ServerIcon className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-sm text-[#25343F]">Koneksi Server API (APK Android / Multi-Device)</h3>
+            <p className="text-[#898989] text-xs">
+              Hubungkan aplikasi HP Android ke database komputer/server toko Anda.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block font-bold text-[#25343F] mb-1">
+              Alamat URL Server Backend (IP / Domain)
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={serverUrl}
+                onChange={e => {
+                  setServerUrl(e.target.value);
+                  setTestResult(null);
+                }}
+                placeholder="misal: http://192.168.1.15:3000 atau https://api.domainanda.com"
+                className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-[#BFC9D1]/30 rounded-xl font-mono text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF9B51]"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isTestingServer}
+                  onClick={handleTestConnection}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#25343F] font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <WifiIcon className="w-4 h-4" />
+                  <span>{isTestingServer ? 'Menguji...' : 'Tes Koneksi'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveServerUrl}
+                  className="px-4 py-2.5 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md active:scale-95"
+                >
+                  <span>Simpan URL</span>
+                </button>
+              </div>
+            </div>
+            <p className="text-[11px] text-[#898989] mt-1.5 leading-relaxed">
+              💡 <strong>Tips APK:</strong> Pastikan HP dan Komputer Kasir terhubung di <strong>jaringan Wi-Fi yang sama</strong>. Masukkan alamat IP komputer Anda diikuti port 3000 (contoh: <code>http://192.168.1.50:3000</code>). Jika kosong, aplikasi menggunakan server bawaan.
+            </p>
+          </div>
+
+          {testResult && (
+            <div
+              className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-semibold ${
+                testResult.success
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border-rose-200 text-rose-800'
+              }`}
+            >
+              {testResult.success ? (
+                <CheckCircleIcon className="w-5 h-5 text-emerald-600 shrink-0" />
+              ) : (
+                <XCircleIcon className="w-5 h-5 text-rose-600 shrink-0" />
+              )}
+              <span>{testResult.message}</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

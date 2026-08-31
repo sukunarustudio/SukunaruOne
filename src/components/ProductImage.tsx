@@ -1,5 +1,6 @@
 import React from 'react';
 import { CubeIcon } from '@heroicons/react/24/outline';
+import { api, resolveApiUrl } from '../services/api';
 
 interface ProductImageProps {
   thumbnailPath?: string | null;
@@ -37,7 +38,11 @@ export const ProductImage: React.FC<ProductImageProps> = ({
   rounded = 'rounded-lg',
 }) => {
   const srcPath = preferFull ? (imagePath || thumbnailPath) : (thumbnailPath || imagePath);
-  const src = srcPath ? `/uploads/${srcPath}` : null;
+  const src = srcPath
+    ? (srcPath.startsWith('http://') || srcPath.startsWith('https://') || srcPath.startsWith('data:')
+        ? srcPath
+        : resolveApiUrl(srcPath.startsWith('/uploads') ? srcPath : `/uploads/${srcPath}`))
+    : null;
 
   const sizeClass = SIZE_CLASSES[size] ?? SIZE_CLASSES.md;
   const iconClass = ICON_CLASSES[size] ?? ICON_CLASSES.md;
@@ -135,17 +140,7 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
       try {
         setUploading(true);
         setLoading?.(true);
-        const formData = new FormData();
-        formData.append('image', file);
-        const res = await fetch(`/api/products/${productId}/image`, {
-          method: 'POST',
-          body: formData,
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || 'Gagal mengunggah gambar');
-        }
-        const data = await res.json();
+        const data = await api.uploadProductImage(productId, file);
         setPreviewUrl(data.imageUrl);
         onUploadSuccess({
           imagePath: data.imagePath,
@@ -155,7 +150,7 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
         });
       } catch (err: any) {
         setError(err.message || 'Gagal mengunggah gambar produk.');
-        setPreviewUrl(currentImagePath ? `/uploads/${currentImagePath}` : null);
+        setPreviewUrl(currentImagePath ? resolveApiUrl(`/uploads/${currentImagePath}`) : null);
       } finally {
         setUploading(false);
         setLoading?.(false);

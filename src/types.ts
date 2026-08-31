@@ -122,8 +122,14 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   unitPrice: number;
+  price?: number;
   costPrice: number; // HPP per unit
   subtotal: number;
+  unit?: string;
+  customWidth?: number;
+  customHeight?: number;
+  materialName?: string;
+  finishing?: string;
   imagePath?: string;
   thumbnailPath?: string;
   notes?: string;

@@ -585,7 +585,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   });
 
   // Batch Selection Logic
-  const handleToggleSelectOrder = (orderId: string, e?: React.MouseEvent) => {
+  const handleToggleSelectOrder = (orderId: string, e?: React.SyntheticEvent) => {
     if (e) e.stopPropagation();
     setSelectedOrderIds(prev =>
       prev.includes(orderId) ? prev.filter(id => id !== orderId) : [...prev, orderId]
