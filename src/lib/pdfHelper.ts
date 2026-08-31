@@ -3,6 +3,13 @@ import html2canvas from 'html2canvas-pro';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import {
+  saveAndDownloadFile,
+  downloadPdfBase64,
+  downloadImageBase64,
+  sanitizeFilename,
+  ensureStoragePermissions,
+} from './fileDownloader';
 
 export interface PdfExportOptions {
   filename?: string;
@@ -12,85 +19,35 @@ export interface PdfExportOptions {
   scale?: number;
 }
 
-/**
- * Sanitizes a filename to ensure safe storage on Android and browser file systems.
- */
-export function sanitizeFilename(filename: string, defaultExt: string = '.pdf'): string {
-  let clean = filename
-    .replace(/[/\\?%*:|"<>]/g, '-')
-    .replace(/\s+/g, '_')
-    .trim();
-
-  if (!clean) {
-    clean = `dokumen_${Date.now()}`;
-  }
-
-  const ext = defaultExt.startsWith('.') ? defaultExt : `.${defaultExt}`;
-  if (!clean.toLowerCase().endsWith(ext.toLowerCase())) {
-    clean = `${clean}${ext}`;
-  }
-
-  return clean;
-}
+export { sanitizeFilename };
 
 /**
  * Checks and requests storage permissions on Android/Capacitor when needed.
  */
 export async function requestStoragePermissions(): Promise<boolean> {
-  try {
-    if (!Capacitor.isNativePlatform()) return true;
-    const status = await Filesystem.checkPermissions();
-    if (status.publicStorage !== 'granted') {
-      const request = await Filesystem.requestPermissions();
-      return request.publicStorage === 'granted';
-    }
-    return true;
-  } catch (err) {
-    console.warn('Filesystem permission check/request warning:', err);
-    return true;
-  }
+  return ensureStoragePermissions();
 }
 
 /**
  * Writes base64 data to Android storage using @capacitor/filesystem.
- * Tries Directory.Documents first, then fallbacks to Directory.Cache.
  */
 export async function saveNativeFile(
   base64Data: string,
   filename: string,
   mimeType: 'application/pdf' | 'image/jpeg' = 'application/pdf'
 ): Promise<{ success: boolean; uri?: string; path?: string }> {
-  try {
-    await requestStoragePermissions();
-
-    const cleanFilename = sanitizeFilename(filename, mimeType === 'application/pdf' ? '.pdf' : '.jpg');
-
-    // 1. Primary write to Directory.Documents (accessible to user and Android file manager)
-    try {
-      const result = await Filesystem.writeFile({
-        path: cleanFilename,
-        data: base64Data,
-        directory: Directory.Documents,
-        recursive: true,
-      });
-      console.log('File successfully saved to Documents:', result.uri);
-      return { success: true, uri: result.uri, path: cleanFilename };
-    } catch (docErr) {
-      console.warn('Saving to Directory.Documents failed, trying Directory.Cache fallback:', docErr);
-      // 2. Fallback write to Directory.Cache
-      const fallbackResult = await Filesystem.writeFile({
-        path: cleanFilename,
-        data: base64Data,
-        directory: Directory.Cache,
-        recursive: true,
-      });
-      console.log('File saved to Cache fallback:', fallbackResult.uri);
-      return { success: true, uri: fallbackResult.uri, path: cleanFilename };
-    }
-  } catch (err) {
-    console.error('Error saving native file via Capacitor Filesystem:', err);
-    return { success: false };
-  }
+  const res = await saveAndDownloadFile({
+    filename,
+    data: base64Data,
+    mimeType,
+    isBase64: true,
+    openSharePrompt: true,
+  });
+  return {
+    success: res.success,
+    uri: res.uri,
+    path: res.filename,
+  };
 }
 
 /**
@@ -201,18 +158,9 @@ export async function downloadElementAsPdf(
 
     const cleanFilename = sanitizeFilename(filename, '.pdf');
 
-    // Platform-specific export
-    if (Capacitor.isNativePlatform()) {
-      // Android / Capacitor: Save to storage using @capacitor/filesystem
-      const pdfDataUri = pdf.output('datauristring');
-      const base64Data = pdfDataUri.split(',')[1];
-      const saveResult = await saveNativeFile(base64Data, cleanFilename, 'application/pdf');
-      return saveResult.success;
-    } else {
-      // Browser: standard web download
-      pdf.save(cleanFilename);
-      return true;
-    }
+    const pdfDataUri = pdf.output('datauristring');
+    const saveResult = await downloadPdfBase64(pdfDataUri, filename);
+    return saveResult.success;
   } catch (error) {
     console.error('Error generating PDF:', error);
     return false;
@@ -480,24 +428,8 @@ export async function downloadElementAsJpg(
     });
 
     const dataUrl = canvas.toDataURL('image/jpeg', quality);
-    const cleanFilename = sanitizeFilename(filename, '.jpg');
-
-    // Platform-specific export
-    if (Capacitor.isNativePlatform()) {
-      // Android / Capacitor: Save to storage using @capacitor/filesystem
-      const base64Data = dataUrl.split(',')[1];
-      const saveResult = await saveNativeFile(base64Data, cleanFilename, 'image/jpeg');
-      return saveResult.success;
-    } else {
-      // Browser: standard download link
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = cleanFilename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return true;
-    }
+    const saveResult = await downloadImageBase64(dataUrl, filename, 'image/jpeg');
+    return saveResult.success;
   } catch (error) {
     console.error('Error generating JPG:', error);
     return false;

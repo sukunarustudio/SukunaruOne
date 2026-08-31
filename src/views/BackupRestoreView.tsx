@@ -14,6 +14,7 @@ import { api } from '../services/api';
 import { useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ViewType, BusinessSettings } from '../types';
+import { downloadJsonFile } from '../lib/fileDownloader';
 
 interface BackupRestoreViewProps {
   onNavigate?: (view: ViewType) => void;
@@ -42,16 +43,13 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
     try {
       setIsDownloadingBackup(true);
       const dbData = await api.getBackupData();
-      const dataStr =
-        'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(dbData, null, 2));
-      const downloadAnchor = document.createElement('a');
       const filename = `sukunaru_studio_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      downloadAnchor.setAttribute('href', dataStr);
-      downloadAnchor.setAttribute('download', filename);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast('File backup database lengkap berhasil diunduh!', 'success');
+      const result = await downloadJsonFile(dbData, filename);
+      if (result.success) {
+        showToast('File backup database lengkap berhasil disimpan!', 'success');
+      } else {
+        showToast(result.error || 'Gagal menyimpan backup database', 'error');
+      }
     } catch (err: any) {
       showToast(err.message || 'Gagal mengunduh backup database', 'error');
     } finally {
