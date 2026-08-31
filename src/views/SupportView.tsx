@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeftIcon, HeartIcon, Squares2X2Icon, CreditCardIcon, DocumentDuplicateIcon, CheckIcon, SparklesIcon, ShieldCheckIcon, BeakerIcon, ChatBubbleLeftEllipsisIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
 import { ViewType, BusinessSettings } from '../types';
+import qrisImg from '../assets/qris.png';
 
 interface SupportViewProps {
   onNavigate: (view: ViewType) => void;
@@ -20,22 +21,22 @@ export const SupportView: React.FC<SupportViewProps> = ({ onNavigate, settings }
 
   const bankAccounts = [
     {
-      key: 'bca',
-      bankName: 'BCA (Bank Central Asia)',
-      accountNumber: '123-456-7890',
-      rawNumber: '1234567890',
-      accountHolder: 'SUKUNARU STUDIO',
+      key: 'seabank',
+      bankName: 'SeaBank',
+      accountNumber: '9013 8260 8290',
+      rawNumber: '901382608290',
+      accountHolder: 'Alwi Abdul Aziz',
       badge: 'Utama',
       color: 'bg-[#EAEFEF] border-[#BFC9D1] text-[#25343F]',
     },
     {
-      key: 'mandiri',
-      bankName: 'Bank Mandiri',
-      accountNumber: '987-654-3210',
-      rawNumber: '9876543210',
-      accountHolder: 'SUKUNARU STUDIO',
+      key: 'jago',
+      bankName: 'Bank Jago',
+      accountNumber: '5087 6577 5129',
+      rawNumber: '508765775129',
+      accountHolder: 'Alwi Abdul Aziz',
       badge: 'Alternatif',
-      color: 'bg-[#FF9B51]/8 border-[#FF9B51]/40 text-[#c45e00]',
+      color: 'bg-[#FF9B51]/10 border-[#FF9B51]/40 text-[#c45e00]',
     },
   ];
 
@@ -57,25 +58,24 @@ export const SupportView: React.FC<SupportViewProps> = ({ onNavigate, settings }
               Dukung Aplikasi Ini
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-              Donasi & apresiasi pengembangan Studio OS
+              Donasi & apresiasi pengembangan Sukunaru Studio OS
             </p>
           </div>
         </div>
       </div>
-
 
       {/* Warm Banner */}
       <div className="bg-gradient-to-br from-[#FF9B51] via-slate-900 to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-md relative overflow-hidden">
         <div className="relative z-10 space-y-2 max-w-xl">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FF9B51]/20 border border-[#FF9B51]/40 text-rose-300 text-[11px] font-bold">
             <BeakerIcon className="w-3.5 h-3.5" />
-            <span>Karya Kreatif Anak Bangsa</span>
+            <span>Karya Kreatif Sukunaru Studio</span>
           </div>
           <h2 className="text-sm sm:text-base font-extrabold tracking-tight">
             Dukungan Anda Menyalakan Inovasi Kami
           </h2>
           <p className="text-xs text-slate-300 leading-relaxed">
-            BisnisUrang dikembangkan dengan komitmen untuk mendampingi UMKM dan industri kreatif berkembang tanpa beban biaya langganan yang mencekik. Donasi sukarela Anda membantu biaya server, pembaruan fitur, dan maintenance sistem.
+            Sukunaru ONE dikembangkan dengan komitmen untuk mendampingi UMKM dan industri kreatif percetakan berkembang tanpa beban biaya langganan. Donasi sukarela Anda membantu biaya operasional, pembaruan fitur, dan maintenance sistem.
           </p>
         </div>
       </div>
@@ -95,7 +95,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onNavigate, settings }
                 </span>
               </div>
               <p className="text-xs text-[#898989] mt-0.5">
-                Scan menggunakan BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay, dll.
+                Scan menggunakan BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay, SeaBank, dll.
               </p>
             </div>
           </div>
@@ -103,20 +103,20 @@ export const SupportView: React.FC<SupportViewProps> = ({ onNavigate, settings }
 
         {/* QR Code Display Visual */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 p-4 sm:p-6 bg-[#EAEFEF] rounded-2xl border border-slate-100">
-          {/* Mock QR Frame */}
-          <div className="bg-white p-4 rounded-2xl shadow-md border border-[#BFC9D1]/25 flex flex-col items-center shrink-0 text-center max-w-[200px]">
-            <div className="w-36 h-36 bg-[#25343F] rounded-xl p-2 flex flex-col items-center justify-center text-white relative group overflow-hidden">
-              <Squares2X2Icon className="w-28 h-28 text-white stroke-[1.5]" />
-              <div className="absolute inset-0 bg-[#25343F]/90 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center">
-                <span className="text-[11px] font-bold text-white">SUKUNARU STUDIO</span>
-                <span className="text-[9px] text-slate-300 mt-0.5">Scan via Mobile Banking</span>
-              </div>
+          {/* QR Image Frame */}
+          <div className="bg-white p-3.5 rounded-2xl shadow-md border border-[#BFC9D1]/25 flex flex-col items-center shrink-0 text-center max-w-[220px]">
+            <div className="w-44 h-44 bg-white rounded-xl p-1 flex items-center justify-center relative overflow-hidden border border-zinc-100 shadow-inner">
+              <img
+                src={qrisImg}
+                alt="QRIS Sukunaru Studio"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <div className="mt-2.5 font-black text-xs text-[#25343F] tracking-wider">
-              QRIS STANDAR NASIONAL
+            <div className="mt-2 font-black text-xs text-[#25343F] tracking-wide">
+              SUKUNARU STUDIO
             </div>
             <div className="text-[10px] font-bold text-[#898989] mt-0.5">
-              NMID: ID1020304050607
+              QRIS Standar Nasional
             </div>
           </div>
 
@@ -129,6 +129,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onNavigate, settings }
               <li>Buka aplikasi m-Banking atau e-Wallet favorit Anda.</li>
               <li>Pilih menu <strong>Scan QR / QRIS</strong>.</li>
               <li>Arahkan kamera ke kode QR di samping.</li>
+              <li>Pastikan nama penerima <strong>Sukunaru Studio</strong>.</li>
               <li>Masukkan nominal dukungan sukarela &amp; konfirmasi.</li>
             </ol>
             <div className="text-[11px] text-[#898989] pt-1">
@@ -214,7 +215,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onNavigate, settings }
           </div>
         </div>
         <a
-          href="https://wa.me/6289519203345?text=Halo%20Sukunaru%20Studio%2C%20saya%20telah%20mengirimkan%20dukungan%20donasi%20untuk%20pengembangan%20aplikasi%20BisnisUrang."
+          href="https://wa.me/6289519203345?text=Halo%20Sukunaru%20Studio%2C%20saya%20telah%20mengirimkan%20dukungan%20donasi%20untuk%20pengembangan%20aplikasi%20Sukunaru%20ONE."
           target="_blank"
           rel="noopener noreferrer"
           className="px-4 py-2 bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] rounded-xl text-xs font-bold transition-colors cursor-pointer active:scale-95 shrink-0"

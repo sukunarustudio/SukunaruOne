@@ -234,10 +234,6 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
 
         {/* Quick Presets Pills */}
         <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-          <span className="text-[11px] font-bold text-[#898989] flex items-center gap-1 shrink-0 mr-1">
-            <BoltIcon className="w-3.5 h-3.5 text-[#FF9B51]" />
-            Template:
-          </span>
           {presets.map(p => (
             <button
               key={p.label}
@@ -253,7 +249,6 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
 
       {/* ── MOBILE PRESETS BAR ── */}
       <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        <span className="text-[10px] font-bold text-[#898989] shrink-0 mr-0.5">Template Cepat:</span>
         {presets.map(p => (
           <button
             key={p.label}

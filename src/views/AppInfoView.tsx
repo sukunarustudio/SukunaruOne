@@ -30,13 +30,13 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
     },
   ];
 
-  const sysSpecs = [
-    { label: 'Versi Aplikasi', value: 'v1.1.0 — Sukunaru ONE', icon: InformationCircleIcon },
-    { label: 'Database', value: 'SQLite 3 (better-sqlite3, WAL Mode)', icon: CircleStackIcon },
-    { label: 'Framework', value: 'React 19 + TypeScript', icon: CodeBracketIcon },
-    { label: 'Tampilan', value: 'Tailwind CSS v4', icon: SparklesIcon },
-    { label: 'Mode', value: 'Local-First / Offline', icon: ServerIcon },
-    { label: 'Platform', value: 'Web App (Desktop & Android)', icon: ComputerDesktopIcon },
+  const appSpecs = [
+    { label: 'Nama Aplikasi', value: 'Sukunaru ONE', icon: InformationCircleIcon },
+    { label: 'Versi Rilis', value: 'v1.1.0 Stable Release', icon: SparklesIcon },
+    { label: 'Status Lisensi', value: 'PRO / Lifetime Edition', icon: ShieldCheckIcon },
+    { label: 'Penyimpanan Data', value: 'Database Internal Lokal (100% Offline)', icon: CircleStackIcon },
+    { label: 'Pengembang', value: 'Sukunaru Studio', icon: ServerIcon },
+    { label: 'Perangkat', value: 'Android APK & Web Desktop', icon: ComputerDesktopIcon },
   ];
 
   return (
@@ -123,11 +123,11 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
         {/* Specs */}
         <div className="lg:col-span-3 bg-white border border-[#BFC9D1]/25 rounded-xl p-5 shadow-sm">
           <div className="flex items-center gap-2 border-b border-zinc-100 pb-3 mb-4">
-            <Square3Stack3DIcon className="w-4 h-4 text-zinc-600" />
-            <h2 className="text-sm font-bold text-[#25343F]">Spesifikasi Teknis</h2>
+            <InformationCircleIcon className="w-4 h-4 text-zinc-600" />
+            <h2 className="text-sm font-bold text-[#25343F]">Informasi Aplikasi & Lisensi</h2>
           </div>
           <div className="space-y-3">
-            {sysSpecs.map((spec, i) => {
+            {appSpecs.map((spec, i) => {
               const Icon = spec.icon;
               return (
                 <div key={i} className="flex items-start gap-2.5">
