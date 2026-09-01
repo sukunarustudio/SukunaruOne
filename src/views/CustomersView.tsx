@@ -65,6 +65,15 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   useEffect(() => {
     loadData();
+    const handleRefresh = () => {
+      api.getCustomers().then(c => setCustomers(c)).catch(() => {});
+    };
+    window.addEventListener('sukunaru:sync_completed', handleRefresh);
+    window.addEventListener('sukunaru:data_mutation', handleRefresh);
+    return () => {
+      window.removeEventListener('sukunaru:sync_completed', handleRefresh);
+      window.removeEventListener('sukunaru:data_mutation', handleRefresh);
+    };
   }, [targetCustomerId]);
 
   const filteredCustomers = customers.filter(

@@ -70,6 +70,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
 
   useEffect(() => {
     loadData();
+    const handleRefresh = () => {
+      api.getMaterials().then(m => setMaterials(m)).catch(() => {});
+      api.getMovements().then(mov => setMovements(mov)).catch(() => {});
+    };
+    window.addEventListener('sukunaru:sync_completed', handleRefresh);
+    window.addEventListener('sukunaru:data_mutation', handleRefresh);
+    return () => {
+      window.removeEventListener('sukunaru:sync_completed', handleRefresh);
+      window.removeEventListener('sukunaru:data_mutation', handleRefresh);
+    };
   }, []);
 
   const categories = ['SEMUA', ...Array.from(new Set(materials.map(m => m.category).filter(Boolean)))];

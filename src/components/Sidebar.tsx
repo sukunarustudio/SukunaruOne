@@ -1,6 +1,7 @@
 import React from 'react';
-import { Squares2X2Icon, BuildingStorefrontIcon, ClipboardDocumentListIcon, UsersIcon, CubeIcon, CalculatorIcon, Square3Stack3DIcon, WalletIcon, ReceiptPercentIcon, DocumentTextIcon, ArrowTrendingUpIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, BookOpenIcon, ChatBubbleLeftEllipsisIcon, HeartIcon, ChevronDoubleLeftIcon, XMarkIcon, CircleStackIcon } from '@heroicons/react/24/outline';
+import { Squares2X2Icon, BuildingStorefrontIcon, ClipboardDocumentListIcon, UsersIcon, CubeIcon, CalculatorIcon, Square3Stack3DIcon, WalletIcon, ReceiptPercentIcon, DocumentTextIcon, ArrowTrendingUpIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, BookOpenIcon, ChatBubbleLeftEllipsisIcon, HeartIcon, ChevronDoubleLeftIcon, XMarkIcon, CircleStackIcon, LockClosedIcon, CloudArrowUpIcon, SwatchIcon } from '@heroicons/react/24/outline';
 import { ViewType, BusinessSettings } from '../types';
+import { useLicense } from '../hooks/useLicense';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -25,6 +26,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen = false,
   onCloseMobile,
 }) => {
+  const { isPro } = useLicense();
+  const proViews: ViewType[] = ['orders', 'hpp', 'finance', 'sales-report', 'profit-report', 'stock-report'];
+
   const handleNav = (v: ViewType) => {
     if (typeof onNavigate === 'function') {
       onNavigate(v);
@@ -88,7 +92,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'SISTEM',
       items: [
         { id: 'settings' as ViewType, label: 'Pengaturan', icon: Cog6ToothIcon },
-        { id: 'backup' as ViewType, label: 'Cadangan Data', icon: CircleStackIcon },
+        { id: 'appearance' as ViewType, label: 'Tampilan & Tema', icon: SwatchIcon },
+        { id: 'backup' as ViewType, label: 'Cadangan Data & Sinkronisasi Cloud', icon: CloudArrowUpIcon },
         { id: 'app-info' as ViewType, label: 'Versi Aplikasi', icon: InformationCircleIcon },
       ],
     },
@@ -97,7 +102,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'guide' as ViewType, label: 'Panduan Penggunaan', icon: BookOpenIcon },
         { id: 'contact' as ViewType, label: 'Hubungi Kami', icon: ChatBubbleLeftEllipsisIcon },
-        { id: 'support' as ViewType, label: 'Dukung Aplikasi', icon: HeartIcon },
       ],
     },
   ];
@@ -164,6 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {section.items.map(item => {
                 const Icon = item.icon;
                 const isActive = currentView === item.id;
+                const isLocked = !isPro && proViews.includes(item.id);
                 return (
                   <button
                     key={item.id}
@@ -184,13 +189,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span className="truncate">{item.label}</span>
                     </div>
 
-                    {item.badge !== undefined && (
-                      <span
-                        className={`px-1.5 py-0.2 text-[10px] font-bold rounded-md ${item.badgeColor}`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isLocked && (
+                        <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#FF9B51]/15 text-[#FF9B51] border border-[#FF9B51]/30" title="Fitur Pro">
+                          <LockClosedIcon className="w-2.5 h-2.5" />
+                          PRO
+                        </span>
+                      )}
+                      {item.badge !== undefined && !isLocked && (
+                        <span
+                          className={`px-1.5 py-0.2 text-[10px] font-bold rounded-md ${item.badgeColor}`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -211,14 +224,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
-    /* Desktop Persistent Sidebar (hidden when collapsed or on mobile) */
-    <aside
-      id="main-sidebar"
-      className={`hidden lg:flex w-60 shrink-0 border-r border-[#BFC9D1]/40 h-screen sticky top-0 z-20 transition-all duration-200 ${
-        isCollapsed ? 'lg:hidden' : 'lg:flex'
-      }`}
-    >
-      {sidebarContent}
-    </aside>
+    <>
+      {/* Tablet & Desktop Persistent Sidebar (md/lg screens) */}
+      <aside
+        id="main-sidebar"
+        className={`hidden md:flex w-56 lg:w-60 shrink-0 border-r border-[#BFC9D1]/40 h-screen sticky top-0 z-20 transition-all duration-200 ${
+          isCollapsed ? 'md:hidden' : 'md:flex'
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile / Tablet Drawer Overlay */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex animate-fade-in">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs"
+            onClick={onCloseMobile}
+          />
+          <div className="relative w-64 max-w-[80vw] h-full z-10 shadow-2xl">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

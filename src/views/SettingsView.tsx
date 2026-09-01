@@ -13,12 +13,17 @@ import {
   XCircleIcon,
   PhotoIcon,
   ArrowLeftIcon,
-  ServerIcon,
-  WifiIcon,
+  SwatchIcon,
+  ChevronRightIcon,
+  SparklesIcon,
+  CloudArrowUpIcon,
+  ExclamationTriangleIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
-import { api, getApiBaseUrl, setApiBaseUrl } from '../services/api';
+import { api } from '../services/api';
 import { BusinessSettings } from '../types';
 import { useToast } from '../components/Toast';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 interface SettingsViewProps {
   settings: BusinessSettings;
@@ -43,40 +48,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isDeletingLogo, setIsDeletingLogo] = useState(false);
-
-  // Server API URL Configuration (Capacitor Android / Multi-Device support)
-  const [serverUrl, setServerUrl] = useState<string>(() => getApiBaseUrl());
-  const [isTestingServer, setIsTestingServer] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
-
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  const handleTestConnection = async () => {
-    setIsTestingServer(true);
-    setTestResult(null);
+  const [isClearingTransactions, setIsClearingTransactions] = useState(false);
+  const [isClearTransactionsConfirmOpen, setIsClearTransactionsConfirmOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+
+  const handleClearAllTransactions = async () => {
     try {
-      const res = await api.checkConnection(serverUrl);
-      setTestResult(res);
-      if (res.success) {
-        showToast(res.message, 'success');
-      } else {
-        showToast(res.message, 'error');
-      }
+      setIsClearingTransactions(true);
+      const res = await api.clearAllTransactions({ resetExpenses: true, resetMovements: true });
+      showToast(res.message || 'Semua riwayat transaksi & arus kas berhasil dihapus!', 'success');
+      setIsClearTransactionsConfirmOpen(false);
+      if (onRefreshDashboard) onRefreshDashboard();
     } catch (err: any) {
-      setTestResult({ success: false, message: err.message || 'Koneksi gagal' });
-      showToast(err.message || 'Koneksi gagal', 'error');
+      showToast(err.message || 'Gagal menghapus transaksi', 'error');
     } finally {
-      setIsTestingServer(false);
+      setIsClearingTransactions(false);
     }
   };
 
-  const handleSaveServerUrl = () => {
-    setApiBaseUrl(serverUrl);
-    showToast('Alamat server API berhasil disimpan!', 'success');
-    if (onRefreshDashboard) onRefreshDashboard();
-  };
-
-  // Handle Business Logo / Profile Picture ArrowUpTrayIcon
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -123,13 +114,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
+  // Handle Save Form Settings
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setIsSaving(true);
       const updated = await api.updateSettings(formData);
       onUpdateSettings(updated);
-      showToast('Pengaturan bisnis berhasil disimpan!', 'success');
+      showToast('Pengaturan bisnis berhasil diperbarui!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal menyimpan pengaturan', 'error');
     } finally {
@@ -156,7 +148,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               Pengaturan
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-              Konfigurasi bisnis, dokumen & data aplikasi
+              Konfigurasi tampilan, dokumen & data aplikasi
             </p>
           </div>
         </div>
@@ -181,7 +173,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="border-b border-slate-100 pb-3">
           <h3 className="font-extrabold text-sm text-[#25343F]">Format Penomoran Dokumen & Struk</h3>
           <p className="text-[#898989] text-xs">
-            Konfigurasi tampilan nota kasir dan penomoran SPK.
+            Konfigurasi penomoran nota kasir, faktur invoice, dan pesan footer struk.
           </p>
         </div>
 
@@ -224,78 +216,85 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </form>
 
-      {/* ── KONEKSI SERVER API (UNTUK APK ANDROID & MULTI-DEVICE) ── */}
-      <div className="bg-white p-6 rounded-2xl border border-[#BFC9D1]/25 shadow-md space-y-4 text-xs">
-        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-          <div className="p-2 bg-[#FF9B51]/15 text-[#FF9B51] rounded-xl">
-            <ServerIcon className="w-5 h-5" />
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ZONA BAHAYA                                               */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-rose-200/80 shadow-md space-y-3.5">
+        <div className="flex items-center gap-2.5 pb-3 border-b border-rose-100">
+          <div className="w-8 h-8 rounded-lg bg-[#FFE6D6] text-[#c45e00] flex items-center justify-center shrink-0">
+            <ExclamationTriangleIcon className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-extrabold text-sm text-[#25343F]">Koneksi Server API (APK Android / Multi-Device)</h3>
-            <p className="text-[#898989] text-xs">
-              Hubungkan aplikasi HP Android ke database komputer/server toko Anda.
-            </p>
+            <h3 className="font-black text-sm text-[#c45e00]">Zona Bahaya</h3>
+            <p className="text-[#898989] text-[11px]">Tindakan berikut bersifat permanen.</p>
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className="block font-bold text-[#25343F] mb-1">
-              Alamat URL Server Backend (IP / Domain)
-            </label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={serverUrl}
-                onChange={e => {
-                  setServerUrl(e.target.value);
-                  setTestResult(null);
-                }}
-                placeholder="misal: http://192.168.1.15:3000 atau https://api.domainanda.com"
-                className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-[#BFC9D1]/30 rounded-xl font-mono text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF9B51]"
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={isTestingServer}
-                  onClick={handleTestConnection}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#25343F] font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <WifiIcon className="w-4 h-4" />
-                  <span>{isTestingServer ? 'Menguji...' : 'Tes Koneksi'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveServerUrl}
-                  className="px-4 py-2.5 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md active:scale-95"
-                >
-                  <span>Simpan URL</span>
-                </button>
+        {/* Hapus Riwayat */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-rose-50/60 rounded-xl border border-rose-200/60">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 font-bold text-rose-900 text-xs sm:text-sm">
+              <TrashIcon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <span>Hapus Semua Riwayat Transaksi</span>
+            </div>
+            <p className="text-[11px] text-[#898989] mt-1 leading-relaxed">
+              Hapus invoice, struk kasir & arus kas. Data produk, bahan, dan pelanggan tetap tersimpan.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsClearTransactionsConfirmOpen(true)}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer active:scale-95 transition-colors shadow-sm"
+          >
+            Hapus Riwayat
+          </button>
+        </div>
+
+        {/* Reset Sample */}
+        {onResetSampleData && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#EAEFEF]/60 rounded-xl border border-[#BFC9D1]/30">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 font-bold text-[#25343F] text-xs sm:text-sm">
+                <ArrowPathIcon className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
+                <span>Muat Ulang Data Sampel Default</span>
               </div>
+              <p className="text-[11px] text-[#898989] mt-1 leading-relaxed">
+                Kembalikan database ke template bawaan Sukunaru Studio untuk demo.
+              </p>
             </div>
-            <p className="text-[11px] text-[#898989] mt-1.5 leading-relaxed">
-              💡 <strong>Tips APK:</strong> Pastikan HP dan Komputer Kasir terhubung di <strong>jaringan Wi-Fi yang sama</strong>. Masukkan alamat IP komputer Anda diikuti port 3000 (contoh: <code>http://192.168.1.50:3000</code>). Jika kosong, aplikasi menggunakan server bawaan.
-            </p>
-          </div>
-
-          {testResult && (
-            <div
-              className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-semibold ${
-                testResult.success
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                  : 'bg-rose-50 border-rose-200 text-rose-800'
-              }`}
+            <button
+              type="button"
+              onClick={() => setIsResetConfirmOpen(true)}
+              className="px-4 py-2 bg-[#25343F] hover:bg-[#1b262f] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer active:scale-95 transition-colors shadow-sm"
             >
-              {testResult.success ? (
-                <CheckCircleIcon className="w-5 h-5 text-emerald-600 shrink-0" />
-              ) : (
-                <XCircleIcon className="w-5 h-5 text-rose-600 shrink-0" />
-              )}
-              <span>{testResult.message}</span>
-            </div>
-          )}
-        </div>
+              Reset Sample
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Confirm Dialogs */}
+      <ConfirmDialog
+        isOpen={isClearTransactionsConfirmOpen}
+        title="Hapus Semua Riwayat Transaksi?"
+        message="Tindakan ini akan mengosongkan seluruh riwayat pesanan, struk kasir, pengeluaran, dan arus kas. Data bahan dan produk tetap tersimpan."
+        confirmLabel={isClearingTransactions ? 'Menghapus...' : 'Ya, Hapus Semua'}
+        isDanger={true}
+        onConfirm={handleClearAllTransactions}
+        onCancel={() => setIsClearTransactionsConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        isOpen={isResetConfirmOpen}
+        title="Reset ke Data Sampel Default?"
+        message="Seluruh data saat ini akan digantikan dengan data contoh awal Sukunaru Studio."
+        confirmLabel="Ya, Reset Sekarang"
+        isDanger={false}
+        onConfirm={() => {
+          setIsResetConfirmOpen(false);
+          if (onResetSampleData) onResetSampleData();
+        }}
+        onCancel={() => setIsResetConfirmOpen(false)}
+      />
     </div>
   );
 };

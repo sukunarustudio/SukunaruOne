@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CubeIcon, PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, Square3Stack3DIcon, TagIcon, ReceiptPercentIcon, EyeIcon, AdjustmentsHorizontalIcon, ArrowsUpDownIcon, XMarkIcon, EllipsisVerticalIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, SparklesIcon, InformationCircleIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { CubeIcon, PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, Square3Stack3DIcon, TagIcon, ReceiptPercentIcon, EyeIcon, AdjustmentsHorizontalIcon, ArrowsUpDownIcon, XMarkIcon, EllipsisVerticalIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, SparklesIcon, InformationCircleIcon, ArrowLeftIcon, QrCodeIcon, PrinterIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import { Product, Material, ProductComponent, ProductType } from '../types';
 import { formatRupiah } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ProductImage, ProductImageUploader } from '../components/ProductImage';
+import { generateBarcodeValue, validateBarcodeValue, renderBarcodeToSvg, BarcodeFormat, BARCODE_FORMAT_LABELS } from '../lib/barcodeUtils';
+import { BarcodeLabelPrintModal } from '../components/BarcodeLabelPrintModal';
 
 interface ProductsViewProps {
   onOpenHppCalculator?: (productId?: string) => void;
@@ -64,6 +66,17 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [targetMarginPercent, setTargetMarginPercent] = useState<number>(50);
 
+  // Barcode form state
+  const [barcodeValue, setBarcodeValue] = useState('');
+  const [barcodeType, setBarcodeType] = useState<BarcodeFormat>('CODE128');
+  const [barcodeError, setBarcodeError] = useState('');
+  const [isGeneratingBarcode, setIsGeneratingBarcode] = useState(false);
+  const barcodeSvgRef = useRef<SVGSVGElement>(null);
+
+  // Barcode label print modal
+  const [isLabelPrintOpen, setIsLabelPrintOpen] = useState(false);
+  const [labelPrintProductId, setLabelPrintProductId] = useState<string | undefined>();
+
   // Delete Confirm State
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
@@ -98,6 +111,17 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
 
   useEffect(() => {
     loadData();
+    const handleRefresh = () => {
+      // Background reload data without resetting form/filter state
+      api.getProducts().then(p => setProducts(p)).catch(() => {});
+      api.getMaterials().then(m => setMaterials(m)).catch(() => {});
+    };
+    window.addEventListener('sukunaru:sync_completed', handleRefresh);
+    window.addEventListener('sukunaru:data_mutation', handleRefresh);
+    return () => {
+      window.removeEventListener('sukunaru:sync_completed', handleRefresh);
+      window.removeEventListener('sukunaru:data_mutation', handleRefresh);
+    };
   }, []);
 
   const categories = ['SEMUA', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
@@ -110,6 +134,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
       const matchesSearch =
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.barcode && p.barcode.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
 
       let matchesMargin = true;
@@ -163,6 +188,9 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
     setOtherCost(0);
     setSellingPrice(0);
     setTargetMarginPercent(50);
+    setBarcodeValue('');
+    setBarcodeType('CODE128');
+    setBarcodeError('');
     setPendingImageFile(null);
     setFormImagePath(null);
     setFormThumbnailPath(null);
@@ -184,6 +212,9 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
     setOtherCost(prod.otherCost || 0);
     setSellingPrice(prod.sellingPrice);
     setTargetMarginPercent(prod.marginPercent || 50);
+    setBarcodeValue(prod.barcode || '');
+    setBarcodeType((prod.barcodeType as BarcodeFormat) || 'CODE128');
+    setBarcodeError('');
     setPendingImageFile(null);
     setFormImagePath(prod.imagePath || null);
     setFormThumbnailPath(prod.thumbnailPath || null);
@@ -206,6 +237,9 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
     setOtherCost(prod.otherCost || 0);
     setSellingPrice(prod.sellingPrice);
     setTargetMarginPercent(prod.marginPercent || 50);
+    setBarcodeValue(''); // Don't duplicate barcode to avoid uniqueness conflict
+    setBarcodeType('CODE128');
+    setBarcodeError('');
     setPendingImageFile(null);
     setFormImagePath(null);
     setFormThumbnailPath(null);
@@ -214,6 +248,38 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
     setActiveMenuProductId(null);
     showToast('Form duplikasi produk siap disimpan', 'info');
   };
+
+  // Auto-generate barcode value
+  const handleAutoGenerateBarcode = () => {
+    setIsGeneratingBarcode(true);
+    const mockId = editingProduct?.id || `prod_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const generated = generateBarcodeValue(mockId);
+    setBarcodeValue(generated);
+    setBarcodeType('CODE128');
+    setBarcodeError('');
+    setTimeout(() => setIsGeneratingBarcode(false), 200);
+  };
+
+  // Render barcode preview SVG whenever barcodeValue or barcodeType changes in form modal
+  useEffect(() => {
+    if (!isFormModalOpen || !barcodeValue.trim() || !barcodeSvgRef.current) return;
+    const val = barcodeValue.trim();
+    const check = validateBarcodeValue(val, barcodeType);
+    if (!check.valid) {
+      setBarcodeError(check.error || 'Format barcode tidak valid');
+      return;
+    }
+    setBarcodeError('');
+    renderBarcodeToSvg(barcodeSvgRef.current, val, barcodeType, {
+      width: 1.8,
+      height: 45,
+      fontSize: 11,
+      margin: 4,
+      displayValue: true,
+    }).catch(err => {
+      console.warn('Failed to render barcode SVG preview:', err);
+    });
+  }, [barcodeValue, barcodeType, isFormModalOpen]);
 
   const handleAddComponent = () => {
     if (materials.length === 0) {
@@ -283,6 +349,14 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
       };
     });
 
+    if (barcodeValue.trim()) {
+      const check = validateBarcodeValue(barcodeValue.trim(), barcodeType);
+      if (!check.valid) {
+        showToast(check.error || 'Format barcode tidak valid', 'error');
+        return;
+      }
+    }
+
     const payload = {
       sku: sku.trim(),
       name: name.trim(),
@@ -296,6 +370,8 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
         calculatedCostPrice > 0
           ? Math.round(((sellingPrice - calculatedCostPrice) / calculatedCostPrice) * 100)
           : 0,
+      barcode: barcodeValue.trim() || undefined,
+      barcodeType: barcodeValue.trim() ? barcodeType : undefined,
       components: enrichedComponents,
       laborCost,
       machineCost,
@@ -398,6 +474,20 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Barcode Label Print Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setLabelPrintProductId(undefined);
+                setIsLabelPrintOpen(true);
+              }}
+              className="h-9 px-2.5 rounded-xl border border-[#BFC9D1]/25 bg-white hover:bg-[#EAEFEF] text-[#25343F] flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 text-xs font-semibold"
+              title="Cetak Label Barcode"
+            >
+              <PrinterIcon className="w-4 h-4 text-[#FF9B51]" />
+              <span className="hidden sm:inline">Cetak Label</span>
+            </button>
+
             {/* Search Toggle Icon */}
             <button
               type="button"
@@ -764,6 +854,18 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
                       >
                         <button
                           type="button"
+                          onClick={() => {
+                            setActiveMenuProductId(null);
+                            setLabelPrintProductId(prod.id);
+                            setIsLabelPrintOpen(true);
+                          }}
+                          className="w-full min-h-[38px] px-3.5 py-2 text-left text-[#25343F] hover:bg-[#EAEFEF] flex items-center gap-2 cursor-pointer font-medium"
+                        >
+                          <QrCodeIcon className="w-4 h-4 text-[#25343F]" />
+                          <span>Cetak Label Barcode</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleDuplicateProduct(prod)}
                           className="w-full min-h-[38px] px-3.5 py-2 text-left text-[#25343F] hover:bg-[#EAEFEF] flex items-center gap-2 cursor-pointer font-medium"
                         >
@@ -907,6 +1009,16 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
                       {/* Actions */}
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => {
+                              setLabelPrintProductId(prod.id);
+                              setIsLabelPrintOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg text-[#25343F] hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 cursor-pointer"
+                            title="Cetak Label Barcode"
+                          >
+                            <QrCodeIcon className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => setSelectedDetailProduct(prod)}
                             className="p-1.5 rounded-lg text-[#25343F] hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 cursor-pointer"
@@ -1271,6 +1383,80 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
                 />
               </div>
 
+              {/* ── BARCODE SECTION ── */}
+              <div className="p-3 sm:p-3.5 bg-[#EAEFEF] rounded-xl border border-[#BFC9D1]/25 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <QrCodeIcon className="w-4 h-4 text-[#25343F] shrink-0" />
+                    <h4 className="font-bold text-[#25343F] text-xs sm:text-sm">Barcode Produk</h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateBarcode}
+                    disabled={isGeneratingBarcode}
+                    className="px-2.5 py-1 bg-white hover:bg-[#FF9B51]/10 text-[#25343F] border border-[#BFC9D1]/40 rounded-lg text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    <SparklesIcon className="w-3 h-3 text-[#FF9B51]" />
+                    {isGeneratingBarcode ? 'Membuat...' : 'Generate Otomatis'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#898989] mb-1">Format Barcode</label>
+                    <select
+                      value={barcodeType}
+                      onChange={e => setBarcodeType(e.target.value as BarcodeFormat)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-[#BFC9D1]/25 rounded-lg text-xs font-semibold"
+                    >
+                      {(Object.keys(BARCODE_FORMAT_LABELS) as BarcodeFormat[]).map(fmt => (
+                        <option key={fmt} value={fmt}>
+                          {BARCODE_FORMAT_LABELS[fmt]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-[#898989] mb-1">
+                      Kode / Nilai Barcode <span className="text-[#898989] font-normal">(opsional)</span>
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={barcodeValue}
+                        onChange={e => setBarcodeValue(e.target.value)}
+                        placeholder="Contoh: SKN-8DA2T5C4 atau 8991234567890"
+                        className="flex-1 px-2.5 py-1.5 bg-white border border-[#BFC9D1]/25 rounded-lg text-xs font-mono"
+                      />
+                      {barcodeValue && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(barcodeValue);
+                            showToast('Kode barcode disalin ke clipboard', 'success');
+                          }}
+                          className="p-1.5 bg-white hover:bg-slate-100 border border-[#BFC9D1]/25 rounded-lg text-[#898989] hover:text-[#25343F] cursor-pointer"
+                          title="Salin barcode"
+                        >
+                          <ClipboardDocumentIcon className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {barcodeError && (
+                  <p className="text-[11px] text-red-500 font-medium">{barcodeError}</p>
+                )}
+
+                {/* Live SVG Barcode Preview */}
+                {barcodeValue.trim() && !barcodeError && (
+                  <div className="bg-white p-2.5 rounded-lg border border-[#BFC9D1]/25 flex flex-col items-center justify-center">
+                    <svg ref={barcodeSvgRef} className="max-w-full h-auto" />
+                  </div>
+                )}
+              </div>
+
               {/* BOM (Bill of Materials) Components */}
               <div className="p-3 sm:p-3.5 bg-[#EAEFEF] rounded-xl border border-[#BFC9D1]/25 space-y-3">
                 <div className="flex items-center justify-between gap-2">
@@ -1549,6 +1735,32 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
                 </div>
               </div>
 
+              {/* Barcode Info in Detail */}
+              {selectedDetailProduct.barcode && (
+                <div className="p-3 bg-[#EAEFEF] rounded-xl border border-[#BFC9D1]/25 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <QrCodeIcon className="w-5 h-5 text-[#25343F]" />
+                    <div>
+                      <span className="text-[10px] text-[#898989] font-bold block uppercase">Barcode ({selectedDetailProduct.barcodeType || 'CODE128'})</span>
+                      <span className="font-mono font-bold text-xs text-[#25343F]">{selectedDetailProduct.barcode}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = selectedDetailProduct.id;
+                      setSelectedDetailProduct(null);
+                      setLabelPrintProductId(id);
+                      setIsLabelPrintOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-white border border-[#BFC9D1]/30 text-xs font-bold text-[#25343F] hover:bg-[#FF9B51]/10 flex items-center gap-1 cursor-pointer shadow-2xs"
+                  >
+                    <PrinterIcon className="w-3.5 h-3.5 text-[#FF9B51]" />
+                    <span>Cetak Label</span>
+                  </button>
+                </div>
+              )}
+
               {/* BOM Components List */}
               {selectedDetailProduct.components && selectedDetailProduct.components.length > 0 && (
                 <div className="space-y-1.5 pt-2 border-t border-slate-100">
@@ -1591,6 +1803,17 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
         confirmLabel="Hapus Produk"
         onConfirm={handleDeleteProduct}
         onCancel={() => setProductToDelete(null)}
+      />
+
+      {/* Barcode Label Print Modal */}
+      <BarcodeLabelPrintModal
+        isOpen={isLabelPrintOpen}
+        onClose={() => {
+          setIsLabelPrintOpen(false);
+          setLabelPrintProductId(undefined);
+        }}
+        products={products}
+        initialProductId={labelPrintProductId}
       />
 
       {/* ── Floating Action Button (FAB) Tambah Produk ── */}

@@ -38,11 +38,260 @@
   --color-background: #EAEFEF;
 }
 
+:root {
+  --color-accent: #FF6A00;
+  --color-accent-rgb: 255, 106, 0;
+  --color-accent-hover: #e65c00;
+  --color-accent-active: #cc5200;
+  --color-accent-soft: rgba(255, 106, 0, 0.12);
+  --color-accent-contrast: #FFFFFF;
+
+  --hero-gradient: linear-gradient(135deg, #FF8A1F 0%, #FF5A0A 50%, #D93600 100%);
+  --hero-glow: #FFD166;
+  --hero-pattern: rgba(255, 255, 255, 0.14);
+  --hero-border: rgba(255, 255, 255, 0.30);
+  --hero-accent: #B7FF4A;
+  --hero-shadow: rgba(255, 90, 10, 0.38);
+
+  --hero-start: #FF8A1F;
+  --hero-end: #D93600;
+  --hero-text: #FFFFFF;
+
+  /* Safe Area Insets */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-sknr-mist: #0F172A;
+  --color-sknr-navy: #F8FAFC;
+  --color-sknr-blue-gray: #334155;
+}
+
+html.dark body {
+  background-color: #0B0F17 !important;
+  color: #F1F5F9 !important;
+}
+
+/* Dashboard Header Title (Dark gray in Light mode, White in Dark mode) */
+#dashboard-header-title,
+.dashboard-title-text {
+  color: #25343F !important;
+}
+
+html.dark #dashboard-header-title,
+html.dark .dashboard-title-text {
+  color: #FFFFFF !important;
+}
+
+/* ── Dynamic Accent Mapping (Overrides hardcoded Tailwind classes) ── */
+.bg-\[\#FF9B51\],
+.bg-\[\#ff9b51\] {
+  background-color: var(--color-accent) !important;
+  color: var(--color-accent-contrast) !important;
+}
+
+.text-\[\#FF9B51\],
+.text-\[\#ff9b51\] {
+  color: var(--color-accent) !important;
+}
+
+.border-\[\#FF9B51\],
+.border-\[\#ff9b51\],
+.border-\[\#FF9B51\]\/30,
+.border-\[\#FF9B51\]\/40 {
+  border-color: var(--color-accent) !important;
+}
+
+.ring-\[\#FF9B51\],
+.ring-\[\#ff9b51\] {
+  --tw-ring-color: var(--color-accent) !important;
+}
+
+.bg-\[\#FFF0E6\],
+.bg-\[\#fff0e6\],
+.bg-\[\#FF9B51\]\/15,
+.bg-\[\#FF9B51\]\/20,
+.bg-\[\#FF9B51\]\/10 {
+  background-color: var(--color-accent-soft) !important;
+}
+
+.hover\:bg-\[\#ff8c38\]:hover,
+.hover\:bg-\[\#FF9B51\]:hover,
+.hover\:bg-\[\#ff9b51\]:hover {
+  background-color: var(--color-accent-hover) !important;
+}
+
+.hover\:text-\[\#FF9B51\]:hover,
+.hover\:text-\[\#ff9b51\]:hover {
+  color: var(--color-accent-hover) !important;
+}
+
+/* ── Dark Mode Global Overrides ── */
+html.dark .bg-white,
+html.dark .bg-white\/98,
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark [class*="bg-white"] {
+  background-color: #151D28 !important;
+  color: #F1F5F9;
+}
+
+html.dark .bg-\[\#EAEFEF\],
+html.dark .bg-\[\#eaefef\],
+html.dark #main-content-scrollable,
+html.dark #main-topbar,
+html.dark #mobile-bottom-navigation,
+html.dark aside#main-sidebar {
+  background-color: #0F172A !important;
+}
+
+html.dark .bg-\[\#EAEFEF\]\/40,
+html.dark .bg-\[\#EAEFEF\]\/50,
+html.dark .bg-\[\#EAEFEF\]\/60,
+html.dark .bg-\[\#EAEFEF\]\/70,
+html.dark .bg-\[\#EAEFEF\]\/30 {
+  background-color: rgba(30, 41, 59, 0.7) !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-zinc-50 {
+  background-color: #1A2332 !important;
+}
+
+html.dark .bg-slate-100,
+html.dark .bg-zinc-100 {
+  background-color: #1E293B !important;
+}
+
+html.dark .text-\[\#25343F\],
+html.dark .text-\[\#25343f\],
+html.dark .text-zinc-900,
+html.dark .text-slate-900,
+html.dark .text-zinc-700,
+html.dark .text-slate-700 {
+  color: #F8FAFC !important;
+}
+
+html.dark .text-\[\#898989\],
+html.dark .text-\[\#898989\]\/70,
+html.dark .text-zinc-500,
+html.dark .text-slate-500 {
+  color: #94A3B8 !important;
+}
+
+html.dark .border-\[\#BFC9D1\]\/25,
+html.dark .border-\[\#BFC9D1\]\/30,
+html.dark .border-\[\#BFC9D1\]\/40,
+html.dark .border-\[\#BFC9D1\]\/50,
+html.dark .border-\[\#BFC9D1\]\/60,
+html.dark .border-\[\#BFC9D1\],
+html.dark .border-zinc-100,
+html.dark .border-zinc-200,
+html.dark .border-slate-100,
+html.dark .border-slate-200 {
+  border-color: rgba(148, 163, 184, 0.15) !important;
+}
+
+/* All divide lines, children & inner borders in Dark Mode */
+html.dark [class*="divide-"] > *,
+html.dark [class*="divide-y"] > *,
+html.dark [class*="divide-x"] > *,
+html.dark .divide-y > *,
+html.dark .divide-x > *,
+html.dark [class*="divide-"],
+html.dark .divide-y > * + *,
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-zinc-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-zinc-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#BFC9D1\]\/25 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#BFC9D1\]\/30 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-\[\#BFC9D1\]\/40 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html.dark [class*="ring-white"] {
+  --tw-ring-color: rgba(148, 163, 184, 0.15) !important;
+}
+
+html.dark hr {
+  border-color: rgba(148, 163, 184, 0.14) !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1A2332 !important;
+  color: #F8FAFC !important;
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748B !important;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  background-color: #1E293B !important;
+  border-color: var(--color-accent) !important;
+}
+
+html.dark table thead tr {
+  background-color: #1A2332 !important;
+}
+
+html.dark table tbody tr {
+  border-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+html.dark table tbody tr:hover {
+  background-color: #1E293B !important;
+}
+
+/* Custom Dynamic Accent & Hero helpers */
+.btn-accent-primary {
+  background-color: var(--color-accent) !important;
+  color: var(--color-accent-contrast) !important;
+}
+
+.btn-accent-primary:hover {
+  background-color: var(--color-accent-hover) !important;
+}
+
+.badge-accent {
+  background-color: var(--color-accent-soft) !important;
+  color: var(--color-accent) !important;
+}
+
+.hero-banner-custom {
+  background: linear-gradient(135deg, var(--hero-start) 0%, var(--hero-end) 100%) !important;
+  color: var(--hero-text) !important;
+}
+
 @layer base {
   * {
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    box-sizing: border-box;
   }
   
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+  }
+
   body {
     font-family: 'Funnel Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: #18181b;
@@ -176,49 +425,62 @@
   }
 }
 
-.premium-fintech-card {
+.premium-fintech-card,
+.hero-card,
+.hero-banner-custom {
   position: relative;
   overflow: hidden;
   border-radius: 1.25rem; /* rounded-2xl */
-  background: linear-gradient(135deg, #38B6FF 0%, #0B90FE 45%, #0060DC 100%);
-  background-size: 200% 200%;
-  animation: premium-gradient 12s ease-in-out infinite;
-  box-shadow: 0 10px 25px -5px rgba(11, 144, 254, 0.35), 0 8px 10px -6px rgba(11, 144, 254, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  background:
+    radial-gradient(circle at 18% 22%, var(--hero-glow, rgba(255, 209, 102, 0.35)) 0%, transparent 45%),
+    radial-gradient(circle at 82% 82%, var(--hero-glow, rgba(255, 209, 102, 0.20)) 0%, transparent 50%),
+    var(--hero-gradient, linear-gradient(135deg, var(--hero-start, #FF8A1F) 0%, var(--hero-end, #D93600) 100%)) !important;
+  background-size: 150% 150%;
+  animation: premium-gradient 14s ease-in-out infinite;
+  box-shadow: 0 12px 30px -5px var(--hero-shadow, rgba(255, 90, 10, 0.35)), 0 6px 12px -4px rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--hero-border, rgba(255, 255, 255, 0.30)) !important;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.premium-fintech-card:hover {
+.premium-fintech-card:hover,
+.hero-card:hover,
+.hero-banner-custom:hover {
   transform: translateY(-2px);
   filter: brightness(1.02);
-  box-shadow: 0 20px 30px -10px rgba(11, 144, 254, 0.45), 0 10px 15px -3px rgba(11, 144, 254, 0.28);
-  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 20px 35px -8px var(--hero-shadow, rgba(255, 90, 10, 0.45)), 0 10px 18px -3px rgba(0, 0, 0, 0.22);
+  border-color: rgba(255, 255, 255, 0.45) !important;
 }
 
-/* Layer 2: Radial/ambient gradients for depth */
-.premium-fintech-card::before {
+/* Layer 2: Radial/ambient depth */
+.premium-fintech-card::before,
+.hero-card::before,
+.hero-banner-custom::before {
   content: "";
   position: absolute;
   inset: 0;
   background: 
-    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.22) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(11, 144, 254, 0.32) 0%, transparent 60%),
-    radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.12) 0%, transparent 40%);
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.20) 0%, transparent 60%),
+    radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.10) 0%, transparent 35%);
   z-index: 1;
   pointer-events: none;
 }
 
-/* Layer 3: Dot Grid */
+/* Layer 3: Dot Grid with 24px 24px and --hero-pattern */
 .fintech-dot-grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 16px 16px;
+  background-image: radial-gradient(var(--hero-pattern, rgba(255, 255, 255, 0.14)) 1px, transparent 1px);
+  background-size: 24px 24px;
   background-position: 0 0;
   z-index: 2;
   pointer-events: none;
   mix-blend-mode: overlay;
-  animation: dot-move 30s linear infinite;
+  animation: dot-move 35s linear infinite;
+}
+
+.hero-accent-text {
+  color: var(--hero-accent, #B7FF4A) !important;
 }
 
 /* Layer 4: Light sweep effect */

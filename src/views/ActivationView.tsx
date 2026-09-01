@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ShieldCheckIcon, ArrowLeftIcon, DocumentDuplicateIcon, CheckIcon, SparklesIcon, ChatBubbleLeftEllipsisIcon, ArrowTopRightOnSquareIcon, LockClosedIcon, KeyIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { ViewType, BusinessSettings } from '../types';
 import { useToast } from '../components/Toast';
+import { verifyLicenseInCloud, releaseLicenseInCloud, isSupabaseConfigured } from '../services/supabaseClient';
+import { syncWithSupabase } from '../services/syncManager';
 
 interface ActivationViewProps {
   onNavigate: (view: ViewType) => void;
@@ -96,10 +98,21 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
       const saved = localStorage.getItem('sukunaru_license_info');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed.activatedAt || '';
+        return parsed.activatedAtLabel || parsed.activatedAt || '';
       }
     } catch {}
     return '';
+  });
+
+  const [licenseType, setLicenseType] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('sukunaru_license_info');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.licenseType || 'PRO_LIFETIME';
+      }
+    } catch {}
+    return 'PRO_LIFETIME';
   });
 
   // DocumentDuplicateIcon device ID
@@ -127,27 +140,62 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
   };
 
   // Handle Activation
-  const handleActivate = (e: React.FormEvent) => {
+  const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!serialKeyInput.trim()) {
+    const cleanKey = serialKeyInput.trim().toUpperCase();
+    if (!cleanKey) {
       showToast('Masukkan kode serial aktivasi terlebih dahulu', 'error');
       return;
     }
 
     setIsActivating(true);
-    setTimeout(() => {
-      const isValid = validateSerialKey(serialKeyInput);
+
+    try {
+      let isValid = false;
+      let licenseTier = cleanKey.startsWith('SKNR-T') ? 'TRIAL_14_DAYS' : 'PRO_LIFETIME';
+      let cloudLic: any = null;
+
+      // 1. Check with Supabase Cloud if configured & online
+      if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+        const cloudRes = await verifyLicenseInCloud(
+          cleanKey,
+          deviceId,
+          registeredName.trim() || settings?.businessName || 'Owner'
+        );
+        if (cloudRes.valid) {
+          isValid = true;
+          cloudLic = cloudRes.license;
+          licenseTier = cloudLic?.tier || licenseTier;
+        } else {
+          showToast(cloudRes.message, 'error');
+          setIsActivating(false);
+          return;
+        }
+      } else {
+        // 2. Fallback to local validation algorithm
+        isValid = validateSerialKey(cleanKey);
+      }
+
       if (isValid) {
-        const nowStr = new Date().toLocaleDateString('id-ID', {
+        const now = new Date();
+        const nowStr = now.toLocaleDateString('id-ID', {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
         });
+        const isTrial = licenseTier === 'TRIAL_14_DAYS' || Boolean(cloudLic?.duration_days);
+        const expiresAt = isTrial
+          ? new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString()
+          : undefined;
+
         const licenseData = {
           isActivated: true,
-          licenseKey: serialKeyInput.trim().toUpperCase(),
-          licenseType: 'LIFETIME',
-          activatedAt: nowStr,
+          licenseKey: cleanKey,
+          licenseType: licenseTier,
+          activatedAt: now.toISOString(),
+          activatedAtLabel: nowStr,
+          expiresAt,
+          durationDays: isTrial ? 14 : null,
           registeredTo: registeredName.trim() || settings?.businessName || 'Sukunaru Studio User',
           deviceId,
         };
@@ -157,38 +205,71 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
         } catch {}
 
         setIsActivated(true);
+        setLicenseType(licenseTier);
         setActivatedAt(nowStr);
-        const k = serialKeyInput.trim().toUpperCase();
-        setActiveKeyMasked(`${k.slice(0, 5)}••••-••••-${k.slice(-4)}`);
+        setActiveKeyMasked(`${cleanKey.slice(0, 5)}••••-••••-${cleanKey.slice(-4)}`);
         setSerialKeyInput('');
-        showToast('Selamat! Aplikasi BisnisUrang berhasil diaktivasi permanen.', 'success');
+        
+        if (isTrial) {
+          showToast('Selamat! Versi Percobaan 14 Hari berhasil diaktifkan.', 'success');
+        } else {
+          showToast('Selamat! Aplikasi Sukunaru Studio berhasil diaktivasi permanen.', 'success');
+        }
+
+        // Automatically trigger sync if cloud is configured
+        if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+          syncWithSupabase().catch(() => {});
+        }
       } else {
         showToast('Kode serial tidak valid atau tidak sesuai format. Silakan periksa kembali.', 'error');
       }
+    } catch (err: any) {
+      showToast(`Gagal aktivasi: ${err.message || 'Terjadi kesalahan sistem'}`, 'error');
+    } finally {
       setIsActivating(false);
-    }, 600);
+    }
   };
 
   // Deactivate
-  const handleDeactivate = () => {
-    if (window.confirm('Apakah Anda yakin ingin menonaktifkan lisensi pada perangkat ini?')) {
+  const handleDeactivate = async () => {
+    if (window.confirm('Apakah Anda yakin ingin melepaskan lisensi dari perangkat ini? Setelah dilepaskan, kode lisensi dapat digunakan di perangkat lain.')) {
+      let currentKey = '';
+      try {
+        const saved = localStorage.getItem('sukunaru_license_info');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          currentKey = parsed.licenseKey || '';
+        }
+      } catch {}
+
+      if (currentKey && isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+        showToast('Melepaskan lisensi dari server Cloud...', 'info');
+        const res = await releaseLicenseInCloud(currentKey, deviceId);
+        if (!res.success) {
+          console.warn('[Release License Cloud Warning]:', res.message);
+        }
+      }
+
       try {
         localStorage.removeItem('sukunaru_license_info');
       } catch {}
       setIsActivated(false);
+      setLicenseType('TRIAL');
       setActiveKeyMasked('');
       setActivatedAt('');
-      showToast('Lisensi berhasil dinonaktifkan.', 'info');
+      showToast('Lisensi berhasil dilepaskan dari perangkat ini dan siap digunakan di perangkat lain.', 'success');
     }
   };
 
   const whatsappMessage = encodeURIComponent(
-    `Halo Sukunaru Studio, saya ingin membeli / meminta Kode Serial Aktivasi Resmi BisnisUrang.\n\n*Nama Usaha:* ${settings?.businessName || 'Usaha Percetakan'}\n*Device ID:* ${deviceId}`
+    `Halo Sukunaru Studio, saya ingin membeli / meminta Kode Serial Aktivasi Resmi Sukunaru Studio.\n\n*Nama Usaha:* ${settings?.businessName || 'Usaha Percetakan'}\n*Device ID:* ${deviceId}`
   );
   const whatsappUrl = `https://wa.me/6289519203345?text=${whatsappMessage}`;
 
+  const isTrialActive = isActivated && (licenseType === 'TRIAL_14_DAYS' || licenseType.includes('TRIAL'));
+
   return (
-    <div id="activation-view" className="max-w-3xl mx-auto space-y-3.5 animate-fade-in pb-24">
+    <div id="activation-view" className="space-y-3.5 max-w-7xl mx-auto pb-24">
       {/* ── STICKY TOP HEADER: [ ← Judul ] ... [ Aksi/Status ] ── */}
       <div className="sticky -top-3 z-30 bg-[#EAEFEF] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -205,15 +286,19 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
               Aktivasi Aplikasi
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-              Status lisensi & aktivasi serial key BisnisUrang
+              Status lisensi & aktivasi serial key Sukunaru Studio
             </p>
           </div>
         </div>
 
         {isActivated && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold shrink-0">
-            <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Aktif Permanen</span>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shrink-0 ${
+            isTrialActive
+              ? 'bg-amber-50 border border-amber-200 text-amber-800'
+              : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+          }`}>
+            <CheckCircleIcon className={`w-3.5 h-3.5 ${isTrialActive ? 'text-amber-600' : 'text-emerald-600'}`} />
+            <span>{isTrialActive ? 'Trial 14 Hari Aktif' : 'Aktif Permanen'}</span>
           </span>
         )}
       </div>
@@ -225,7 +310,9 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
             <div
               className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${
                 isActivated
-                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                  ? isTrialActive
+                    ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                    : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                   : 'bg-[#FF9B51]/10 text-[#c45e00] border border-[#FF9B51]/30'
               }`}
             >
@@ -234,12 +321,18 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-[#25343F] text-sm sm:text-base">
-                  {isActivated ? 'Lisensi Resmi Terverifikasi' : 'Versi Percobaan (Trial)'}
+                  {isActivated
+                    ? isTrialActive
+                      ? 'Lisensi Uji Coba 14 Hari Terverifikasi'
+                      : 'Lisensi Resmi Terverifikasi'
+                    : 'Belum Teraktivasi'}
                 </h3>
               </div>
               <p className="text-xs text-[#898989] mt-0.5">
                 {isActivated
-                  ? `Lisensi Lifetime aktif untuk perangkat ini sejak ${activatedAt || 'Hari ini'}.`
+                  ? isTrialActive
+                    ? `Lisensi Trial 14 Hari aktif sejak ${activatedAt || 'Hari ini'}.`
+                    : `Lisensi Lifetime aktif untuk perangkat ini sejak ${activatedAt || 'Hari ini'}.`
                   : 'Aplikasi belum diaktivasi dengan kode lisensi resmi.'}
               </p>
             </div>
@@ -249,11 +342,13 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
             <span
               className={`px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase ${
                 isActivated
-                  ? 'bg-emerald-500 text-white shadow-sm'
+                  ? isTrialActive
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'bg-emerald-500 text-white shadow-sm'
                   : 'bg-amber-100 text-amber-900 border border-amber-300'
               }`}
             >
-              {isActivated ? 'LIFETIME PRO' : 'TRIAL MODE'}
+              {isActivated ? (isTrialActive ? 'TRIAL 14 HARI' : 'LIFETIME PRO') : 'BELUM AKTIF'}
             </span>
           </div>
         </div>
@@ -402,29 +497,29 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
           <div className="flex items-start gap-2 p-2 rounded-xl bg-[#EAEFEF] border border-slate-100">
             <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-[#25343F] block">Akses Tanpa Batas</span>
-              <span className="text-[11px] text-[#898989]">Semua fitur POS, SPK Order, Kasir & BOM HPP aktif seutuhnya.</span>
+              <span className="font-bold text-[#25343F] block">Akses Fitur Lengkap</span>
+              <span className="text-[11px] text-[#898989]">Semua modul Pesanan/SPK, Kasir POS, HPP, & Analitik Keuangan aktif seutuhnya.</span>
             </div>
           </div>
           <div className="flex items-start gap-2 p-2 rounded-xl bg-[#EAEFEF] border border-slate-100">
             <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-[#25343F] block">Database Lokal Mandiri</span>
-              <span className="text-[11px] text-[#898989]">Data Anda 100% tersimpan di perangkat tanpa biaya bulanan.</span>
+              <span className="font-bold text-[#25343F] block">Scan & Cetak Barcode</span>
+              <span className="text-[11px] text-[#898989]">Cetak label barcode PDF & pemindaian via kamera HP / scanner USB kasir.</span>
             </div>
           </div>
           <div className="flex items-start gap-2 p-2 rounded-xl bg-[#EAEFEF] border border-slate-100">
             <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-[#25343F] block">Cetak Faktur & Struk</span>
-              <span className="text-[11px] text-[#898989]">Kustomisasi logo & cetak thermal / PDF sepuasnya.</span>
+              <span className="font-bold text-[#25343F] block">Cloud Sync Realtime</span>
+              <span className="text-[11px] text-[#898989]">Sinkronisasi data otomatis multi-device secara realtime via Supabase.</span>
             </div>
           </div>
           <div className="flex items-start gap-2 p-2 rounded-xl bg-[#EAEFEF] border border-slate-100">
             <CheckCircleIcon className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-[#25343F] block">Dukungan Pembaruan</span>
-              <span className="text-[11px] text-[#898989]">Mendapatkan update fitur terbaru dari Sukunaru Studio.</span>
+              <span className="font-bold text-[#25343F] block">Database Mandiri & Backup</span>
+              <span className="text-[11px] text-[#898989]">Data lokal tersimpan aman di device dengan fitur backup cloud & lokal.</span>
             </div>
           </div>
         </div>

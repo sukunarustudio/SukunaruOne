@@ -1,5 +1,5 @@
 import React from 'react';
-import { BuildingStorefrontIcon, ShoppingCartIcon, UsersIcon, CubeIcon, CalculatorIcon, Square3Stack3DIcon, WalletIcon, ReceiptPercentIcon, DocumentTextIcon, ArrowTrendingUpIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ChevronRightIcon, SparklesIcon, CircleStackIcon } from '@heroicons/react/24/outline';
+import { BuildingStorefrontIcon, ShoppingCartIcon, UsersIcon, CubeIcon, CalculatorIcon, Square3Stack3DIcon, WalletIcon, ReceiptPercentIcon, DocumentTextIcon, ArrowTrendingUpIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ChevronRightIcon, SparklesIcon, CircleStackIcon, SwatchIcon } from '@heroicons/react/24/outline';
 import { ViewType, BusinessSettings } from '../types';
 
 interface MenuViewProps {
@@ -116,8 +116,14 @@ export const MenuView: React.FC<MenuViewProps> = ({
           iconBg: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25',
         },
         {
+          id: 'appearance' as ViewType,
+          label: 'Tampilan & Tema',
+          icon: SwatchIcon,
+          iconBg: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25',
+        },
+        {
           id: 'backup' as ViewType,
-          label: 'Cadangan Data',
+          label: 'Cadangan Data & Sinkronisasi Cloud',
           icon: CircleStackIcon,
           iconBg: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25',
         },

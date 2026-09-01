@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.sukunaru.studio',
-  appName: 'Sukunaru Studio',
+  appName: 'BisnisUrang',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

@@ -28,20 +28,20 @@ export interface LocalDatabaseSchema {
 const DEFAULT_INITIAL_DATA: LocalDatabaseSchema = {
   settings: {
     businessName: "Sukunaru Studio",
-    tagline: "Home Printing & Desain Grafis",
-    address: "Nyalindung Desa.Rajapolah Kec.Rajapolah Kab.Tasikmalaya 46155",
+    tagline: "Solusi Usaha & Layanan Kreatif",
+    address: "Jl. Raya Utama No. 88, Indonesia",
     phone: "081234567890",
     whatsapp: "081234567890",
     email: "sukunarustudio@gmail.com",
-    receiptHeader: "SUKUNARU STUDIO - Cetak Stiker, MDF, Undangan & Desain",
-    receiptFooter: "Terima kasih telah mempercayakan kebutuhan cetak & desain Anda kepada Sukunaru Studio!",
+    receiptHeader: "SUKUNARU STUDIO - Solusi Produk & Layanan Berkualitas",
+    receiptFooter: "Terima kasih telah bertransaksi di Sukunaru Studio! Layanan & produk kami selalu siap melayani Anda.",
     bankAccount: "BCA: 123-456-7890 a.n Sukunaru Studio\nMandiri: 987-654-3210 a.n Sukunaru Studio",
     currency: "IDR",
     invoicePrefix: "INV-",
     receiptPrefix: "STR-",
     defaultTaxPercent: 0,
     defaultDiscountPercent: 0,
-    footerNotes: "Terima kasih telah mempercayakan kebutuhan cetak & desain Anda kepada Sukunaru Studio!"
+    footerNotes: "Terima kasih atas kepercayaan Anda bermitra bersama kami!"
   },
   customers: [
     {
@@ -49,184 +49,146 @@ const DEFAULT_INITIAL_DATA: LocalDatabaseSchema = {
       name: "Budi Santoso",
       whatsapp: "081234567890",
       phone: "081234567890",
-      address: "Jl. Merdeka No. 45, Rajapolah",
-      notes: "Pelanggan langganan cetak dokumen & foto MDF.",
+      address: "Jl. Mawar No. 12, Jakarta",
+      notes: "Pelanggan reguler produk kustom.",
       totalOrders: 3,
-      totalSpent: 125000,
-      lastTransactionDate: "2026-08-24",
+      totalSpent: 185000,
+      lastTransactionDate: "2026-08-28",
       createdAt: "2026-08-10",
-      updatedAt: "2026-08-24"
+      updatedAt: "2026-08-28"
     },
     {
       id: "cust_02",
       name: "Dewi Lestari",
       whatsapp: "087812903456",
       phone: "087812903456",
-      address: "Perum Permata Indah Blok B2",
-      notes: "Order cetak foto album keluarga dan laminasi.",
-      totalOrders: 1,
-      totalSpent: 26000,
-      lastTransactionDate: "2026-08-24",
-      createdAt: "2026-08-15",
-      updatedAt: "2026-08-24"
+      address: "Perum Permata Indah Blok B2, Bandung",
+      notes: "Langganan paket bingkisan & hampers.",
+      totalOrders: 2,
+      totalSpent: 150000,
+      lastTransactionDate: "2026-08-27",
+      createdAt: "2026-08-12",
+      updatedAt: "2026-08-27"
     },
     {
       id: "cust_03",
       name: "Ahmad Fauzi",
       whatsapp: "082198765432",
       phone: "082198765432",
-      address: "Kepanjen, Kab. Tasikmalaya",
-      notes: "Order desain poster dan banner bazar kampus.",
-      totalOrders: 2,
-      totalSpent: 150000,
-      lastTransactionDate: "2026-08-23",
+      address: "Jl. Pahlawan No. 45, Surabaya",
+      notes: "Klien proyek pesanan massal & merchandise.",
+      totalOrders: 4,
+      totalSpent: 320000,
+      lastTransactionDate: "2026-08-29",
       createdAt: "2026-08-10",
-      updatedAt: "2026-08-23"
+      updatedAt: "2026-08-29"
+    },
+    {
+      id: "cust_04",
+      name: "Siti Rahmawati",
+      whatsapp: "085712349876",
+      phone: "085712349876",
+      address: "Jl. Kenanga No. 8, Yogyakarta",
+      notes: "Pemesanan rutin produk retail & hampers.",
+      totalOrders: 1,
+      totalSpent: 75000,
+      lastTransactionDate: "2026-08-30",
+      createdAt: "2026-08-15",
+      updatedAt: "2026-08-30"
+    },
+    {
+      id: "cust_05",
+      name: "Rian Pratama",
+      whatsapp: "089654321098",
+      phone: "089654321098",
+      address: "Komp. Graha Asri Blok C-10, Semarang",
+      notes: "Klien jasa kreatif & merchandise usaha.",
+      totalOrders: 2,
+      totalSpent: 115000,
+      lastTransactionDate: "2026-08-31",
+      createdAt: "2026-08-18",
+      updatedAt: "2026-08-31"
     }
   ],
   materials: [
     {
       id: "mat_01",
-      name: "MDF Board A4 (6mm)",
-      sku: "MAT-MDF-A4",
-      category: "Kayu/MDF",
+      name: "Bahan Kayu / Papan Solid (Grade A)",
+      sku: "MAT-KYU-01",
+      category: "Kayu & Papan",
       unit: "pcs",
-      currentStock: 25,
+      currentStock: 50,
       minStock: 10,
-      purchasePrice: 3000,
-      unitCost: 3000,
-      supplier: "Juragan Kayu",
-      supplierContact: "",
-      notes: "Ketebalan 6mm presisi pinggiran rapi",
-      createdAt: "2026-08-23",
+      purchasePrice: 10000,
+      unitCost: 10000,
+      supplier: "Mitra Kayu Sejahtera",
+      supplierContact: "081122334455",
+      notes: "Bahan dasar kayu presisi halus dan kokoh",
+      createdAt: "2026-08-20",
       updatedAt: "2026-08-24"
     },
     {
       id: "mat_02",
-      name: "Photo Paper Glossy A4 (230gsm)",
-      sku: "MAT-PPR-A4",
-      category: "Kertas",
-      unit: "lembar",
-      currentStock: 45,
-      minStock: 20,
-      purchasePrice: 1500,
-      unitCost: 1500,
-      supplier: "Toko Kertas Makmur",
-      supplierContact: "",
-      notes: "Hasil cetak tajam dan glossy",
-      createdAt: "2026-08-23",
+      name: "Kain Katun Premium (Combed 30s)",
+      sku: "MAT-KTN-01",
+      category: "Kain & Tekstil",
+      unit: "meter",
+      currentStock: 40,
+      minStock: 10,
+      purchasePrice: 25000,
+      unitCost: 25000,
+      supplier: "Sentra Tekstil Utama",
+      supplierContact: "082233445566",
+      notes: "Katun combed 30s adem dan lembut",
+      createdAt: "2026-08-20",
       updatedAt: "2026-08-24"
     },
     {
       id: "mat_03",
-      name: "HVS Paper A4 75gsm",
-      sku: "MAT-HVS-70",
-      category: "Kertas",
+      name: "Bahan Kertas Karton Tebal (Hardboard)",
+      sku: "MAT-KRT-01",
+      category: "Kertas & Karton",
       unit: "lembar",
-      currentStock: 480,
-      minStock: 100,
-      purchasePrice: 100,
-      unitCost: 100,
-      supplier: "Toko Kertas Makmur",
-      supplierContact: "",
-      notes: "Kertas dokumen umum",
-      createdAt: "2026-08-23",
+      currentStock: 60,
+      minStock: 15,
+      purchasePrice: 4000,
+      unitCost: 4000,
+      supplier: "Karton Prima Makmur",
+      supplierContact: "083344556677",
+      notes: "Karton tebal kaku untuk box dan struktur label",
+      createdAt: "2026-08-20",
       updatedAt: "2026-08-24"
     },
     {
       id: "mat_04",
-      name: "Sticker Paper Glossy A4",
-      sku: "MAT-STK-GLS",
-      category: "Kertas",
-      unit: "lembar",
-      currentStock: 50,
-      minStock: 25,
-      purchasePrice: 1600,
-      unitCost: 1600,
-      supplier: "Grafika Supply",
-      supplierContact: "",
-      notes: "Daya rekat kuat tahan air jika dilaminasi",
-      createdAt: "2026-08-23",
+      name: "Bahan Penolong / Tambahan Produksi",
+      sku: "MAT-PNL-01",
+      category: "Bahan Penolong",
+      unit: "unit",
+      currentStock: 100,
+      minStock: 20,
+      purchasePrice: 2000,
+      unitCost: 2000,
+      supplier: "Multi Supply Universal",
+      supplierContact: "084455667788",
+      notes: "Perekat, finishing, aksesoris pengikat",
+      createdAt: "2026-08-20",
       updatedAt: "2026-08-24"
     },
     {
       id: "mat_05",
-      name: "Laminating Film Glossy A4 (100 micron)",
-      sku: "MAT-LAM-GLS",
-      category: "Plastik/Laminasi",
-      unit: "lembar",
-      currentStock: 30,
-      minStock: 10,
-      purchasePrice: 1500,
-      unitCost: 1500,
-      supplier: "Plastindo",
-      supplierContact: "",
-      notes: "Laminasi panas anti gores",
-      createdAt: "2026-08-23",
-      updatedAt: "2026-08-24"
-    },
-    {
-      id: "mat_06",
-      name: "Laminating Dingin Doff A4",
-      sku: "MAT-LAM-DOF",
-      category: "Plastik/Laminasi",
-      unit: "lembar",
-      currentStock: 25,
-      minStock: 15,
-      purchasePrice: 1000,
-      unitCost: 1000,
-      supplier: "Plastindo",
-      supplierContact: "",
-      notes: "Finishing matte elegan",
-      createdAt: "2026-08-23",
-      updatedAt: "2026-08-24"
-    },
-    {
-      id: "mat_07",
-      name: "Tinta Canon Black (135ml)",
-      sku: "MAT-INK-BK",
-      category: "Tinta",
-      unit: "botol",
-      currentStock: 2,
-      minStock: 1,
-      purchasePrice: 50000,
-      unitCost: 50000,
-      supplier: "FixPrint",
-      supplierContact: "",
-      notes: "Estimasi biaya per lembar B/W ~Rp100",
-      createdAt: "2026-08-23",
-      updatedAt: "2026-08-24"
-    },
-    {
-      id: "mat_08",
-      name: "Tinta Canon Color Set",
-      sku: "MAT-INK-CLR",
-      category: "Tinta",
-      unit: "botol",
-      currentStock: 3,
-      minStock: 1,
-      purchasePrice: 25000,
-      unitCost: 25000,
-      supplier: "Epson Authorized",
-      supplierContact: "",
-      notes: "Estimasi biaya per lembar warna ~Rp450",
-      createdAt: "2026-08-23",
-      updatedAt: "2026-08-24"
-    },
-    {
-      id: "mat_10",
-      name: "Plastik OPP Packaging A4 + Seal",
-      sku: "MAT-PKG-OPP",
-      category: "Aksesoris/Packaging",
+      name: "Box Kemasan & Packaging Eksklusif",
+      sku: "MAT-BOX-01",
+      category: "Kemasan & Box",
       unit: "pcs",
-      currentStock: 100,
-      minStock: 10,
-      purchasePrice: 200,
-      unitCost: 200,
-      supplier: "Plastindo",
-      supplierContact: "",
-      notes: "Packaging rapi siap serah terima",
-      createdAt: "2026-08-23",
+      currentStock: 80,
+      minStock: 15,
+      purchasePrice: 5000,
+      unitCost: 5000,
+      supplier: "Packaging Nusantara",
+      supplierContact: "085566778899",
+      notes: "Box kardus eksklusif siap pajang & kirim",
+      createdAt: "2026-08-20",
       updatedAt: "2026-08-24"
     }
   ],
@@ -234,203 +196,231 @@ const DEFAULT_INITIAL_DATA: LocalDatabaseSchema = {
   products: [
     {
       id: "prod_01",
-      name: "MDF Photo A4",
-      sku: "PRD-MDF-A4",
-      category: "Foto & Wall Decor",
+      name: "Paket Gift Box / Hampers Eksklusif",
+      sku: "PRD-HMP-01",
+      category: "Paket Hadiah",
       type: "PHYSICAL",
-      sellingPrice: 25000,
-      costPrice: 8700,
-      profit: 16300,
-      profitMargin: 65.2,
-      marginPercent: 65.2,
+      sellingPrice: 75000,
+      costPrice: 28000,
+      profit: 47000,
+      profitMargin: 62.7,
+      marginPercent: 62.7,
       trackStock: true,
       minStock: 5,
-      unit: "pcs",
-      description: "Foto cetak high quality ditempel pada papan MDF 6mm dengan laminasi doff/glossy dan gantungan dinding.",
+      unit: "box",
+      barcode: "8991001000018",
+      barcodeType: "EAN13",
+      description: "Paket hampers eksklusif lengkap dengan hardbox premium, hiasan pita, dan kemasan rapi.",
       isActive: true,
-      laborCost: 0,
-      machineCost: 0,
-      otherCost: 0,
+      laborCost: 5000,
+      machineCost: 3000,
+      otherCost: 5000,
       components: [
         {
-          id: "comp_1",
-          materialId: "mat_01",
-          componentName: "MDF Board A4",
-          quantity: 1,
-          unit: "pcs",
-          unitCost: 3000,
-          subtotal: 3000
-        },
-        {
-          id: "comp_2",
-          materialId: "mat_02",
-          componentName: "Photo Paper Glossy A4",
-          quantity: 1,
+          id: "comp_01_1",
+          materialId: "mat_03",
+          componentName: "Karton Tebal Hardboard",
+          quantity: 2,
           unit: "lembar",
-          unitCost: 1500,
-          subtotal: 1500
+          unitCost: 4000,
+          subtotal: 8000
         },
         {
-          id: "comp_4",
+          id: "comp_01_2",
+          materialId: "mat_04",
+          componentName: "Bahan Penolong & Aksesoris",
+          quantity: 1,
+          unit: "unit",
+          unitCost: 2000,
+          subtotal: 2000
+        },
+        {
+          id: "comp_01_3",
           materialId: "mat_05",
-          componentName: "Laminasi A4",
-          quantity: 1,
-          unit: "lembar",
-          unitCost: 1500,
-          subtotal: 1500
-        },
-        {
-          id: "comp_6",
-          materialId: "mat_10",
-          componentName: "Packaging OPP Seal",
+          componentName: "Box Kemasan Eksklusif",
           quantity: 1,
           unit: "pcs",
-          unitCost: 200,
-          subtotal: 200
+          unitCost: 5000,
+          subtotal: 5000
         }
       ],
-      createdAt: "2026-08-23",
+      createdAt: "2026-08-20",
       updatedAt: "2026-08-24"
     },
     {
       id: "prod_02",
-      name: "Foto A4 Glossy",
-      sku: "PRD-PHT-A4",
-      category: "Foto & Wall Decor",
+      name: "Kaos Kustom Polos Premium (Combed 30s)",
+      sku: "PRD-KOS-01",
+      category: "Pakaian & Tekstil",
       type: "PHYSICAL",
-      sellingPrice: 10000,
-      costPrice: 2500,
-      profit: 7500,
-      profitMargin: 75,
-      marginPercent: 75,
+      sellingPrice: 65000,
+      costPrice: 32000,
+      profit: 33000,
+      profitMargin: 50.8,
+      marginPercent: 50.8,
       trackStock: true,
-      minStock: 0,
-      unit: "lembar",
-      description: "Cetak foto ukuran A4 full page glossy premium tahan luntur.",
+      minStock: 5,
+      unit: "pcs",
+      barcode: "SKN-KAOS-01",
+      barcodeType: "CODE128",
+      description: "Kaos berbahan 100% katun combed 30s premium yang adem, nyaman, dan awet.",
       isActive: true,
       laborCost: 0,
       machineCost: 0,
       otherCost: 0,
       components: [
         {
-          id: "comp_401",
+          id: "comp_02_1",
           materialId: "mat_02",
-          componentName: "Photo Paper Glossy A4",
+          componentName: "Kain Katun Premium",
           quantity: 1,
-          unit: "lembar",
-          unitCost: 1500,
-          subtotal: 1500
+          unit: "meter",
+          unitCost: 25000,
+          subtotal: 25000
         },
         {
-          id: "comp_402",
-          materialId: "mat_08",
-          componentName: "Tinta Color High Quality",
+          id: "comp_02_2",
+          materialId: "mat_04",
+          componentName: "Bahan Penolong Produksi",
           quantity: 1,
-          unit: "porsi",
-          unitCost: 1000,
-          subtotal: 1000
+          unit: "unit",
+          unitCost: 2000,
+          subtotal: 2000
+        },
+        {
+          id: "comp_02_3",
+          materialId: "mat_05",
+          componentName: "Kemasan Packaging",
+          quantity: 1,
+          unit: "pcs",
+          unitCost: 5000,
+          subtotal: 5000
         }
       ],
-      createdAt: "2026-08-23",
-      updatedAt: "2026-08-23"
+      createdAt: "2026-08-20",
+      updatedAt: "2026-08-24"
     },
     {
       id: "prod_03",
-      name: "Print Color A4 (HVS)",
-      sku: "PRD-PRN-CLR",
-      category: "Dokumen & Cetak",
-      type: "SERVICE",
-      sellingPrice: 2000,
-      costPrice: 550,
-      profit: 1450,
-      profitMargin: 72.5,
-      marginPercent: 72.5,
+      name: "Plakat / Souvenir Kayu Kustom",
+      sku: "PRD-PLK-01",
+      category: "Kerajinan & Souvenir",
+      type: "PHYSICAL",
+      sellingPrice: 50000,
+      costPrice: 19000,
+      profit: 31000,
+      profitMargin: 62.0,
+      marginPercent: 62.0,
       trackStock: true,
-      minStock: 0,
-      unit: "lembar",
-      description: "Cetak dokumen warna kertas HVS 75gsm.",
+      minStock: 5,
+      unit: "pcs",
+      barcode: "8991001000032",
+      barcodeType: "EAN13",
+      description: "Plakat souvenir dari kayu solid berkualitas tinggi dengan finishing halus dan tahan lama.",
       isActive: true,
       laborCost: 0,
       machineCost: 0,
       otherCost: 0,
       components: [
         {
-          id: "comp_201",
-          materialId: "mat_03",
-          componentName: "HVS A4 75gsm",
+          id: "comp_03_1",
+          materialId: "mat_01",
+          componentName: "Bahan Kayu Solid",
           quantity: 1,
-          unit: "lembar",
-          unitCost: 100,
-          subtotal: 100
+          unit: "pcs",
+          unitCost: 10000,
+          subtotal: 10000
         },
         {
-          id: "comp_202",
-          materialId: "mat_08",
-          componentName: "Tinta Canon Color Set",
+          id: "comp_03_2",
+          materialId: "mat_04",
+          componentName: "Finishing & Lem Penolong",
+          quantity: 2,
+          unit: "unit",
+          unitCost: 2000,
+          subtotal: 4000
+        },
+        {
+          id: "comp_03_3",
+          materialId: "mat_05",
+          componentName: "Box Kemasan",
           quantity: 1,
-          unit: "porsi",
-          unitCost: 450,
-          subtotal: 450
+          unit: "pcs",
+          unitCost: 5000,
+          subtotal: 5000
         }
       ],
-      createdAt: "2026-08-23",
+      createdAt: "2026-08-20",
       updatedAt: "2026-08-24"
     },
     {
       id: "prod_04",
-      name: "Cetak Stiker Vinyl A3+ Kiss Cut",
-      sku: "PRD-STK-VNL",
-      category: "Stiker & Label",
+      name: "Stiker Label Kemasan Produk (A3+)",
+      sku: "PRD-STK-01",
+      category: "Kemasan & Label",
       type: "PHYSICAL",
       sellingPrice: 15000,
-      costPrice: 4500,
-      profit: 10500,
-      profitMargin: 70,
-      marginPercent: 70,
+      costPrice: 5000,
+      profit: 10000,
+      profitMargin: 66.7,
+      marginPercent: 66.7,
       trackStock: true,
-      minStock: 0,
+      minStock: 10,
       unit: "lembar",
-      description: "Cetak stiker vinyl A3+ anti air dengan cutting pola kiss cut rapi.",
+      barcode: "SKN-STK-01",
+      barcodeType: "CODE128",
+      description: "Stiker label kemasan tahan air dengan daya rekat tinggi siap tempel untuk berbagai produk UMKM.",
       isActive: true,
       laborCost: 0,
       machineCost: 0,
       otherCost: 0,
       components: [
         {
-          id: "comp_301",
-          materialId: "mat_04",
-          componentName: "Sticker Paper Glossy A4",
-          quantity: 2,
+          id: "comp_04_1",
+          materialId: "mat_03",
+          componentName: "Kertas Karton & Stiker",
+          quantity: 1,
           unit: "lembar",
-          unitCost: 1600,
-          subtotal: 3200
+          unitCost: 4000,
+          subtotal: 4000
+        },
+        {
+          id: "comp_04_2",
+          materialId: "mat_04",
+          componentName: "Bahan Penolong",
+          quantity: 0.5,
+          unit: "unit",
+          unitCost: 2000,
+          subtotal: 1000
         }
       ],
-      createdAt: "2026-08-23",
-      updatedAt: "2026-08-23"
+      createdAt: "2026-08-20",
+      updatedAt: "2026-08-24"
     },
     {
       id: "prod_05",
-      name: "Jasa Desain Grafis & Logo",
-      sku: "PRD-DSN-LGO",
-      category: "Jasa Desain",
+      name: "Jasa Desain & Kustomisasi Produk",
+      sku: "PRD-JSA-01",
+      category: "Jasa Kreatif",
       type: "SERVICE",
       sellingPrice: 50000,
       costPrice: 0,
       profit: 50000,
-      profitMargin: 100,
-      marginPercent: 100,
+      profitMargin: 100.0,
+      marginPercent: 100.0,
       trackStock: false,
       minStock: 0,
-      unit: "desain",
-      description: "Jasa pembuatan desain logo, banner, spanduk, atau feed medsos revisi 3x.",
+      unit: "sesi",
+      barcode: "SKN-DSN-01",
+      barcodeType: "CODE128",
+      description: "Layanan jasa desain kreatif, layout branding, dan kustomisasi visual produk dengan revisi fleksibel.",
       isActive: true,
       laborCost: 0,
       machineCost: 0,
       otherCost: 0,
       components: [],
-      createdAt: "2026-08-23",
-      updatedAt: "2026-08-23"
+      createdAt: "2026-08-20",
+      updatedAt: "2026-08-24"
     }
   ],
   orders: [],
@@ -439,11 +429,55 @@ const DEFAULT_INITIAL_DATA: LocalDatabaseSchema = {
   financial_transactions: []
 };
 
-// Helper: Convert File to base64 Data URL for persistent offline storage
-export function fileToDataUrl(file: File): Promise<string> {
+// Helper: Convert and compress image File to base64 Data URL for fast sync and invoice rendering
+export function fileToDataUrl(file: File, maxDimension = 600, quality = 0.85): Promise<string> {
   return new Promise((resolve, reject) => {
+    // If SVG, read as text data url directly
+    if (file.type.includes('svg')) {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        // Use image/jpeg for photos, image/png if transparent
+        const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const dataUrl = canvas.toDataURL(format, quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => resolve(e.target?.result as string);
+      img.src = e.target?.result as string;
+    };
     reader.onerror = error => reject(error);
     reader.readAsDataURL(file);
   });
@@ -477,10 +511,18 @@ function getLocalData(): LocalDatabaseSchema {
   }
 }
 
+export const DATA_MUTATION_EVENT = 'sukunaru:data_mutation';
+
+export function emitDataMutation(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(DATA_MUTATION_EVENT));
+}
+
 function setLocalData(data: LocalDatabaseSchema): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    emitDataMutation();
   } catch (err) {
     console.error('Failed to save to local DB:', err);
   }
@@ -525,33 +567,73 @@ export const localDb = {
   async getStats(): Promise<DashboardStats & { lowStockItems: Material[] }> {
     const db = getLocalData();
     const today = new Date().toISOString().split('T')[0];
+    const thisMonth = today.substring(0, 7);
 
-    const todayPos = db.transactions.filter(t => t.date === today);
-    const todayOrders = db.orders.filter(o => o.orderDate === today);
-    const todayPosSales = todayPos.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
-    const todayOrderSales = todayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    // 1. Total Saldo Kas Keseluruhan (All-Time Cumulative Cash Balance)
+    const allIncome = (db.financial_transactions || [])
+      .filter(f => f.type === 'INCOME')
+      .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
 
-    const totalPosSales = db.transactions.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
-    const totalOrderSales = db.orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-    const totalRevenue = totalPosSales + totalOrderSales;
+    const allExpense = (db.financial_transactions || [])
+      .filter(f => f.type === 'EXPENSE')
+      .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
 
-    const totalExpenses = db.expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-    const totalPosCost = db.transactions.reduce((sum, t) => sum + (t.totalCost || 0), 0);
-    const totalOrderCost = db.orders.reduce((sum, o) => sum + (o.totalCost || 0), 0);
-    const totalProfit = totalRevenue - totalPosCost - totalOrderCost - totalExpenses;
+    const totalCashBalance = allIncome - allExpense;
 
-    const lowStockItems = db.materials.filter(m => m.currentStock <= m.minStock);
-    const activeOrders = db.orders.filter(o => o.status !== 'SELESAI' && o.status !== 'BATAL');
+    // 2. Hari Ini (Today)
+    const todayFinIncomes = (db.financial_transactions || [])
+      .filter(f => (f.date ? f.date.split('T')[0] : '') === today && f.type === 'INCOME');
+    const todayFinExpenses = (db.financial_transactions || [])
+      .filter(f => (f.date ? f.date.split('T')[0] : '') === today && f.type === 'EXPENSE');
+
+    const todayIncomeTotal = todayFinIncomes.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+    const todayExpenseTotal = todayFinExpenses.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+
+    const todayPos = (db.transactions || []).filter(t => (t.date ? t.date.split('T')[0] : '') === today);
+    const todayOrders = (db.orders || []).filter(o => (o.orderDate ? o.orderDate.split('T')[0] : '') === today);
+    const todayPosSales = todayPos.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
+    const todayOrderPaid = todayOrders.reduce((sum, o) => sum + (Number(o.paidAmount) || 0), 0);
+    const todayRevenue = todayIncomeTotal > 0 ? todayIncomeTotal : (todayPosSales + todayOrderPaid);
+    const todayExpense = todayExpenseTotal;
+
+    const todayPosCost = todayPos.reduce((sum, t) => sum + (Number(t.totalCost) || 0), 0);
+    const todayOrderCost = todayOrders.reduce((sum, o) => sum + (Number(o.totalCost) || 0), 0);
+    const todayProfit = Math.max(0, todayRevenue - todayPosCost - todayOrderCost - todayExpense);
+
+    // 3. Bulan Ini (This Month)
+    const monthFinIncomes = (db.financial_transactions || [])
+      .filter(f => (f.date ? f.date.split('T')[0] : '').startsWith(thisMonth) && f.type === 'INCOME');
+    const monthFinExpenses = (db.financial_transactions || [])
+      .filter(f => (f.date ? f.date.split('T')[0] : '').startsWith(thisMonth) && f.type === 'EXPENSE');
+
+    const monthIncomeTotal = monthFinIncomes.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+    const monthExpenseTotal = monthFinExpenses.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+
+    const monthPos = (db.transactions || []).filter(t => (t.date ? t.date.split('T')[0] : '').startsWith(thisMonth));
+    const monthOrders = (db.orders || []).filter(o => (o.orderDate ? o.orderDate.split('T')[0] : '').startsWith(thisMonth));
+    const monthPosSales = monthPos.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
+    const monthOrderPaid = monthOrders.reduce((sum, o) => sum + (Number(o.paidAmount) || 0), 0);
+
+    const thisMonthRevenue = monthIncomeTotal > 0 ? monthIncomeTotal : (monthPosSales + monthOrderPaid);
+    const thisMonthExpense = monthExpenseTotal;
+
+    const monthPosCost = monthPos.reduce((sum, t) => sum + (Number(t.totalCost) || 0), 0);
+    const monthOrderCost = monthOrders.reduce((sum, o) => sum + (Number(o.totalCost) || 0), 0);
+    const thisMonthProfit = Math.max(0, thisMonthRevenue - monthPosCost - monthOrderCost - thisMonthExpense);
+
+    const lowStockItems = (db.materials || []).filter(m => m.currentStock <= m.minStock);
+    const activeOrders = (db.orders || []).filter(o => o.status !== 'SELESAI' && o.status !== 'BATAL');
 
     return {
-      todayRevenue: todayPosSales + todayOrderSales,
-      todayProfit: totalProfit,
+      todayRevenue,
+      todayProfit,
       todayTransactionsCount: todayOrders.length + todayPos.length,
       activeOrdersCount: activeOrders.length,
-      todayExpense: totalExpenses,
-      thisMonthRevenue: totalRevenue,
-      thisMonthProfit: totalProfit,
-      thisMonthExpense: totalExpenses,
+      todayExpense,
+      thisMonthRevenue,
+      thisMonthProfit,
+      thisMonthExpense,
+      totalCashBalance,
       lowStockItemsCount: lowStockItems.length,
       lowStockItems,
     };
@@ -714,8 +796,25 @@ export const localDb = {
     return db.products;
   },
 
+  async getProductByBarcode(barcode: string): Promise<Product | null> {
+    const db = getLocalData();
+    const clean = barcode.trim();
+    if (!clean) return null;
+    const found = db.products.find(p => p.barcode && p.barcode.trim() === clean);
+    return found || null;
+  },
+
   async createProduct(data: Partial<Product>): Promise<Product> {
     const db = getLocalData();
+
+    // Validate unique barcode if provided
+    if (data.barcode && data.barcode.trim()) {
+      const duplicate = db.products.find(p => p.barcode && p.barcode.trim() === data.barcode!.trim());
+      if (duplicate) {
+        throw new Error(`Barcode "${data.barcode}" sudah digunakan oleh produk "${duplicate.name}".`);
+      }
+    }
+
     const newProd: Product = {
       id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       name: data.name || 'Produk Baru',
@@ -738,6 +837,8 @@ export const localDb = {
       isActive: data.isActive ?? true,
       imagePath: data.imagePath,
       thumbnailPath: data.thumbnailPath,
+      barcode: data.barcode?.trim() || undefined,
+      barcodeType: data.barcodeType || undefined,
       components: data.components || [],
       createdAt: new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString().split('T')[0],
@@ -751,9 +852,19 @@ export const localDb = {
     const db = getLocalData();
     const idx = db.products.findIndex(p => p.id === id);
     if (idx === -1) throw new Error('Produk tidak ditemukan');
+
+    // Validate unique barcode if changed
+    if (data.barcode && data.barcode.trim()) {
+      const duplicate = db.products.find(p => p.id !== id && p.barcode && p.barcode.trim() === data.barcode!.trim());
+      if (duplicate) {
+        throw new Error(`Barcode "${data.barcode}" sudah digunakan oleh produk "${duplicate.name}".`);
+      }
+    }
+
     db.products[idx] = {
       ...db.products[idx],
       ...data,
+      barcode: data.barcode !== undefined ? (data.barcode?.trim() || undefined) : db.products[idx].barcode,
       updatedAt: new Date().toISOString().split('T')[0],
     };
     setLocalData(db);
@@ -1331,6 +1442,186 @@ export const localDb = {
 
     setLocalData(db);
     return { success: true, material: mat, movement: mov };
+  },
+
+  // Raw Data Access for Sync
+  getRawData(): LocalDatabaseSchema {
+    return getLocalData();
+  },
+
+  mergeCustomers(remoteList: Customer[]): void {
+    const db = getLocalData();
+    const map = new Map<string, Customer>();
+    db.customers.forEach(c => map.set(c.id, c));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.customers = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  mergeMaterials(remoteList: Material[]): void {
+    const db = getLocalData();
+    const map = new Map<string, Material>();
+    db.materials.forEach(m => map.set(m.id, m));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.materials = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  mergeProducts(remoteList: Product[]): void {
+    const db = getLocalData();
+    const map = new Map<string, Product>();
+    db.products.forEach(p => map.set(p.id, p));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.products = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  mergeOrders(remoteList: Order[]): void {
+    const db = getLocalData();
+    const map = new Map<string, Order>();
+    db.orders.forEach(o => map.set(o.id, o));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.orders = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  mergeTransactions(remoteList: Transaction[]): void {
+    const db = getLocalData();
+    const map = new Map<string, Transaction>();
+    db.transactions.forEach(t => map.set(t.id, t));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.transactions = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  mergeExpenses(remoteList: Expense[]): void {
+    const db = getLocalData();
+    const map = new Map<string, Expense>();
+    db.expenses.forEach(e => map.set(e.id, e));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.expenses = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  mergeFinancialTransactions(remoteList: FinancialTransaction[]): void {
+    const db = getLocalData();
+    const map = new Map<string, FinancialTransaction>();
+    db.financial_transactions.forEach(f => map.set(f.id, f));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.financial_transactions = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  // ── Realtime Single-Record Event Handlers (High Performance) ──
+  applyRemoteUpsert(tableName: string, record: any): boolean {
+    const db = getLocalData();
+    let updated = false;
+
+    if (tableName === 'products') {
+      const idx = db.products.findIndex(p => p.id === record.id);
+      if (idx >= 0) {
+        db.products[idx] = { ...db.products[idx], ...record };
+      } else {
+        db.products.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'customers') {
+      const idx = db.customers.findIndex(c => c.id === record.id);
+      if (idx >= 0) {
+        db.customers[idx] = { ...db.customers[idx], ...record };
+      } else {
+        db.customers.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'materials') {
+      const idx = db.materials.findIndex(m => m.id === record.id);
+      if (idx >= 0) {
+        db.materials[idx] = { ...db.materials[idx], ...record };
+      } else {
+        db.materials.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'orders') {
+      const idx = db.orders.findIndex(o => o.id === record.id);
+      if (idx >= 0) {
+        db.orders[idx] = { ...db.orders[idx], ...record };
+      } else {
+        db.orders.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'transactions') {
+      const idx = db.transactions.findIndex(t => t.id === record.id);
+      if (idx >= 0) {
+        db.transactions[idx] = { ...db.transactions[idx], ...record };
+      } else {
+        db.transactions.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'expenses') {
+      const idx = db.expenses.findIndex(e => e.id === record.id);
+      if (idx >= 0) {
+        db.expenses[idx] = { ...db.expenses[idx], ...record };
+      } else {
+        db.expenses.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'financial_transactions') {
+      const idx = db.financial_transactions.findIndex(f => f.id === record.id);
+      if (idx >= 0) {
+        db.financial_transactions[idx] = { ...db.financial_transactions[idx], ...record };
+      } else {
+        db.financial_transactions.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'business_settings') {
+      db.settings = { ...db.settings, ...record };
+      updated = true;
+    }
+
+    if (updated) {
+      setLocalData(db);
+    }
+    return updated;
+  },
+
+  applyRemoteDelete(tableName: string, recordId: string): boolean {
+    const db = getLocalData();
+    let updated = false;
+
+    if (tableName === 'products') {
+      const lenBefore = db.products.length;
+      db.products = db.products.filter(p => p.id !== recordId);
+      updated = db.products.length !== lenBefore;
+    } else if (tableName === 'customers') {
+      const lenBefore = db.customers.length;
+      db.customers = db.customers.filter(c => c.id !== recordId);
+      updated = db.customers.length !== lenBefore;
+    } else if (tableName === 'materials') {
+      const lenBefore = db.materials.length;
+      db.materials = db.materials.filter(m => m.id !== recordId);
+      updated = db.materials.length !== lenBefore;
+    } else if (tableName === 'orders') {
+      const lenBefore = db.orders.length;
+      db.orders = db.orders.filter(o => o.id !== recordId);
+      updated = db.orders.length !== lenBefore;
+    } else if (tableName === 'transactions') {
+      const lenBefore = db.transactions.length;
+      db.transactions = db.transactions.filter(t => t.id !== recordId);
+      updated = db.transactions.length !== lenBefore;
+    } else if (tableName === 'expenses') {
+      const lenBefore = db.expenses.length;
+      db.expenses = db.expenses.filter(e => e.id !== recordId);
+      updated = db.expenses.length !== lenBefore;
+    } else if (tableName === 'financial_transactions') {
+      const lenBefore = db.financial_transactions.length;
+      db.financial_transactions = db.financial_transactions.filter(f => f.id !== recordId);
+      updated = db.financial_transactions.length !== lenBefore;
+    }
+
+    if (updated) {
+      setLocalData(db);
+    }
+    return updated;
   },
 
   // Backup & Restore

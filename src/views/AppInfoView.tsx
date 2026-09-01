@@ -1,6 +1,8 @@
 import React from 'react';
-import { ArrowLeftIcon, InformationCircleIcon, CircleStackIcon, ShieldCheckIcon, ServerIcon, Square3Stack3DIcon, SparklesIcon, PrinterIcon, ComputerDesktopIcon, CodeBracketIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, InformationCircleIcon, CircleStackIcon, ShieldCheckIcon, ServerIcon, Square3Stack3DIcon, SparklesIcon, PrinterIcon, ComputerDesktopIcon, CodeBracketIcon, CheckCircleIcon, QrCodeIcon, CloudArrowUpIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { ViewType } from '../types';
+import { useLicense } from '../hooks/useLicense';
+import appLogo from '../assets/app-logo.png';
 
 interface AppInfoViewProps {
   onNavigate?: (view: ViewType) => void;
@@ -8,33 +10,44 @@ interface AppInfoViewProps {
 
 export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
   const currentYear = new Date().getFullYear();
+  const { isPro, isTrial, daysRemaining, isActivated } = useLicense();
+
+  const getLicenseStatusText = () => {
+    if (isPro && !isTrial) return 'PRO / Lifetime Edition';
+    if (isTrial) return `Trial Aktif (${daysRemaining ?? 0} hari tersisa)`;
+    return 'Belum Aktivasi (Free Mode)';
+  };
 
   const features = [
     {
-      icon: CircleStackIcon,
+      icon: QrCodeIcon,
       iconBg: 'bg-[#EAEFEF] border-[#BFC9D1] text-[#25343F]',
-      title: 'Kasir POS & Manajemen Order',
-      desc: 'Transaksi kasir, pesanan kerja (SPK), pelunasan DP, dan cetak faktur langsung dari satu layar.',
+      title: 'Kasir POS & Scan Barcode',
+      desc: 'Transaksi kasir cepat, pesanan kerja (SPK), scan barcode via kamera & USB scanner, serta cetak struk thermal/PDF.',
     },
     {
       icon: ServerIcon,
       iconBg: 'bg-[#EAEFEF] border-[#BFC9D1] text-[#25343F]',
-      title: 'Stok Bahan Baku Otomatis',
-      desc: 'Setiap transaksi kasir maupun order memotong stok bahan baku secara otomatis sesuai resep BOM produk.',
+      title: 'Stok Bahan Baku & Resep BOM',
+      desc: 'Setiap transaksi kasir maupun order otomatis memotong stok bahan baku sesuai komposisi BOM produk.',
     },
     {
-      icon: ShieldCheckIcon,
+      icon: CloudArrowUpIcon,
       iconBg: 'bg-[#EAEFEF] border-[#BFC9D1] text-[#25343F]',
-      title: '100% Offline & Data Lokal',
-      desc: 'Berjalan sepenuhnya tanpa internet. Data tersimpan aman di database SQLite lokal perangkat Anda.',
+      title: 'Cloud Sync Realtime & Backup',
+      desc: 'Sinkronisasi otomatis antar-perangkat secara realtime via Supabase serta pencadangan database lokal dan online.',
     },
   ];
 
   const appSpecs = [
-    { label: 'Nama Aplikasi', value: 'Sukunaru ONE', icon: InformationCircleIcon },
+    { label: 'Nama Aplikasi', value: 'Sukunaru Studio', icon: InformationCircleIcon },
     { label: 'Versi Rilis', value: 'v1.1.0 Stable Release', icon: SparklesIcon },
-    { label: 'Status Lisensi', value: 'PRO / Lifetime Edition', icon: ShieldCheckIcon },
-    { label: 'Penyimpanan Data', value: 'Database Internal Lokal (100% Offline)', icon: CircleStackIcon },
+    {
+      label: 'Status Lisensi',
+      value: getLicenseStatusText(),
+      icon: isPro ? ShieldCheckIcon : LockClosedIcon,
+    },
+    { label: 'Penyimpanan Data', value: 'Database Lokal (SQLite) + Cloud Sync Supabase', icon: CircleStackIcon },
     { label: 'Pengembang', value: 'Sukunaru Studio', icon: ServerIcon },
     { label: 'Perangkat', value: 'Android APK & Web Desktop', icon: ComputerDesktopIcon },
   ];
@@ -57,11 +70,12 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
               Versi Aplikasi
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-              Spesifikasi sistem, build & lisensi Sukunaru Studio
+              Informasi sistem, lisensi &amp; versi Sukunaru Studio
             </p>
           </div>
         </div>
       </div>
+
       {/* Header Banner */}
       <div className="bg-white border border-[#BFC9D1]/25 rounded-2xl p-6 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-bl from-zinc-100 to-transparent rounded-full -mr-24 -mt-24 pointer-events-none" />
@@ -69,18 +83,22 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div className="flex items-center gap-3.5">
             {/* App Logo */}
-            <div className="w-14 h-14 rounded-2xl bg-zinc-950 text-white font-black text-base flex items-center justify-center shadow-md shrink-0 tracking-widest select-none">
-              S1
+            <div className="w-14 h-14 rounded-2xl bg-white border border-[#BFC9D1]/30 p-1.5 flex items-center justify-center shadow-md shrink-0 overflow-hidden select-none">
+              <img
+                src={appLogo}
+                alt="Sukunaru Studio Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-black text-[#25343F] tracking-tight">SUKUNARU ONE</h1>
+                <h1 className="text-xl font-black text-[#25343F] tracking-tight">Sukunaru Studio</h1>
                 <span className="px-2.5 py-0.5 text-[11px] font-bold bg-[#FF9B51] text-[#25343F] rounded-full">
                   v1.1
                 </span>
               </div>
               <p className="text-xs text-[#898989] font-medium mt-0.5">
-                Sistem Manajemen Bisnis Percetakan &amp; POS Kasir
+                Sistem Manajemen Bisnis &amp; POS Kasir Studio
               </p>
               <p className="text-[11px] text-[#898989] mt-0.5 font-mono">
                 by Sukunaru Studio
@@ -93,7 +111,7 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
               Status Sistem
             </span>
             <span className="text-xs font-bold text-[#25343F] flex items-center gap-1.5 mt-0.5">
-              <CheckCircleIcon className="w-4 h-4" />
+              <CheckCircleIcon className="w-4 h-4 text-emerald-600" />
               Aktif &amp; Optimal
             </span>
           </div>
@@ -148,33 +166,34 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
 
         {/* About Studio */}
         <div className="lg:col-span-2 flex flex-col gap-3.5">
-          <div className="bg-zinc-900 text-white rounded-xl p-5 shadow-sm flex-1 space-y-3">
+          <div className="bg-[#25343F] text-white rounded-xl p-5 shadow-sm flex-1 space-y-3">
             <div className="flex items-center gap-2">
-              <PrinterIcon className="w-4 h-4 text-[#898989]" />
-              <h3 className="text-xs font-bold text-zinc-100">Sukunaru Studio</h3>
+              <PrinterIcon className="w-4 h-4 text-[#FF9B51]" />
+              <h3 className="text-xs font-bold text-white">Sukunaru Studio</h3>
             </div>
-            <p className="text-[11px] text-[#898989] leading-relaxed">
-              Studio percetakan, desain grafis, dan pembuatan media promosi.
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              Studio percetakan, desain grafis, dan sistem point of sale (POS) kasir.
               <br />
               Nyalindung, Desa Rajapolah, Kec. Rajapolah,
               <br />
               Kab. Tasikmalaya 46155
             </p>
-            <p className="text-[11px] text-[#898989] font-mono">WA: 089519203345</p>
-            <div className="pt-3 border-t border-zinc-800 text-[10px] text-[#898989] flex items-center justify-between">
+            <p className="text-[11px] text-emerald-300 font-mono">WA: 089519203345</p>
+            <div className="pt-3 border-t border-slate-700 text-[10px] text-slate-400 flex items-center justify-between">
               <span>Hak Cipta © {currentYear} Sukunaru Studio</span>
-              <span className="font-mono font-bold text-[#898989]">SUKUNARU ONE</span>
+              <span className="font-mono font-bold text-[#FF9B51]">v1.1.0</span>
             </div>
           </div>
 
           {/* Version Tag */}
           <div className="bg-white border border-[#BFC9D1]/25 rounded-xl p-4 shadow-sm text-center space-y-1">
             <p className="text-[10px] font-semibold text-[#898989] uppercase tracking-wider">Versi Saat Ini</p>
-            <p className="text-lg font-black text-[#25343F] tracking-tight">1.1.0</p>
-            <p className="text-[11px] text-[#898989]">Stable Release · Agustus {currentYear}</p>
+            <p className="text-lg font-black text-[#25343F] tracking-tight">v1.1.0</p>
+            <p className="text-[11px] text-[#898989]">Stable Release · {currentYear}</p>
           </div>
         </div>
       </div>
     </div>
   );
 };
+

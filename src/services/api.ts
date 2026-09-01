@@ -11,6 +11,8 @@ import {
   DashboardStats,
 } from '../types';
 import { localDb } from './localDb';
+import { uploadTenantFile, deleteTenantFile, isSupabaseConfigured, getSupabaseClientForSchema } from './supabaseClient';
+import { getActiveLicenseKey, enqueueSyncMutation } from './syncManager';
 
 export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
@@ -106,45 +108,50 @@ export const api = {
   },
 
   async updateSettings(data: Partial<BusinessSettings>): Promise<BusinessSettings> {
-    if (isStandaloneOffline()) return localDb.updateSettings(data);
-    try {
-      const res = await requestApi<BusinessSettings>('/api/settings', {
+    const updated = await localDb.updateSettings(data);
+    enqueueSyncMutation('business_settings', 'UPSERT', 'settings', updated);
+    if (!isStandaloneOffline()) {
+      requestApi<BusinessSettings>('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.updateSettings(data);
-      return res;
-    } catch {
-      return localDb.updateSettings(data);
+      }).catch(() => {});
     }
+    return updated;
   },
 
   async uploadBusinessLogo(file: File): Promise<{ success: boolean; logoUrl: string; settings: BusinessSettings }> {
-    if (isStandaloneOffline()) return localDb.uploadBusinessLogo(file);
-    try {
-      const formData = new FormData();
-      formData.append('logo', file);
-      const res = await requestApi('/api/settings/logo', {
-        method: 'POST',
-        body: formData,
-      });
-      await localDb.uploadBusinessLogo(file);
-      return res;
-    } catch {
-      return localDb.uploadBusinessLogo(file);
+    // 1. Always save compressed copy locally for instant offline usage
+    const localRes = await localDb.uploadBusinessLogo(file);
+    enqueueSyncMutation('business_settings', 'UPSERT', 'settings', localRes.settings);
+
+    // 2. If Supabase configured and online, upload to license-specific cloud storage folder
+    if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+      try {
+        const licenseKey = getActiveLicenseKey();
+        const cloudUpload = await uploadTenantFile(licenseKey, 'logos', file, file.name);
+        if (cloudUpload.success && cloudUpload.publicUrl) {
+          const updatedSettings = await localDb.updateSettings({ logoUrl: cloudUpload.publicUrl });
+          enqueueSyncMutation('business_settings', 'UPSERT', 'settings', updatedSettings);
+          return { success: true, logoUrl: cloudUpload.publicUrl, settings: updatedSettings };
+        }
+      } catch (cloudErr) {
+        console.warn('[Tenant Logo Cloud Upload Warning]:', cloudErr);
+      }
     }
+
+    return localRes;
   },
 
   async deleteBusinessLogo(): Promise<{ success: boolean; settings: BusinessSettings }> {
-    if (isStandaloneOffline()) return localDb.deleteBusinessLogo();
-    try {
-      const res = await requestApi('/api/settings/logo', { method: 'DELETE' });
-      await localDb.deleteBusinessLogo();
-      return res;
-    } catch {
-      return localDb.deleteBusinessLogo();
+    const currentSettings = await localDb.getSettings();
+    if (currentSettings.logoUrl && isSupabaseConfigured()) {
+      const licenseKey = getActiveLicenseKey();
+      deleteTenantFile(licenseKey, currentSettings.logoUrl).catch(() => {});
     }
+    const res = await localDb.deleteBusinessLogo();
+    enqueueSyncMutation('business_settings', 'UPSERT', 'settings', res.settings);
+    return res;
   },
 
   async resetSampleData(): Promise<{ success: boolean; message: string }> {
@@ -171,40 +178,36 @@ export const api = {
   },
 
   async createCustomer(data: { name: string; whatsapp?: string; address?: string; notes?: string }): Promise<Customer> {
-    if (isStandaloneOffline()) return localDb.createCustomer(data);
-    try {
-      const res = await requestApi<Customer>('/api/customers', {
+    const created = await localDb.createCustomer(data);
+    enqueueSyncMutation('customers', 'UPSERT', created.id, created);
+    if (!isStandaloneOffline()) {
+      requestApi<Customer>('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.createCustomer(data);
-      return res;
-    } catch {
-      return localDb.createCustomer(data);
+      }).catch(() => {});
     }
+    return created;
   },
 
   async updateCustomer(id: string, data: Partial<Customer>): Promise<Customer> {
-    if (isStandaloneOffline()) return localDb.updateCustomer(id, data);
-    try {
-      const res = await requestApi<Customer>(`/api/customers/${id}`, {
+    const updated = await localDb.updateCustomer(id, data);
+    enqueueSyncMutation('customers', 'UPSERT', updated.id, updated);
+    if (!isStandaloneOffline()) {
+      requestApi<Customer>(`/api/customers/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.updateCustomer(id, data);
-      return res;
-    } catch {
-      return localDb.updateCustomer(id, data);
+      }).catch(() => {});
     }
+    return updated;
   },
 
   async deleteCustomer(id: string): Promise<void> {
-    if (isStandaloneOffline()) return localDb.deleteCustomer(id);
-    try {
-      await requestApi<void>(`/api/customers/${id}`, { method: 'DELETE' });
-    } catch {}
+    enqueueSyncMutation('customers', 'DELETE', id);
+    if (!isStandaloneOffline()) {
+      requestApi<void>(`/api/customers/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return localDb.deleteCustomer(id);
   },
 
@@ -224,68 +227,56 @@ export const api = {
   },
 
   async createMaterial(data: Partial<Material>): Promise<Material> {
-    if (isStandaloneOffline()) return localDb.createMaterial(data);
-    try {
+    const created = await localDb.createMaterial(data);
+    enqueueSyncMutation('materials', 'UPSERT', created.id, created);
+    if (!isStandaloneOffline()) {
       const payload = {
         ...data,
         purchasePrice: data.unitCost ?? data.purchasePrice ?? 0,
       };
-      const created = await requestApi<any>('/api/materials', {
+      requestApi<any>('/api/materials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
-      await localDb.createMaterial(data);
-      return {
-        ...created,
-        unitCost: created.unitCost ?? created.purchasePrice ?? 0,
-      };
-    } catch {
-      return localDb.createMaterial(data);
+      }).catch(() => {});
     }
+    return created;
   },
 
   async updateMaterial(id: string, data: Partial<Material>): Promise<Material> {
-    if (isStandaloneOffline()) return localDb.updateMaterial(id, data);
-    try {
+    const updated = await localDb.updateMaterial(id, data);
+    enqueueSyncMutation('materials', 'UPSERT', updated.id, updated);
+    if (!isStandaloneOffline()) {
       const payload = {
         ...data,
         purchasePrice: data.unitCost ?? data.purchasePrice,
       };
-      const updated = await requestApi<any>(`/api/materials/${id}`, {
+      requestApi<any>(`/api/materials/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
-      await localDb.updateMaterial(id, data);
-      return {
-        ...updated,
-        unitCost: updated.unitCost ?? updated.purchasePrice ?? 0,
-      };
-    } catch {
-      return localDb.updateMaterial(id, data);
+      }).catch(() => {});
     }
+    return updated;
   },
 
   async addStockMovement(
     materialId: string,
     data: { type: 'IN' | 'OUT' | 'ADJUSTMENT'; quantity: number; referenceType?: string; notes?: string }
   ): Promise<{ material: Material; movement: InventoryMovement }> {
-    if (isStandaloneOffline()) return localDb.addStockMovement(materialId, data);
-    try {
-      const res = await requestApi<{ material: Material; movement: InventoryMovement }>(
+    const res = await localDb.addStockMovement(materialId, data);
+    enqueueSyncMutation('materials', 'UPSERT', res.material.id, res.material);
+    if (!isStandaloneOffline()) {
+      requestApi<{ material: Material; movement: InventoryMovement }>(
         `/api/materials/${materialId}/movement`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         }
-      );
-      await localDb.addStockMovement(materialId, data);
-      return res;
-    } catch {
-      return localDb.addStockMovement(materialId, data);
+      ).catch(() => {});
     }
+    return res;
   },
 
   async recordMovement(data: {
@@ -304,10 +295,10 @@ export const api = {
   },
 
   async deleteMaterial(id: string): Promise<void> {
-    if (isStandaloneOffline()) return localDb.deleteMaterial(id);
-    try {
-      await requestApi<void>(`/api/materials/${id}`, { method: 'DELETE' });
-    } catch {}
+    enqueueSyncMutation('materials', 'DELETE', id);
+    if (!isStandaloneOffline()) {
+      requestApi<void>(`/api/materials/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return localDb.deleteMaterial(id);
   },
 
@@ -326,41 +317,41 @@ export const api = {
     return requestApi<Product[]>('/api/products').catch(() => localDb.getProducts());
   },
 
+  async getProductByBarcode(barcode: string): Promise<Product | null> {
+    return localDb.getProductByBarcode(barcode);
+  },
+
   async createProduct(data: Partial<Product>): Promise<Product> {
-    if (isStandaloneOffline()) return localDb.createProduct(data);
-    try {
-      const res = await requestApi<Product>('/api/products', {
+    const created = await localDb.createProduct(data);
+    enqueueSyncMutation('products', 'UPSERT', created.id, created);
+    if (!isStandaloneOffline()) {
+      requestApi<Product>('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.createProduct(data);
-      return res;
-    } catch {
-      return localDb.createProduct(data);
+      }).catch(() => {});
     }
+    return created;
   },
 
   async updateProduct(id: string, data: Partial<Product>): Promise<Product> {
-    if (isStandaloneOffline()) return localDb.updateProduct(id, data);
-    try {
-      const res = await requestApi<Product>(`/api/products/${id}`, {
+    const updated = await localDb.updateProduct(id, data);
+    enqueueSyncMutation('products', 'UPSERT', updated.id, updated);
+    if (!isStandaloneOffline()) {
+      requestApi<Product>(`/api/products/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.updateProduct(id, data);
-      return res;
-    } catch {
-      return localDb.updateProduct(id, data);
+      }).catch(() => {});
     }
+    return updated;
   },
 
   async deleteProduct(id: string): Promise<void> {
-    if (isStandaloneOffline()) return localDb.deleteProduct(id);
-    try {
-      await requestApi<void>(`/api/products/${id}`, { method: 'DELETE' });
-    } catch {}
+    enqueueSyncMutation('products', 'DELETE', id);
+    if (!isStandaloneOffline()) {
+      requestApi<void>(`/api/products/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return localDb.deleteProduct(id);
   },
 
@@ -404,25 +395,23 @@ export const api = {
   },
 
   async createTransaction(data: any): Promise<Transaction> {
-    if (isStandaloneOffline()) return localDb.createTransaction(data);
-    try {
-      const res = await requestApi<Transaction>('/api/transactions', {
+    const created = await localDb.createTransaction(data);
+    enqueueSyncMutation('transactions', 'UPSERT', created.id, created);
+    if (!isStandaloneOffline()) {
+      requestApi<Transaction>('/api/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.createTransaction(data);
-      return res;
-    } catch {
-      return localDb.createTransaction(data);
+      }).catch(() => {});
     }
+    return created;
   },
 
   async deleteTransaction(id: string): Promise<void> {
-    if (isStandaloneOffline()) return localDb.deleteTransaction(id);
-    try {
-      await requestApi<void>(`/api/transactions/${id}`, { method: 'DELETE' });
-    } catch {}
+    enqueueSyncMutation('transactions', 'DELETE', id);
+    if (!isStandaloneOffline()) {
+      requestApi<void>(`/api/transactions/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return localDb.deleteTransaction(id);
   },
 
@@ -436,6 +425,28 @@ export const api = {
       financialTransactions: number;
     };
   }> {
+    // 1. Clear in Supabase Cloud schema if configured
+    if (isSupabaseConfigured()) {
+      try {
+        const licenseKey = getActiveLicenseKey();
+        const schemaName = licenseKey.trim().toLowerCase().replace(/-/g, '_');
+        const targetDb = getSupabaseClientForSchema(schemaName);
+        if (targetDb) {
+          await targetDb.from('transactions').delete().neq('id', '___NEVER_MATCH___');
+          await targetDb.from('orders').delete().neq('id', '___NEVER_MATCH___');
+          await targetDb.from('financial_transactions').delete().neq('id', '___NEVER_MATCH___');
+          if (options.resetExpenses) {
+            await targetDb.from('expenses').delete().neq('id', '___NEVER_MATCH___');
+          }
+          if (options.resetMovements) {
+            await targetDb.from('inventory_movements').delete().neq('id', '___NEVER_MATCH___');
+          }
+        }
+      } catch (err) {
+        console.warn('[Clear All Trx Cloud Error]:', err);
+      }
+    }
+
     if (isStandaloneOffline()) return localDb.clearAllTransactions(options);
     try {
       const res = await requestApi('/api/transactions/clear-all', {
@@ -462,51 +473,45 @@ export const api = {
   },
 
   async createOrder(data: any): Promise<Order> {
-    if (isStandaloneOffline()) return localDb.createOrder(data);
-    try {
-      const res = await requestApi<Order>('/api/orders', {
+    const created = await localDb.createOrder(data);
+    enqueueSyncMutation('orders', 'UPSERT', created.id, created);
+    if (!isStandaloneOffline()) {
+      requestApi<Order>('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.createOrder(data);
-      return res;
-    } catch {
-      return localDb.createOrder(data);
+      }).catch(() => {});
     }
+    return created;
   },
 
   async updateOrderStatus(id: string, status: string): Promise<Order> {
-    if (isStandaloneOffline()) return localDb.updateOrderStatus(id, status);
-    try {
-      const res = await requestApi<Order>(`/api/orders/${id}/status`, {
+    const updated = await localDb.updateOrderStatus(id, status);
+    enqueueSyncMutation('orders', 'UPSERT', updated.id, updated);
+    if (!isStandaloneOffline()) {
+      requestApi<Order>(`/api/orders/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
-      });
-      await localDb.updateOrderStatus(id, status);
-      return res;
-    } catch {
-      return localDb.updateOrderStatus(id, status);
+      }).catch(() => {});
     }
+    return updated;
   },
 
   async addOrderPayment(
     id: string,
     data: { amount: number; paymentMethod: string; date?: string; notes?: string }
   ): Promise<Order> {
-    if (isStandaloneOffline()) return localDb.addOrderPayment(id, data);
-    try {
-      const res = await requestApi<Order>(`/api/orders/${id}/payment`, {
+    const updated = await localDb.addOrderPayment(id, data);
+    enqueueSyncMutation('orders', 'UPSERT', updated.id, updated);
+    if (!isStandaloneOffline()) {
+      requestApi<Order>(`/api/orders/${id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.addOrderPayment(id, data);
-      return res;
-    } catch {
-      return localDb.addOrderPayment(id, data);
+      }).catch(() => {});
     }
+    return updated;
   },
 
   async updateOrderPayment(
@@ -514,31 +519,27 @@ export const api = {
     paymentId: string,
     data: { amount?: number; paymentMethod?: string; date?: string; notes?: string }
   ): Promise<Order> {
-    if (isStandaloneOffline()) return localDb.updateOrderPayment(orderId, paymentId, data);
-    try {
-      const res = await requestApi<Order>(`/api/orders/${orderId}/payment/${paymentId}`, {
+    const updated = await localDb.updateOrderPayment(orderId, paymentId, data);
+    enqueueSyncMutation('orders', 'UPSERT', updated.id, updated);
+    if (!isStandaloneOffline()) {
+      requestApi<Order>(`/api/orders/${orderId}/payment/${paymentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.updateOrderPayment(orderId, paymentId, data);
-      return res;
-    } catch {
-      return localDb.updateOrderPayment(orderId, paymentId, data);
+      }).catch(() => {});
     }
+    return updated;
   },
 
   async deleteOrderPayment(orderId: string, paymentId: string): Promise<Order> {
-    if (isStandaloneOffline()) return localDb.deleteOrderPayment(orderId, paymentId);
-    try {
-      const res = await requestApi<Order>(`/api/orders/${orderId}/payment/${paymentId}`, {
+    const updated = await localDb.deleteOrderPayment(orderId, paymentId);
+    enqueueSyncMutation('orders', 'UPSERT', updated.id, updated);
+    if (!isStandaloneOffline()) {
+      requestApi<Order>(`/api/orders/${orderId}/payment/${paymentId}`, {
         method: 'DELETE',
-      });
-      await localDb.deleteOrderPayment(orderId, paymentId);
-      return res;
-    } catch {
-      return localDb.deleteOrderPayment(orderId, paymentId);
+      }).catch(() => {});
     }
+    return updated;
   },
 
   async uploadOrderFile(orderId: string, file: File, notes?: string): Promise<any> {
@@ -567,10 +568,10 @@ export const api = {
   },
 
   async deleteOrder(id: string): Promise<void> {
-    if (isStandaloneOffline()) return localDb.deleteOrder(id);
-    try {
-      await requestApi<void>(`/api/orders/${id}`, { method: 'DELETE' });
-    } catch {}
+    enqueueSyncMutation('orders', 'DELETE', id);
+    if (!isStandaloneOffline()) {
+      requestApi<void>(`/api/orders/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return localDb.deleteOrder(id);
   },
 
@@ -581,25 +582,23 @@ export const api = {
   },
 
   async createExpense(data: Partial<Expense>): Promise<Expense> {
-    if (isStandaloneOffline()) return localDb.createExpense(data);
-    try {
-      const res = await requestApi<Expense>('/api/expenses', {
+    const created = await localDb.createExpense(data);
+    enqueueSyncMutation('expenses', 'UPSERT', created.id, created);
+    if (!isStandaloneOffline()) {
+      requestApi<Expense>('/api/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.createExpense(data);
-      return res;
-    } catch {
-      return localDb.createExpense(data);
+      }).catch(() => {});
     }
+    return created;
   },
 
   async deleteExpense(id: string): Promise<void> {
-    if (isStandaloneOffline()) return localDb.deleteExpense(id);
-    try {
-      await requestApi<void>(`/api/expenses/${id}`, { method: 'DELETE' });
-    } catch {}
+    enqueueSyncMutation('expenses', 'DELETE', id);
+    if (!isStandaloneOffline()) {
+      requestApi<void>(`/api/expenses/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
     return localDb.deleteExpense(id);
   },
 
@@ -614,18 +613,16 @@ export const api = {
   },
 
   async createFinanceEntry(data: Partial<FinancialTransaction>): Promise<FinancialTransaction> {
-    if (isStandaloneOffline()) return localDb.createFinanceEntry(data);
-    try {
-      const res = await requestApi<FinancialTransaction>('/api/finance', {
+    const created = await localDb.createFinanceEntry(data);
+    enqueueSyncMutation('financial_transactions', 'UPSERT', created.id, created);
+    if (!isStandaloneOffline()) {
+      requestApi<FinancialTransaction>('/api/finance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      });
-      await localDb.createFinanceEntry(data);
-      return res;
-    } catch {
-      return localDb.createFinanceEntry(data);
+      }).catch(() => {});
     }
+    return created;
   },
 
   async createFinancialTransaction(data: Partial<FinancialTransaction>): Promise<FinancialTransaction> {
@@ -659,21 +656,19 @@ export const api = {
       notes?: string;
     }
   ): Promise<{ success: boolean; material: Material; movement: InventoryMovement }> {
-    if (isStandaloneOffline()) return localDb.restockMaterial(id, data);
-    try {
-      const res = await requestApi<{ success: boolean; material: Material; movement: InventoryMovement }>(
+    const res = await localDb.restockMaterial(id, data);
+    enqueueSyncMutation('materials', 'UPSERT', res.material.id, res.material);
+    if (!isStandaloneOffline()) {
+      requestApi<{ success: boolean; material: Material; movement: InventoryMovement }>(
         `/api/materials/${id}/restock`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         }
-      );
-      await localDb.restockMaterial(id, data);
-      return res;
-    } catch {
-      return localDb.restockMaterial(id, data);
+      ).catch(() => {});
     }
+    return res;
   },
 
   // v3-v4: Full Database Backup & Restore

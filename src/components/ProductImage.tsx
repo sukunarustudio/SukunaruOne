@@ -1,5 +1,5 @@
 import React from 'react';
-import { CubeIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon } from '@heroicons/react/24/outline';
 import { api, resolveApiUrl } from '../services/api';
 
 interface ProductImageProps {
@@ -21,11 +21,11 @@ const SIZE_CLASSES: Record<string, string> = {
 };
 
 const ICON_CLASSES: Record<string, string> = {
-  xs: 'w-3.5 h-3.5',
-  sm: 'w-4 h-4',
-  md: 'w-6 h-6',
-  lg: 'w-8 h-8',
-  xl: 'w-14 h-14',
+  xs: 'w-4 h-4',
+  sm: 'w-5 h-5',
+  md: 'w-7 h-7',
+  lg: 'w-10 h-10',
+  xl: 'w-16 h-16',
 };
 
 export const ProductImage: React.FC<ProductImageProps> = ({
@@ -49,7 +49,7 @@ export const ProductImage: React.FC<ProductImageProps> = ({
 
   return (
     <div
-      className={`${sizeClass} ${rounded} overflow-hidden bg-[#EAEFEF] flex items-center justify-center shrink-0 ${className}`}
+      className={`${sizeClass} ${rounded} overflow-hidden bg-[#EAEFEF] dark:bg-slate-800/80 flex items-center justify-center shrink-0 ${className}`}
     >
       {src ? (
         <img
@@ -62,12 +62,12 @@ export const ProductImage: React.FC<ProductImageProps> = ({
             (e.target as HTMLImageElement).style.display = 'none';
             const parent = (e.target as HTMLImageElement).parentElement;
             if (parent) {
-              parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-[#EAEFEF]"><svg xmlns='http://www.w3.org/2000/svg' class='${iconClass} text-[#898989]' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><rect width='20' height='20' x='2' y='2' rx='2.18' ry='2.18'/><line x1='7' x2='17' y1='2' y2='22'/><line x1='2' x2='22' y1='7' y2='17'/><line x1='2' x2='22' y1='17' y2='7'/></svg></div>`;
+              parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-[#EAEFEF] dark:bg-slate-800"><svg xmlns='http://www.w3.org/2000/svg' class='${iconClass} text-[#898989]/60' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z' /></svg></div>`;
             }
           }}
         />
       ) : (
-        <CubeIcon className={`${iconClass} text-zinc-300`} strokeWidth={1.5} />
+        <PhotoIcon className={`${iconClass} text-[#898989]/50 dark:text-slate-500`} strokeWidth={1.5} />
       )}
     </div>
   );
@@ -202,12 +202,12 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
           </div>
         ) : (
           <div
-            className="w-full max-w-[200px] aspect-square rounded-xl border-2 border-dashed border-[#BFC9D1] bg-[#EAEFEF] flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-zinc-400 hover:bg-[#EAEFEF] transition-colors"
+            className="w-full max-w-[200px] aspect-square rounded-xl border-2 border-dashed border-[#BFC9D1] bg-[#EAEFEF] dark:bg-slate-800/60 dark:border-slate-700 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-zinc-400 hover:bg-[#EAEFEF] transition-colors"
             onClick={() => fileInputRef.current?.click()}
           >
-            <CubeIcon className="w-10 h-10 text-zinc-300" strokeWidth={1.2} />
+            <PhotoIcon className="w-10 h-10 text-zinc-400 dark:text-slate-500" strokeWidth={1.2} />
             <span className="text-[11px] text-[#898989] font-medium">Klik untuk pilih gambar</span>
-            <span className="text-[10px] text-zinc-300">JPG, PNG, WebP — maks 10MB</span>
+            <span className="text-[10px] text-zinc-400">JPG, PNG, WebP — maks 10MB</span>
           </div>
         )}
       </div>

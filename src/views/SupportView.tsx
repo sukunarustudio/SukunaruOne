@@ -58,7 +58,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onNavigate, settings }
               Dukung Aplikasi Ini
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-              Donasi & apresiasi pengembangan Sukunaru Studio OS
+              Donasi & apresiasi pengembangan BisnisUrang
             </p>
           </div>
         </div>
@@ -75,7 +75,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onNavigate, settings }
             Dukungan Anda Menyalakan Inovasi Kami
           </h2>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Sukunaru ONE dikembangkan dengan komitmen untuk mendampingi UMKM dan industri kreatif percetakan berkembang tanpa beban biaya langganan. Donasi sukarela Anda membantu biaya operasional, pembaruan fitur, dan maintenance sistem.
+            BisnisUrang dikembangkan dengan komitmen untuk mendampingi UMKM dan industri kreatif berkembang tanpa beban biaya langganan. Donasi sukarela Anda membantu biaya operasional, pembaruan fitur, dan maintenance sistem.
           </p>
         </div>
       </div>

@@ -205,7 +205,23 @@ export function printIsolatedElement(
 
     const printContent = targetElement.outerHTML;
 
-    // 2. Try Method A: Open standalone printable new window (most reliable across all desktop/mobile browsers)
+    // 1. Check if running on native Capacitor (Android/iOS)
+    if (Capacitor.isNativePlatform()) {
+      // In native Android WebView, window.open or window.print redirects out of app or freezes.
+      // Instead, generate PDF / image and open native share/save prompt directly.
+      const isReceipt = paperSize === '58mm' || paperSize === '80mm';
+      const pdfFormat = isReceipt ? (paperSize === '58mm' ? [58, 140] as [number, number] : [80, 180] as [number, number]) : (paperSize === 'a5' ? 'a5' : 'a4');
+      downloadElementAsPdf(targetElement, {
+        filename: `${title}.pdf`,
+        format: pdfFormat,
+        orientation: 'portrait',
+        marginMm: isReceipt ? 2 : 5,
+        scale: 2.5,
+      });
+      return true;
+    }
+
+    // 2. Try Method A: Open standalone printable new window (desktop browsers)
     try {
       const popupWidth = isThermalReceipt ? 450 : 850;
       const printWin = window.open('', '_blank', `width=${popupWidth},height=950,top=50,left=50`);

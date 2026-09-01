@@ -2,18 +2,49 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=overlays-content" />
-    <title>Sukunaru Studio - STUDIO OS</title>
-    <meta name="description" content="Aplikasi Manajemen Bisnis Percetakan & Desain Grafis Sukunaru Studio" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>BisnisUrang - Sistem Manajemen Bisnis &amp; POS Kasir</title>
+    <meta name="description" content="Aplikasi Manajemen Bisnis &amp; POS Kasir BisnisUrang" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Funnel+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,400;0,500;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet" />
-    <meta property="og:title" content="Sukunaru Studio" />
+    <meta property="og:title" content="BisnisUrang" />
     <meta property="og:description" content="An application built with Google AI Studio." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('sukunaru_theme_settings');
+          if (saved) {
+            var theme = JSON.parse(saved);
+            var mode = theme.mode || 'system';
+            var isDark = mode === 'dark' || (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (isDark) {
+              document.documentElement.classList.add('dark');
+            }
+            if (theme.accentColor) {
+              document.documentElement.style.setProperty('--color-accent', theme.accentColor);
+              document.documentElement.style.setProperty('--color-sknr-orange', theme.accentColor);
+            }
+            if (theme.heroCard) {
+              var start = theme.heroCard.sameInBothModes ? theme.heroCard.lightStart : (isDark ? theme.heroCard.darkStart : theme.heroCard.lightStart);
+              var end = theme.heroCard.sameInBothModes ? theme.heroCard.lightEnd : (isDark ? theme.heroCard.darkEnd : theme.heroCard.lightEnd);
+              if (start) document.documentElement.style.setProperty('--hero-start', start);
+              if (end) document.documentElement.style.setProperty('--hero-end', end);
+              if (theme.heroCard.gradient) document.documentElement.style.setProperty('--hero-gradient', theme.heroCard.gradient);
+              if (theme.heroCard.glow) document.documentElement.style.setProperty('--hero-glow', theme.heroCard.glow);
+              if (theme.heroCard.pattern) document.documentElement.style.setProperty('--hero-pattern', theme.heroCard.pattern);
+              if (theme.heroCard.border) document.documentElement.style.setProperty('--hero-border', theme.heroCard.border);
+              if (theme.heroCard.accent) document.documentElement.style.setProperty('--hero-accent', theme.heroCard.accent);
+              if (theme.heroCard.shadow) document.documentElement.style.setProperty('--hero-shadow', theme.heroCard.shadow);
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

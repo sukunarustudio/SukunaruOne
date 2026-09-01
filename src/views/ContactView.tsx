@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeftIcon, ChatBubbleLeftEllipsisIcon, EnvelopeIcon, CameraIcon, DocumentDuplicateIcon, CheckIcon, ArrowTopRightOnSquareIcon, ClockIcon, MapPinIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ChatBubbleLeftEllipsisIcon, EnvelopeIcon, CameraIcon, DocumentDuplicateIcon, CheckIcon, ArrowTopRightOnSquareIcon, ClockIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { ViewType, BusinessSettings } from '../types';
 
 interface ContactViewProps {
@@ -7,7 +7,7 @@ interface ContactViewProps {
   settings?: BusinessSettings;
 }
 
-export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, settings }) => {
+export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, key: string) => {
@@ -27,7 +27,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, settings }
       desc: 'Chat langsung via WhatsApp untuk pertanyaan cepat, konsultasi, atau kendala teknis.',
       icon: ChatBubbleLeftEllipsisIcon,
       iconBg: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25',
-      actionUrl: 'https://wa.me/6289519203345?text=Halo%20Sukunaru%20Studio%2C%20saya%20ingin%20bertanya%20seputar%20aplikasi%20BisnisUrang',
+      actionUrl: 'https://wa.me/6289519203345?text=Halo%20Sukunaru%20Studio%2C%20saya%20ingin%20bertanya%20seputar%20aplikasi%20Sukunaru%20Studio',
       actionLabel: 'Buka WhatsApp',
       badge: 'Respons Cepat',
       badgeClass: 'bg-[#EAEFEF] text-[#25343F]',
@@ -40,7 +40,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, settings }
       desc: 'Kirimkan pesan kerja sama, laporan bug, atau pertanyaan mendalam via surel.',
       icon: EnvelopeIcon,
       iconBg: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25',
-      actionUrl: 'mailto:sukunarustudio@gmail.com?subject=Tanya%20Aplikasi%20BisnisUrang',
+      actionUrl: 'mailto:sukunarustudio@gmail.com?subject=Tanya%20Aplikasi%20Sukunaru%20Studio',
       actionLabel: 'Kirim Email',
       badge: 'Resmi',
       badgeClass: 'bg-[#EAEFEF] text-[#25343F]',
@@ -89,15 +89,6 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, settings }
           </div>
         </div>
 
-        <a
-          href="https://wa.me/6289519203345?text=Halo%20Sukunaru%20Studio"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="h-9 px-3.5 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md transition-colors cursor-pointer shrink-0 active:scale-95"
-        >
-          <ChatBubbleLeftEllipsisIcon className="w-4 h-4" />
-          <span>Chat WA</span>
-        </a>
       </div>
 
 
@@ -112,7 +103,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, settings }
             Punya Kendala atau Usulan Fitur Baru?
           </h2>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Kami selalu terbuka untuk kritik, saran, maupun pertanyaan seputar implementasi aplikasi BisnisUrang untuk usaha Anda.
+            Kami selalu terbuka untuk kritik, saran, maupun pertanyaan seputar implementasi aplikasi Sukunaru Studio untuk usaha Anda.
           </p>
         </div>
       </div>
@@ -228,32 +219,18 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, settings }
         </div>
       </div>
 
-      {/* Working Hours & Studio Location */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md p-4 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#FF9B51]/8 text-[#FF9B51] border border-[#FF9B51]/40 flex items-center justify-center shrink-0">
-            <ClockIcon className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="font-bold text-xs text-[#25343F]">Jam Layanan Bantuan</div>
-            <div className="text-xs text-[#898989] mt-0.5 font-medium">Senin - Sabtu: 08.00 - 21.00 WIB</div>
-            <div className="text-[10px] text-[#898989] mt-0.5">Minggu & Hari Libur: Slow Response</div>
-          </div>
+      {/* Working Hours */}
+      <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md p-4 flex items-start gap-3">
+        <div className="w-9 h-9 rounded-xl bg-[#FF9B51]/8 text-[#FF9B51] border border-[#FF9B51]/40 flex items-center justify-center shrink-0">
+          <ClockIcon className="w-4 h-4" />
         </div>
-
-        <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md p-4 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 flex items-center justify-center shrink-0">
-            <MapPinIcon className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="font-bold text-xs text-[#25343F]">Alamat Studio</div>
-            <div className="text-xs text-[#898989] mt-0.5 font-medium truncate">
-              {settings?.address || 'Malang, Jawa Timur, Indonesia'}
-            </div>
-            <div className="text-[10px] text-[#898989] mt-0.5">Indonesia</div>
-          </div>
+        <div>
+          <div className="font-bold text-xs text-[#25343F]">Jam Layanan Bantuan</div>
+          <div className="text-xs text-[#898989] mt-0.5 font-medium">Senin - Sabtu: 08.00 - 21.00 WIB</div>
+          <div className="text-[10px] text-[#898989] mt-0.5">Minggu &amp; Hari Libur: Slow Response</div>
         </div>
       </div>
     </div>
   );
 };
+

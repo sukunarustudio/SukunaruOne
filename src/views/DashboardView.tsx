@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRightIcon, CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, CubeIcon, PlusIcon, UsersIcon, ShoppingBagIcon, DocumentTextIcon, ArrowTrendingUpIcon, WalletIcon, ArrowUpRightIcon, ClipboardDocumentListIcon, PrinterIcon, ArrowPathIcon, MagnifyingGlassIcon, BuildingStorefrontIcon, ShoppingCartIcon, CalculatorIcon, Square3Stack3DIcon, ReceiptPercentIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ArrowDownRightIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon, CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, CubeIcon, PlusIcon, UsersIcon, ShoppingBagIcon, DocumentTextIcon, ArrowTrendingUpIcon, WalletIcon, ArrowUpRightIcon, ClipboardDocumentListIcon, PrinterIcon, ArrowPathIcon, MagnifyingGlassIcon, BuildingStorefrontIcon, ShoppingCartIcon, CalculatorIcon, Square3Stack3DIcon, ReceiptPercentIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ArrowDownRightIcon, LockClosedIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { useLicense } from '../hooks/useLicense';
 import { BuildingStorefrontIcon as BuildingStorefrontSolid, ClipboardDocumentListIcon as ClipboardDocumentListSolid, UsersIcon as UsersSolid, CubeIcon as CubeSolid, CalculatorIcon as CalculatorSolid, Square3Stack3DIcon as Square3StackSolid, WalletIcon as WalletSolid, ArrowTrendingUpIcon as ArrowTrendingUpSolid, Cog6ToothIcon as CogSolid } from '@heroicons/react/24/solid';
 import {
   ResponsiveContainer,
@@ -17,6 +18,8 @@ import {
   ViewType,
   BusinessSettings,
 } from '../types';
+import { syncWithSupabase } from '../services/syncManager';
+import { isSupabaseConfigured } from '../services/supabaseClient';
 import {
   formatRupiah,
   formatDate,
@@ -66,6 +69,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
       if (showRefreshing) setRefreshing(true);
       else setLoading(true);
 
+      // Trigger Cloud Sync if configured and user manually refreshes
+      let isSynced = false;
+      if (showRefreshing && isSupabaseConfigured()) {
+        try {
+          const syncRes = await syncWithSupabase();
+          if (syncRes.success) {
+            isSynced = true;
+          }
+        } catch (syncErr) {
+          console.warn('Background sync on refresh warning:', syncErr);
+        }
+      }
+
       const [statsData, ordersData, finData] = await Promise.all([
         api.getStats(),
         api.getOrders(),
@@ -75,6 +91,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
       setStats(statsData);
       setAllOrders(ordersData);
       setFinTransactions(finData);
+      if (showRefreshing) {
+        showToast(
+          isSynced
+            ? 'Data berhasil diperbarui & disinkronkan!'
+            : 'Data berhasil diperbarui!',
+          'success'
+        );
+      }
     } catch (err: any) {
       showToast(err.message || 'Gagal memuat data dashboard', 'error');
     } finally {
@@ -85,6 +109,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
 
   useEffect(() => {
     loadData();
+
+    const handleFocus = () => {
+      loadData(false);
+    };
+
+    // Live Auto-Refresh when local data changes or Supabase Cloud sync finishes
+    const handleLiveAutoRefresh = () => {
+      loadData(false);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('sukunaru:sync_completed', handleLiveAutoRefresh);
+    window.addEventListener('sukunaru:data_mutation', handleLiveAutoRefresh);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('sukunaru:sync_completed', handleLiveAutoRefresh);
+      window.removeEventListener('sukunaru:data_mutation', handleLiveAutoRefresh);
+    };
   }, []);
 
   // ─── 7-Day Sales & Expense Traffic Chart Data ─────────────────────────────
@@ -121,6 +164,86 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     return Object.values(days);
   }, [finTransactions]);
 
+  // ─── Total Net Cash Balance (Saldo Kas Bisnis Kumulatif) ───────────────────
+  const liveTotalCashBalance = React.useMemo(() => {
+    if (finTransactions && finTransactions.length > 0) {
+      const totalIn = finTransactions
+        .filter(f => f.type === 'INCOME')
+        .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+      const totalOut = finTransactions
+        .filter(f => f.type === 'EXPENSE')
+        .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+      return totalIn - totalOut;
+    }
+    if (stats.totalCashBalance !== undefined) return stats.totalCashBalance;
+    return (stats.todayRevenue || 0) - (stats.todayExpense || 0);
+  }, [finTransactions, stats.totalCashBalance, stats.todayRevenue, stats.todayExpense]);
+
+  // ─── Dynamic Period-Aware KPIs (Omzet, Pengeluaran, Profit) ───────────────
+  const { kpiRevenue, kpiExpense, kpiProfit, periodNet } = React.useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const thisMonthPrefix = todayStr.substring(0, 7);
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const isInPeriod = (dateStr?: string) => {
+      if (!dateStr) return false;
+      const clean = dateStr.split('T')[0];
+      if (period === 'today') return clean === todayStr;
+      if (period === 'month') return clean.startsWith(thisMonthPrefix);
+      const d = new Date(dateStr);
+      return d >= sevenDaysAgo;
+    };
+
+    let income = 0;
+    let expense = 0;
+
+    if (finTransactions && finTransactions.length > 0) {
+      finTransactions.forEach(f => {
+        if (isInPeriod(f.date)) {
+          if (f.type === 'INCOME') income += Number(f.amount) || 0;
+          else if (f.type === 'EXPENSE') expense += Number(f.amount) || 0;
+        }
+      });
+    } else {
+      if (period === 'today') {
+        income = stats.todayRevenue || 0;
+        expense = stats.todayExpense || 0;
+      } else {
+        income = stats.thisMonthRevenue || 0;
+        expense = stats.thisMonthExpense || 0;
+      }
+    }
+
+    const profit = Math.max(0, income - expense);
+    const periodNet = income - expense;
+
+    return { kpiRevenue: income, kpiExpense: expense, kpiProfit: profit, periodNet };
+  }, [finTransactions, period, stats]);
+
+  const kpiTrx = React.useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const thisMonthPrefix = todayStr.substring(0, 7);
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    if (finTransactions && finTransactions.length > 0) {
+      if (period === 'today') {
+        return finTransactions.filter(f => (f.date ? f.date.split('T')[0] : '') === todayStr).length;
+      } else if (period === 'month') {
+        return finTransactions.filter(f => (f.date ? f.date.split('T')[0] : '').startsWith(thisMonthPrefix)).length;
+      } else {
+        return finTransactions.filter(f => {
+          if (!f.date) return false;
+          return new Date(f.date) >= sevenDaysAgo;
+        }).length;
+      }
+    }
+    return period === 'today' ? (stats.todayTransactionsCount || 0) : (stats.todayTransactionsCount || 0) * 4;
+  }, [finTransactions, period, stats.todayTransactionsCount]);
+
   // ─── Derived: Order pipeline counts ───────────────────────────────────────
   const activeOrders = allOrders.filter(o => o.status !== 'SELESAI' && o.status !== 'BATAL');
   const newOrders     = allOrders.filter(o => o.status === 'BARU');
@@ -131,37 +254,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
 
   // Orders currently being worked on (BARU + DIPROSES + SIAP) limited for dashboard
   const workingOrders = activeOrders.slice(0, 3);
-
-  // ─── Period-aware KPIs ─────────────────────────────────────────────────────
-  const kpiRevenue   = period === 'today' ? stats.todayRevenue   : stats.thisMonthRevenue;
-  const kpiProfit    = period === 'today' ? stats.todayProfit    : stats.thisMonthProfit;
-  const kpiExpense   = period === 'today' ? stats.todayExpense   : stats.thisMonthExpense;
-
-  const kpiTrx = React.useMemo(() => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const thisMonthPrefix = todayStr.substring(0, 7);
-
-    if (period === 'today') {
-      const todayIncomes = finTransactions.filter(
-        f => (f.date ? f.date.split('T')[0] : '') === todayStr && f.type === 'INCOME'
-      );
-      return todayIncomes.length > 0 ? todayIncomes.length : (stats.todayTransactionsCount || 0);
-    } else if (period === 'month') {
-      const monthIncomes = finTransactions.filter(
-        f => (f.date ? f.date.split('T')[0] : '').startsWith(thisMonthPrefix) && f.type === 'INCOME'
-      );
-      return monthIncomes.length;
-    } else {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const weekIncomes = finTransactions.filter(f => {
-        const d = new Date(f.date);
-        return d >= sevenDaysAgo && f.type === 'INCOME';
-      });
-      return weekIncomes.length;
-    }
-  }, [finTransactions, period, stats.todayTransactionsCount]);
 
   // ─── "Perlu Dikerjakan" todo items ────────────────────────────────────────
   const todoItems = [
@@ -252,15 +344,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     );
   }
 
+  const { isPro, isTrial, daysRemaining, isTrialExpired } = useLicense();
+
   return (
     <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
+
+      {/* ── UNLICENSED / TRIAL NOTICE BANNER ─────────────────────────── */}
+      {!isPro && (
+        <div className="bg-gradient-to-r from-[#25343F] to-[#1E293B] text-white p-4 rounded-2xl border border-[#FF9B51]/30 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#FF9B51]/20 border border-[#FF9B51]/40 flex items-center justify-center shrink-0">
+              <LockClosedIcon className="w-5 h-5 text-[#FF9B51]" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-white flex items-center gap-1.5">
+                {isTrialExpired ? 'Masa Percobaan Trial Berakhir' : 'Mode Terbatas (Belum Aktivasi)'}
+              </h3>
+              <p className="text-xs text-slate-300 mt-0.5">
+                {isTrialExpired
+                  ? 'Aktivasi lisensi Pro untuk melanjutkan akses penuh ke seluruh fitur studio.'
+                  : 'Aktifkan Serial Key untuk membuka Pesanan, Kalkulator HPP, Arus Kas, Pengaturan Profil, Cloud Sync & Laporan.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => goTo('activation')}
+            className="w-full sm:w-auto px-4 py-2 bg-[#FF9B51] hover:bg-[#e8894a] text-white text-xs font-black rounded-xl shadow transition-all cursor-pointer shrink-0 text-center active:scale-95"
+          >
+            Aktivasi Sekarang →
+          </button>
+        </div>
+      )}
+
+      {isPro && isTrial && daysRemaining !== null && daysRemaining <= 5 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-900 px-4 py-2.5 rounded-xl flex items-center justify-between gap-3 text-xs">
+          <span className="font-medium">
+            ⏳ Masa Trial Anda tersisa <strong>{daysRemaining} hari</strong> lagi.
+          </span>
+          <button
+            type="button"
+            onClick={() => goTo('activation')}
+            className="font-bold text-amber-700 hover:text-amber-900 underline cursor-pointer shrink-0"
+          >
+            Upgrade Pro
+          </button>
+        </div>
+      )}
 
       {/* ── TOP BAR HEADER: Beranda & Quick Tools ─────────────────────── */}
       <div className="flex items-center justify-between gap-3 py-1 sm:py-2">
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight pb-0.5 truncate drop-shadow-[0_1.5px_2px_rgba(0,0,0,0.16)] [paint-order:stroke_fill] [-webkit-text-stroke:0.5px_#ffffff]">
-            <span className="text-[#25343F]">Bisnis</span>
-            <span className="text-[#FF9B51]">Urang</span>
+          <h1
+            id="dashboard-header-title"
+            className="dashboard-title-text text-2xl sm:text-3xl font-black tracking-tight leading-tight pb-0.5 truncate text-[#25343F]"
+          >
+            BisnisUrang
           </h1>
           <p className="text-xs sm:text-[13px] font-semibold text-[#898989] tracking-tight mt-0.5 truncate">
             {dateLabel}
@@ -268,11 +407,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Quick Search trigger */}
+          {/* Quick Search trigger (Mobile only - Desktop/Tablet already has it in TopBar) */}
           <button
             type="button"
             onClick={onOpenSearch}
-            className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-xl bg-white border border-[#BFC9D1]/30 hover:border-[#FF9B51] text-xs text-[#898989] hover:text-[#25343F] shadow-sm transition-all cursor-pointer group active:scale-95"
+            className="flex md:hidden items-center gap-2 px-3 py-1.5 sm:py-2 rounded-xl bg-white border border-[#BFC9D1]/30 hover:border-[#FF9B51] text-xs text-[#898989] hover:text-[#25343F] shadow-sm transition-all cursor-pointer group active:scale-95"
             title="Cari transaksi, produk, pelanggan... (⌘K)"
           >
             <MagnifyingGlassIcon className="w-4 h-4 text-[#898989] group-hover:text-[#FF9B51] transition-colors" />
@@ -282,13 +421,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
             </kbd>
           </button>
 
-          {/* Refresh Data */}
+          {/* Refresh Data & Cloud Sync */}
           <button
             type="button"
             onClick={() => loadData(true)}
             disabled={refreshing}
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white border border-[#BFC9D1]/30 hover:border-[#FF9B51] text-[#898989] hover:text-[#25343F] flex items-center justify-center shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-            title="Muat ulang data"
+            title="Muat ulang data & sinkronisasi cloud"
           >
             <ArrowPathIcon className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#FF9B51]' : ''}`} />
           </button>
@@ -407,18 +546,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                 Saldo Kas Bisnis
               </div>
               <div className="text-[28px] sm:text-3xl font-black text-white font-mono tracking-tight mt-2.5 leading-none">
-                {formatRupiah(stats.totalCashBalance ?? (stats.todayRevenue - stats.todayExpense))}
+                {formatRupiah(liveTotalCashBalance)}
               </div>
 
               {(() => {
-                const todayNet = stats.todayRevenue - stats.todayExpense;
-                const isPositive = todayNet >= 0;
+                const isPositive = periodNet >= 0;
+                const periodLabel = period === 'today' ? 'hari ini' : period === 'week' ? '7 hari terakhir' : 'bulan ini';
                 return (
                   <div className="inline-flex items-center gap-1 mt-3.5 px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-white border border-white/10">
                     <span className={isPositive ? 'text-green-300' : 'text-rose-300'}>
-                      {isPositive ? '↑' : '↓'} {todayNet !== 0 ? formatRupiah(Math.abs(todayNet)) : 'Rp0'}
+                      {isPositive ? '↑' : '↓'} {periodNet !== 0 ? formatRupiah(Math.abs(periodNet)) : 'Rp0'}
                     </span>
-                    <span className="text-white/80">dari kemarin</span>
+                    <span className="text-white/80">{periodLabel}</span>
                   </div>
                 );
               })()}
@@ -509,12 +648,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
               label: 'Laporan',
               bgClass: 'bg-[#FFE4E6] hover:bg-[#FECDD3] shadow-[0_2px_8px_rgba(244,63,94,0.22)]',
               onClick: () => goTo('sales-report'),
-            },
-            {
-              icon: <CogSolid className="w-5 h-5 text-[#64748B]" />,
-              label: 'Pengaturan',
-              bgClass: 'bg-[#F1F5F9] hover:bg-[#E2E8F0] shadow-[0_2px_8px_rgba(100,116,139,0.22)]',
-              onClick: () => goTo('settings'),
             },
           ].map(action => (
             <button

@@ -7,7 +7,6 @@ import {
   ChartPieIcon,
   ArrowLeftIcon,
   CurrencyDollarIcon,
-  BoltIcon,
 } from '@heroicons/react/24/outline';
 import {
   ResponsiveContainer,
@@ -56,54 +55,6 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
   const [marginPercent, setMarginPercent] = useState<number>(50);
   const [customSellingPrice, setCustomSellingPrice] = useState<number>(0);
 
-  // Preset templates
-  const presets = [
-    {
-      label: 'Stiker Vinyl A3+',
-      matCost: 1500,
-      ink: 500,
-      elec: 200,
-      labor: 300,
-      machine: 150,
-      finish: 400,
-      pack: 150,
-      margin: 60,
-    },
-    {
-      label: 'Foto MDF 20x30',
-      matCost: 7500,
-      ink: 1200,
-      elec: 300,
-      labor: 1500,
-      machine: 500,
-      finish: 800,
-      pack: 1000,
-      margin: 80,
-    },
-    {
-      label: 'Sertifikat A4',
-      matCost: 900,
-      ink: 350,
-      elec: 100,
-      labor: 200,
-      machine: 100,
-      finish: 0,
-      pack: 100,
-      margin: 70,
-    },
-    {
-      label: 'Brosur Art Paper',
-      matCost: 650,
-      ink: 400,
-      elec: 150,
-      labor: 200,
-      machine: 100,
-      finish: 200,
-      pack: 100,
-      margin: 50,
-    },
-  ];
-
   const loadData = async () => {
     try {
       setLoading(true);
@@ -132,19 +83,7 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
     }
   };
 
-  const applyPreset = (preset: (typeof presets)[0]) => {
-    setCalculationName(preset.label);
-    setMaterialUnitCost(preset.matCost);
-    setInkCost(preset.ink);
-    setElectricityCost(preset.elec);
-    setLaborCost(preset.labor);
-    setMachineDepreciationCost(preset.machine);
-    setFinishingCost(preset.finish);
-    setPackagingCost(preset.pack);
-    setMarginPercent(preset.margin);
-    setCustomSellingPrice(0);
-    showToast(`Template "${preset.label}" berhasil dimuat`, 'info');
-  };
+
 
   // Calculations per unit
   const totalMaterialCostPerUnit = materialUnitCost * materialQtyPerUnit;
@@ -177,9 +116,9 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
     { name: 'Bahan Penolong', value: inkCost, color: '#0B90FE' },
     { name: 'Listrik & Utilitas', value: electricityCost, color: '#10B981' },
     { name: 'Upah / Tenaga Kerja', value: laborCost, color: '#8B5CF6' },
-    { name: 'Penyusutan Mesin', value: machineDepreciationCost, color: '#F59E0B' },
-    { name: 'Proses Akhir', value: finishingCost, color: '#6366F1' },
-    { name: 'Kemasan', value: packagingCost, color: '#EC4899' },
+    { name: 'Penyusutan Alat & Mesin', value: machineDepreciationCost, color: '#F59E0B' },
+    { name: 'Proses Akhir / Finishing', value: finishingCost, color: '#6366F1' },
+    { name: 'Kemasan & Packaging', value: packagingCost, color: '#EC4899' },
   ].filter(d => d.value > 0);
 
   // Save to Product
@@ -188,8 +127,8 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
       const payload = {
         sku: `PRD-${Math.floor(1000 + Math.random() * 9000)}`,
         name: calculationName,
-        category: 'Percetakan',
-        type: 'CETAK' as const,
+        category: 'Umum',
+        type: 'PHYSICAL' as const,
         unit: 'pcs',
         description: `Dibuat dari Kalkulator HPP: Margin ${actualMarginPercent}%`,
         costPrice: hppPerUnit,
@@ -227,38 +166,11 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
               Hitung HPP Produk
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium truncate hidden sm:block">
-              Kalkulator biaya pokok produksi & simulasi margin harga jual
+              Kalkulator biaya pokok produksi &amp; simulasi margin harga jual untuk segala jenis usaha
             </p>
           </div>
         </div>
 
-        {/* Quick Presets Pills */}
-        <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-          {presets.map(p => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => applyPreset(p)}
-              className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-white hover:bg-[#FFF0E6] hover:text-[#FF9B51] border border-[#BFC9D1]/30 text-[#25343F] transition-all cursor-pointer shrink-0 shadow-2xs active:scale-95"
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── MOBILE PRESETS BAR ── */}
-      <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        {presets.map(p => (
-          <button
-            key={p.label}
-            type="button"
-            onClick={() => applyPreset(p)}
-            className="px-2.5 py-1 text-[10.5px] font-bold rounded-lg bg-white hover:bg-[#FFF0E6] text-[#25343F] border border-[#BFC9D1]/30 shrink-0 shadow-2xs active:scale-95"
-          >
-            {p.label}
-          </button>
-        ))}
       </div>
 
       {/* ── TOP HIGHLIGHT SUMMARY CARD (Live Output) ── */}
@@ -330,7 +242,7 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
           {/* Card 1: Nama Produk & Bahan Baku Utama */}
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#BFC9D1]/25 shadow-sm space-y-3.5">
             <h3 className="font-extrabold text-[#25343F] text-sm flex items-center justify-between border-b border-[#BFC9D1]/20 pb-2.5">
-              <span>1. Identitas & Bahan Baku Utama</span>
+              <span>1. Identitas &amp; Bahan Baku Utama</span>
               <span className="text-xs font-black text-[#25343F] font-mono bg-[#EAEFEF] px-2.5 py-0.5 rounded-lg">
                 {formatRupiah(totalMaterialCostPerUnit)}
               </span>
@@ -339,13 +251,13 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
             {/* Nama Produk */}
             <div>
               <label className="block text-[11px] font-bold text-[#898989] uppercase tracking-wider mb-1">
-                Nama Produk / Pekerjaan
+                Nama Produk / Barang
               </label>
               <input
                 type="text"
                 value={calculationName}
                 onChange={e => setCalculationName(e.target.value)}
-                placeholder="Contoh: Stiker Vinyl A3+ Cutting"
+                placeholder="Contoh: Paket Hampers, Kaos Sablon, Box Kemasan, Brownies, dll"
                 className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl font-bold text-[#25343F] text-sm focus:bg-white focus:border-[#FF9B51] focus:ring-1 focus:ring-[#FF9B51] transition-all outline-none"
               />
             </div>
@@ -388,7 +300,7 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-[#898989] mb-1">
-                  Jumlah Pemakaian / Pcs
+                  Jumlah Pemakaian / Satuan
                 </label>
                 <input
                   type="number"
@@ -409,10 +321,10 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              {/* Bahan Pelengkap / Tinta */}
+              {/* Bahan Penolong / Tambahan */}
               <div className="bg-[#F8FAFC] p-2.5 rounded-xl border border-[#BFC9D1]/20">
                 <label className="font-bold text-[#25343F] block text-[11px] mb-1">
-                  Bahan Penolong / Tinta
+                  Bahan Penolong / Tambahan
                 </label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#898989] font-bold text-[11px]">Rp</span>
@@ -427,10 +339,10 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
                 </div>
               </div>
 
-              {/* Listrik & Operasional */}
+              {/* Listrik & Utilitas */}
               <div className="bg-[#F8FAFC] p-2.5 rounded-xl border border-[#BFC9D1]/20">
                 <label className="font-bold text-[#25343F] block text-[11px] mb-1">
-                  Operasional &amp; Listrik
+                  Operasional &amp; Utilitas
                 </label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#898989] font-bold text-[11px]">Rp</span>
@@ -448,7 +360,7 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
               {/* Tenaga Kerja */}
               <div className="bg-[#F8FAFC] p-2.5 rounded-xl border border-[#BFC9D1]/20">
                 <label className="font-bold text-[#25343F] block text-[11px] mb-1">
-                  Tenaga Kerja / Upah
+                  Tenaga Kerja / Upah Produksi
                 </label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#898989] font-bold text-[11px]">Rp</span>
@@ -463,10 +375,10 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
                 </div>
               </div>
 
-              {/* Penyusutan Alat */}
+              {/* Penyusutan Alat / Mesin */}
               <div className="bg-[#F8FAFC] p-2.5 rounded-xl border border-[#BFC9D1]/20">
                 <label className="font-bold text-[#25343F] block text-[11px] mb-1">
-                  Penyusutan Alat / Mesin
+                  Penyusutan Alat &amp; Mesin
                 </label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#898989] font-bold text-[11px]">Rp</span>
@@ -481,10 +393,10 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
                 </div>
               </div>
 
-              {/* Finishing */}
+              {/* Finishing / Proses Akhir */}
               <div className="bg-[#F8FAFC] p-2.5 rounded-xl border border-[#BFC9D1]/20">
                 <label className="font-bold text-[#25343F] block text-[11px] mb-1">
-                  Finishing / Laminasi / Potong
+                  Proses Akhir / Finishing
                 </label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#898989] font-bold text-[11px]">Rp</span>
@@ -502,7 +414,7 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
               {/* Kemasan */}
               <div className="bg-[#F8FAFC] p-2.5 rounded-xl border border-[#BFC9D1]/20">
                 <label className="font-bold text-[#25343F] block text-[11px] mb-1">
-                  Kemasan &amp; Plastik
+                  Kemasan &amp; Packaging
                 </label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#898989] font-bold text-[11px]">Rp</span>

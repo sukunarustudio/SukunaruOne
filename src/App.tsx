@@ -19,6 +19,7 @@ import { FinanceView } from './views/FinanceView';
 import { InvoicesView } from './views/InvoicesView';
 import { ReportsView } from './views/ReportsView';
 import { SettingsView } from './views/SettingsView';
+import { AppearanceView } from './views/AppearanceView';
 import { AppInfoView } from './views/AppInfoView';
 import { MenuView } from './views/MenuView';
 import { GuideView } from './views/GuideView';
@@ -28,6 +29,11 @@ import { ProfileView } from './views/ProfileView';
 import { BusinessProfileView } from './views/BusinessProfileView';
 import { ActivationView } from './views/ActivationView';
 import { BackupRestoreView } from './views/BackupRestoreView';
+import { CloudSyncView } from './views/CloudSyncView';
+import { OnboardingView } from './views/OnboardingView';
+import { ProGate } from './components/ProGate';
+import { initThemeSystem } from './services/themeManager';
+import { initSyncSystem } from './services/syncManager';
 
 const defaultSettings: BusinessSettings = {
   businessName: 'SUKUNARU STUDIO',
@@ -43,6 +49,15 @@ const defaultSettings: BusinessSettings = {
 function MainAppContent() {
   const { showToast } = useToast();
 
+  // First launch onboarding detection (sukunaru_onboarding_completed)
+  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sukunaru_onboarding_completed') === 'true';
+    } catch {
+      return true;
+    }
+  });
+
   const [currentView, setCurrentView] = useState<ViewType>(() => {
     try {
       const saved = localStorage.getItem('sukunaru_current_view');
@@ -50,8 +65,8 @@ function MainAppContent() {
         'dashboard', 'pos', 'orders', 'customers', 'products',
         'hpp', 'inventory', 'finance', 'expenses', 'invoices',
         'sales-report', 'profit-report', 'stock-report', 'settings',
-        'app-info', 'menu', 'guide', 'contact', 'support', 'profile', 'business-profile',
-        'activation'
+        'appearance', 'cloud-sync', 'app-info', 'menu', 'guide', 'contact', 'support', 'profile', 'business-profile',
+        'activation', 'backup'
       ];
       if (saved && validViews.includes(saved as ViewType)) {
         return saved as ViewType;
@@ -106,6 +121,26 @@ function MainAppContent() {
   }, []);
 
   useEffect(() => {
+    const cleanupTheme = initThemeSystem();
+    const cleanupSync = initSyncSystem();
+
+    // Auto Refresh stats, badges, and counters when data mutates or cloud sync completes
+    const handleDataChanged = () => {
+      refreshStatsAndSettings();
+    };
+
+    window.addEventListener('sukunaru:sync_completed', handleDataChanged);
+    window.addEventListener('sukunaru:data_mutation', handleDataChanged);
+
+    return () => {
+      cleanupTheme();
+      cleanupSync();
+      window.removeEventListener('sukunaru:sync_completed', handleDataChanged);
+      window.removeEventListener('sukunaru:data_mutation', handleDataChanged);
+    };
+  }, [refreshStatsAndSettings]);
+
+  useEffect(() => {
     refreshStatsAndSettings();
   }, [refreshStatsAndSettings]);
 
@@ -147,6 +182,26 @@ function MainAppContent() {
     }
   };
 
+  const handleOnboardingComplete = () => {
+    try {
+      localStorage.setItem('sukunaru_onboarding_completed', 'true');
+    } catch {}
+    setIsOnboardingCompleted(true);
+    setCurrentView('dashboard');
+    refreshStatsAndSettings();
+  };
+
+  // If first launch after install: display smooth First Launch Onboarding
+  if (!isOnboardingCompleted) {
+    return (
+      <OnboardingView
+        settings={settings}
+        onUpdateSettings={newSet => setSettings(newSet)}
+        onComplete={handleOnboardingComplete}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#EAEFEF] text-[#25343F] font-sans antialiased">
       {/* Persistent Left Sidebar (Desktop & Mobile Drawer) */}
@@ -175,7 +230,13 @@ function MainAppContent() {
           onOpenMobileSidebar={() => handleNavigate('menu')}
         />
 
-        <main id="main-content-scrollable" className="flex-1 p-3 sm:p-4 md:p-6 pb-24 lg:pb-6 overflow-y-auto overscroll-y-contain relative">
+        <main
+          id="main-content-scrollable"
+          className="flex-1 px-3 sm:px-4 md:px-6 pb-24 md:pb-6 overflow-y-auto overscroll-y-contain relative"
+          style={{
+            paddingTop: 'max(env(safe-area-inset-top, 0px), 8px)',
+          }}
+        >
           {currentView === 'dashboard' && (
             <DashboardView
               onNavigate={handleNavigate}
@@ -210,14 +271,16 @@ function MainAppContent() {
               ordersTargetId = undefined;
             }
             return (
-              <OrdersView
-                settings={settings}
-                targetOrderId={ordersTargetId}
-                initialStatusFilter={ordersInitFilter}
-                initialViewMode={ordersInitViewMode}
-                onRefreshDashboard={refreshStatsAndSettings}
-                onNavigate={handleNavigate}
-              />
+              <ProGate onNavigate={handleNavigate} featureName="Manajemen Pesanan">
+                <OrdersView
+                  settings={settings}
+                  targetOrderId={ordersTargetId}
+                  initialStatusFilter={ordersInitFilter}
+                  initialViewMode={ordersInitViewMode}
+                  onRefreshDashboard={refreshStatsAndSettings}
+                  onNavigate={handleNavigate}
+                />
+              </ProGate>
             );
           })()}
 
@@ -237,10 +300,12 @@ function MainAppContent() {
           )}
 
           {currentView === 'hpp' && (
-            <HppCalculatorView
-              onSavedToProducts={() => handleNavigate('products')}
-              onNavigate={handleNavigate}
-            />
+            <ProGate onNavigate={handleNavigate} featureName="Kalkulator HPP & Biaya Produksi">
+              <HppCalculatorView
+                onSavedToProducts={() => handleNavigate('products')}
+                onNavigate={handleNavigate}
+              />
+            </ProGate>
           )}
 
           {currentView === 'inventory' && (
@@ -251,10 +316,12 @@ function MainAppContent() {
           )}
 
           {(currentView === 'finance' || (currentView as string) === 'expenses') && (
-            <FinanceView
-              onRefreshDashboard={refreshStatsAndSettings}
-              onNavigate={handleNavigate}
-            />
+            <ProGate onNavigate={handleNavigate} featureName="Arus Kas & Keuangan">
+              <FinanceView
+                onRefreshDashboard={refreshStatsAndSettings}
+                onNavigate={handleNavigate}
+              />
+            </ProGate>
           )}
 
           {currentView === 'invoices' && (
@@ -267,10 +334,13 @@ function MainAppContent() {
           {(currentView === 'sales-report' ||
             currentView === 'profit-report' ||
             currentView === 'stock-report') && (
-            <ReportsView
-              initialReportType={currentView}
-              onNavigate={handleNavigate}
-            />
+            <ProGate onNavigate={handleNavigate} featureName="Laporan & Analitik Bisnis">
+              <ReportsView
+                initialReportType={currentView}
+                settings={settings}
+                onNavigate={handleNavigate}
+              />
+            </ProGate>
           )}
 
           {currentView === 'settings' && (
@@ -283,6 +353,24 @@ function MainAppContent() {
               previousView={previousView}
             />
           )}
+
+          {currentView === 'appearance' && (
+            <AppearanceView
+              onNavigate={handleNavigate}
+              previousView={previousView}
+            />
+          )}
+
+          {(currentView === 'backup' || (currentView as string) === 'cloud-sync') && (
+            <BackupRestoreView
+              onNavigate={handleNavigate}
+              onUpdateSettings={setSettings}
+              onRefreshDashboard={refreshStatsAndSettings}
+              onResetSampleData={handleResetSampleData}
+              previousView={previousView}
+            />
+          )}
+
           {currentView === 'business-profile' && (
             <BusinessProfileView
               settings={settings}
@@ -340,14 +428,7 @@ function MainAppContent() {
             />
           )}
 
-          {currentView === 'backup' && (
-            <BackupRestoreView
-              onNavigate={handleNavigate}
-              onUpdateSettings={setSettings}
-              onRefreshDashboard={refreshStatsAndSettings}
-              onResetSampleData={handleResetSampleData}
-            />
-          )}
+
         </main>
       </div>
 

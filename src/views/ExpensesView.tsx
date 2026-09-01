@@ -57,6 +57,15 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onRefreshDashboard }
 
   useEffect(() => {
     loadData();
+    const handleRefresh = () => {
+      api.getExpenses().then(e => setExpenses(e)).catch(() => {});
+    };
+    window.addEventListener('sukunaru:sync_completed', handleRefresh);
+    window.addEventListener('sukunaru:data_mutation', handleRefresh);
+    return () => {
+      window.removeEventListener('sukunaru:sync_completed', handleRefresh);
+      window.removeEventListener('sukunaru:data_mutation', handleRefresh);
+    };
   }, []);
 
   const totalExpense = expenses.reduce((sum, exp) => sum + exp.amount, 0);

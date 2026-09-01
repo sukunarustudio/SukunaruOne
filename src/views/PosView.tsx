@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeftIcon, MagnifyingGlassIcon, PlusIcon, MinusIcon, TrashIcon, UserIcon, ShoppingCartIcon, ShoppingBagIcon, CreditCardIcon, PrinterIcon, CheckCircleIcon, TagIcon, DocumentTextIcon, ArrowPathIcon, SparklesIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, MagnifyingGlassIcon, PlusIcon, MinusIcon, TrashIcon, UserIcon, ShoppingCartIcon, ShoppingBagIcon, CreditCardIcon, PrinterIcon, CheckCircleIcon, TagIcon, DocumentTextIcon, ArrowPathIcon, SparklesIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon, XMarkIcon, QrCodeIcon, LockClosedIcon, StarIcon } from '@heroicons/react/24/outline';
 import confetti from 'canvas-confetti';
 import { api } from '../services/api';
 import { Product, Customer, Transaction, BusinessSettings, PaymentMethod, ViewType } from '../types';
@@ -7,6 +7,9 @@ import { formatRupiah, parseRupiahInput } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { PrintReceiptModal } from '../components/PrintReceiptModal';
 import { ProductImage } from '../components/ProductImage';
+import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
+import { startKeyboardScanner, stopKeyboardScanner } from '../lib/barcodeScanner';
+import { useLicense } from '../hooks/useLicense';
 
 interface PosViewProps {
   settings: BusinessSettings;
@@ -28,9 +31,11 @@ interface CartItem {
 
 export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, onNavigate }) => {
   const { showToast } = useToast();
+  const { isPro } = useLicense();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isBarcodeLockedModalOpen, setIsBarcodeLockedModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('SEMUA');
@@ -121,6 +126,9 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
   // Mobile View Tab: 'catalog' | 'cart'
   const [mobileTab, setMobileTab] = useState<'catalog' | 'cart'>('catalog');
 
+  // Barcode Scanner Modal
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = async () => {
@@ -138,7 +146,51 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
 
   useEffect(() => {
     loadData();
+    const handleRefresh = () => {
+      api.getProducts().then(p => setProducts(p.filter(prod => prod.isActive))).catch(() => {});
+      api.getCustomers().then(c => setCustomers(c)).catch(() => {});
+    };
+    window.addEventListener('sukunaru:sync_completed', handleRefresh);
+    window.addEventListener('sukunaru:data_mutation', handleRefresh);
+    return () => {
+      window.removeEventListener('sukunaru:sync_completed', handleRefresh);
+      window.removeEventListener('sukunaru:data_mutation', handleRefresh);
+    };
   }, []);
+
+  // ── Barcode scan handler (shared by camera modal & USB keyboard scanner) ──
+  const handleBarcodeScan = async (code: string) => {
+    if (!isPro) {
+      showToast('Fitur scan barcode kasir terkunci. Silakan aktivasi lisensi.', 'error');
+      setIsBarcodeLockedModalOpen(true);
+      return;
+    }
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    try {
+      const found = await api.getProductByBarcode(trimmed);
+      if (found && found.isActive) {
+        addToCart(found);
+        showToast(`✓ ${found.name} ditambahkan ke keranjang`, 'success');
+      } else if (found && !found.isActive) {
+        showToast(`Produk "${found.name}" tidak aktif`, 'error');
+      } else {
+        showToast(`Barcode "${trimmed}" tidak ditemukan di katalog`, 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mencari produk barcode', 'error');
+    }
+  };
+
+  // ── USB / Bluetooth scanner (keyboard emulation mode) ─────────────────────
+  // Active while POS view is mounted; ignores input when text field is focused
+  useEffect(() => {
+    const stopFn = startKeyboardScanner(handleBarcodeScan);
+    return () => {
+      stopFn();
+      stopKeyboardScanner();
+    };
+  }, [products]); // re-bind when products list changes so addToCart is up-to-date
 
   // Categories list
   const categories = ['SEMUA', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))];
@@ -439,6 +491,28 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                 Reset
               </button>
             )}
+
+            {/* Barcode Scan Camera Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!isPro) {
+                  setIsBarcodeLockedModalOpen(true);
+                  return;
+                }
+                setIsScannerOpen(true);
+              }}
+              aria-label={isPro ? "Scan Barcode Produk" : "Scan Barcode Produk (Terkunci)"}
+              title={isPro ? "Scan Barcode Produk" : "Scan Barcode Produk (Perlu Aktivasi)"}
+              className={`h-8 rounded-lg border flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${
+                !isPro
+                  ? 'px-2 gap-1 border-[#FF9B51]/40 bg-[#FFF6F0] text-[#FF9B51]'
+                  : 'w-8 border-[#BFC9D1]/25 bg-white hover:bg-[#FF9B51]/10 hover:border-[#FF9B51]/50 text-[#898989] hover:text-[#FF9B51]'
+              }`}
+            >
+              <QrCodeIcon className="w-3.5 h-3.5" />
+              {!isPro && <LockClosedIcon className="w-3 h-3 text-[#FF9B51]" />}
+            </button>
 
             {/* Mobile Cart Icon Button (Right of search) */}
             <button
@@ -1005,6 +1079,53 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
         settings={settings}
         onClose={() => setIsReceiptModalOpen(false)}
       />
+
+      {/* Barcode Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanned={handleBarcodeScan}
+        stayOpenAfterScan={false}
+      />
+
+      {/* Barcode Feature Locked Modal */}
+      {isBarcodeLockedModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#25343F]/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-[#BFC9D1]/40 max-w-sm w-full p-6 space-y-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-[#FF9B51]/10 border border-[#FF9B51]/20 flex items-center justify-center mx-auto text-[#FF9B51]">
+              <LockClosedIcon className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-[#25343F]">Fitur Scan Barcode</h3>
+              <p className="text-xs font-bold text-[#FF9B51] mt-0.5">Memerlukan Lisensi Pro</p>
+              <p className="text-xs text-[#898989] mt-2 leading-relaxed">
+                Pemindaian barcode produk fisik (kamera & scanner USB/Bluetooth) hanya tersedia untuk pengguna yang telah melakukan aktivasi.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBarcodeLockedModalOpen(false);
+                  if (onNavigate) onNavigate('activation');
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#FF9B51] hover:bg-[#e8894a] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#FF9B51]/25 active:scale-95 transition-all cursor-pointer"
+              >
+                <StarIcon className="w-3.5 h-3.5" />
+                <span>Aktivasi Lisensi Sekarang</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsBarcodeLockedModalOpen(false)}
+                className="w-full py-2 px-4 rounded-xl bg-[#EAEFEF] hover:bg-[#dce4e8] text-[#25343F] font-semibold text-xs active:scale-95 transition-all cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

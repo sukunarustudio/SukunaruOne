@@ -11,6 +11,8 @@ import {
   ChatBubbleOvalLeftIcon,
   InformationCircleIcon,
   HeartIcon,
+  SwatchIcon,
+  CloudArrowUpIcon,
 } from '@heroicons/react/24/solid';
 import { ViewType, BusinessSettings } from '../types';
 
@@ -24,16 +26,34 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   settings,
 }) => {
   const [isActivated, setIsActivated] = useState(false);
+  const [licenseInfo, setLicenseInfo] = useState<any>(null);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('sukunaru_license_info');
       if (saved) {
         const parsed = JSON.parse(saved);
+        setLicenseInfo(parsed);
         setIsActivated(Boolean(parsed.isActivated));
       }
     } catch {}
   }, []);
+
+  const getLicenseBadge = () => {
+    if (!isActivated) return { text: 'AKTIF', desc: 'Masukkan Serial Key Lisensi', color: 'text-[#25343F]', dot: 'bg-[#25343F]', isPro: false };
+    if (licenseInfo?.licenseType === 'TRIAL_14_DAYS' || licenseInfo?.licenseType?.includes('TRIAL')) {
+      const activatedDate = licenseInfo.activatedAt ? new Date(licenseInfo.activatedAt) : new Date();
+      const elapsed = Math.floor((Date.now() - activatedDate.getTime()) / (1000 * 60 * 60 * 24));
+      const remaining = Math.max(0, 14 - (isNaN(elapsed) ? 0 : elapsed));
+      if (remaining === 0) {
+        return { text: 'TRIAL BERAKHIR', desc: 'Masa trial 14 hari telah habis', color: 'text-rose-600', dot: 'bg-rose-600', isPro: false };
+      }
+      return { text: `TRIAL (${remaining} HARI)`, desc: `Trial aktif, sisa ${remaining} hari lagi`, color: 'text-amber-600', dot: 'bg-amber-600', isPro: true };
+    }
+    return { text: 'PRO LIFETIME', desc: 'Lisensi Pro Lifetime Aktif', color: 'text-emerald-600', dot: 'bg-emerald-600', isPro: true };
+  };
+
+  const badge = getLicenseBadge();
 
   const sections = [
     {
@@ -49,11 +69,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {
           icon: ShieldCheckIcon,
           label: 'Aktivasi Aplikasi',
-          desc: isActivated ? 'Lisensi Lifetime Aktif' : 'Masukkan Serial Key Lisensi',
+          desc: badge.desc,
           action: () => onNavigate('activation'),
-          iconClass: isActivated
+          iconClass: badge.isPro
             ? 'bg-[#E6F9F2] text-[#10B981] border border-emerald-200 shadow-[0_2px_6px_rgba(16,185,129,0.2)]'
             : 'bg-[#FEF3C7] text-[#D97706] border border-amber-200 shadow-[0_2px_6px_rgba(217,119,6,0.2)]',
+        },
+        {
+          icon: SwatchIcon,
+          label: 'Tampilan & Tema',
+          desc: 'Mode gelap, warna aksen & banner',
+          action: () => onNavigate('appearance'),
+          iconClass: 'bg-[#EAEFEF] text-[#FF9B51] border border-[#BFC9D1]/25 shadow-sm',
         },
         {
           icon: Cog6ToothIcon,
@@ -63,11 +90,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           iconClass: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 shadow-sm',
         },
         {
-          icon: CircleStackIcon,
-          label: 'Cadangan & Pemulihan Data',
-          desc: 'Backup JSON & restore database lokal',
+          icon: CloudArrowUpIcon,
+          label: 'Cadangan Data & Sinkronisasi Cloud',
+          desc: 'Backup cloud Supabase & cadangan lokal',
           action: () => onNavigate('backup'),
-          iconClass: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 shadow-sm',
+          iconClass: 'bg-[#EAEFEF] text-[#FF6A00] border border-[#BFC9D1]/25 shadow-sm',
         },
       ],
     },
@@ -100,13 +127,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           action: () => onNavigate('app-info'),
           iconClass: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 shadow-sm',
         },
-        {
-          icon: HeartIcon,
-          label: 'Dukung Aplikasi Ini',
-          desc: 'Donasi via QRIS & Transfer Bank',
-          action: () => onNavigate('support'),
-          iconClass: 'bg-[#FFE4E6] text-[#F43F5E] border border-rose-200/80 shadow-[0_2px_6px_rgba(244,63,94,0.2)]',
-        },
       ],
     },
   ];
@@ -135,9 +155,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               {settings.tagline || 'Solusi Percetakan & Desain'}
             </p>
             <div className="mt-1.5 inline-flex items-center gap-1.5 bg-[#EAEFEF] border border-[#BFC9D1]/25 rounded-full px-2 py-0.5">
-              <span className={`w-1 h-1 rounded-full ${isActivated ? 'bg-emerald-600' : 'bg-[#25343F]'} animate-pulse`} />
-              <span className="text-[9px] font-bold text-[#25343F] uppercase tracking-wider">
-                {isActivated ? 'PRO LIFETIME' : 'AKTIF'}
+              <span className={`w-1 h-1 rounded-full ${badge.dot} animate-pulse`} />
+              <span className={`text-[9px] font-bold ${badge.color} uppercase tracking-wider`}>
+                {badge.text}
               </span>
             </div>
           </div>
@@ -152,7 +172,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <div className="text-[10.5px] font-extrabold text-[#898989] uppercase tracking-wider px-1">
               {section.title}
             </div>
-            <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md divide-y divide-slate-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 dark:border-slate-800/80 shadow-md divide-y divide-slate-100 dark:divide-slate-800/60 overflow-hidden">
               {section.items.map(item => {
                 const IconComp = item.icon;
                 return (
@@ -160,10 +180,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     key={item.label}
                     type="button"
                     onClick={item.action}
-                    className="w-full flex items-center gap-3.5 px-4 py-3.5 sm:py-4 text-left hover:bg-[#EAEFEF]/80 active:bg-[#EAEFEF] transition-colors cursor-pointer group"
+                    className="w-full flex items-center gap-3.5 px-4 py-3.5 sm:py-4 text-left hover:bg-[#EAEFEF]/80 active:bg-[#EAEFEF] dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                   >
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-white/60 group-hover:scale-105 transition-transform ${item.iconClass}`}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-black/5 dark:ring-white/10 group-hover:scale-105 transition-transform ${item.iconClass}`}
                     >
                       <IconComp className="w-5 h-5" />
                     </div>
@@ -186,7 +206,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* App Version Footer */}
       <div className="pt-4 text-center text-xs text-[#898989] font-medium">
-        BisnisUrang v1.0.0
+        Sukunaru Studio v1.1.0
       </div>
     </div>
   );

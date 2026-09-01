@@ -47,11 +47,16 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
   const invoiceNumber = order.orderNumber.replace('ORD-', settings.invoicePrefix || 'INV-');
   const spkNumber = order.orderNumber.replace('ORD-', 'SPK-');
 
-  const handlePrint = () => {
-    const targetId = docType === 'invoice' ? 'printable-invoice-area' : 'printable-spk-area';
-    const title = docType === 'invoice' ? `Invoice-${invoiceNumber}` : `SPK-${spkNumber}`;
-    showToast(`Mempersiapkan cetak ${docType === 'invoice' ? 'Invoice' : 'SPK'} (${paperSize.toUpperCase()})...`, 'info');
-    printIsolatedElement(targetId, title, paperSize);
+  const handlePrint = async () => {
+    if (Capacitor.isNativePlatform()) {
+      showToast(`Menyiapkan file PDF ${docType === 'invoice' ? 'Invoice' : 'SPK'} untuk dicetak/disimpan...`, 'info');
+      await handleDownloadPdf();
+    } else {
+      const targetId = docType === 'invoice' ? 'printable-invoice-area' : 'printable-spk-area';
+      const title = docType === 'invoice' ? `Invoice-${invoiceNumber}` : `SPK-${spkNumber}`;
+      showToast(`Mempersiapkan cetak ${docType === 'invoice' ? 'Invoice' : 'SPK'} (${paperSize.toUpperCase()})...`, 'info');
+      printIsolatedElement(targetId, title, paperSize);
+    }
   };
 
   const handleDownloadPdf = async () => {

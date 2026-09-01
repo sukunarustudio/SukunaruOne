@@ -111,6 +111,8 @@ export interface Product {
   isActive?: boolean;
   imagePath?: string;
   thumbnailPath?: string;
+  barcode?: string;       // Nilai barcode (contoh: "SKN-4F2A" atau "8991234567890")
+  barcodeType?: string;   // Format: 'CODE128' | 'EAN13' | 'EAN8' | 'QR'
   components?: ProductComponent[];
   createdAt?: string;
   updatedAt?: string;
@@ -214,6 +216,7 @@ export interface Transaction {
   cashierName: string;
   notes?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Expense {
@@ -272,6 +275,8 @@ export type ViewType =
   | 'profit-report'
   | 'stock-report'
   | 'settings'
+  | 'appearance'
+  | 'cloud-sync'
   | 'app-info'
   | 'menu'
   | 'guide'
@@ -281,3 +286,46 @@ export type ViewType =
   | 'business-profile'
   | 'activation'
   | 'backup';
+
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+export interface HeroCardSettings {
+  mode: 'auto' | 'custom';
+  presetId?: string;
+  lightStart: string;
+  lightEnd: string;
+  darkStart: string;
+  darkEnd: string;
+  sameInBothModes: boolean;
+  gradient?: string;
+  glow?: string;
+  pattern?: string;
+  border?: string;
+  accent?: string;
+  shadow?: string;
+}
+
+export interface ThemeSettings {
+  mode: ThemeMode;
+  accentColor: string;
+  heroCard: HeroCardSettings;
+  presetId?: string;
+}
+
+export interface ThemePreset {
+  id: string;
+  name: string;
+  description: string;
+  accentColor: string;
+  mode: ThemeMode;
+  heroLightStart: string;
+  heroLightEnd: string;
+  heroDarkStart: string;
+  heroDarkEnd: string;
+  heroGradient?: string;
+  heroGlow?: string;
+  heroPattern?: string;
+  heroBorder?: string;
+  heroAccent?: string;
+  heroShadow?: string;
+}

@@ -14,6 +14,8 @@ import {
   UserCircleIcon as UserSolid,
 } from '@heroicons/react/24/solid';
 import { ViewType, BusinessSettings } from '../types';
+import { useLicense } from '../hooks/useLicense';
+import { LockClosedIcon } from '@heroicons/react/20/solid';
 
 interface MobileBottomNavProps {
   currentView: ViewType;
@@ -62,15 +64,19 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     },
   ];
 
+  const { isPro } = useLicense();
+  const proViews: ViewType[] = ['orders'];
+
   return (
     <nav
       id="mobile-bottom-navigation"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/98 backdrop-blur-md border-t border-[#BFC9D1]/30 px-2 py-2 flex items-center justify-around shadow-[0_-4px_24px_rgba(0,0,0,0.06)] safe-area-bottom select-none"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#BFC9D1]/30 px-2 py-2 flex items-center justify-around shadow-[0_-4px_24px_rgba(0,0,0,0.06)] select-none"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 10px)' }}
     >
       {navItems.map(item => {
         const isActive = currentView === item.id;
         const Icon = isActive ? item.solidIcon : item.outlineIcon;
+        const isLocked = !isPro && proViews.includes(item.id);
 
         return (
           <button
@@ -120,12 +126,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 )}
               </div>
 
-              {/* Badge for notifications */}
-              {item.badge !== undefined && (
+              {/* Lock Badge if feature is locked */}
+              {isLocked ? (
+                <span className="absolute -top-1 -right-0.5 w-[18px] h-[18px] rounded-full bg-[#FF9B51] text-white flex items-center justify-center border border-white shadow-xs pointer-events-none">
+                  <LockClosedIcon className="w-2.5 h-2.5" />
+                </span>
+              ) : item.badge !== undefined ? (
                 <span className="absolute -top-1 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF9B51] text-white text-[10px] font-black flex items-center justify-center border border-white shadow-xs pointer-events-none">
                   {item.badge}
                 </span>
-              )}
+              ) : null}
             </div>
 
             {/* Label below Icon */}

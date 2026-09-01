@@ -339,6 +339,17 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
 
   useEffect(() => {
     loadData();
+    const handleRefresh = () => {
+      api.getOrders().then(o => setOrders(o)).catch(() => {});
+      api.getCustomers().then(c => setCustomers(c)).catch(() => {});
+      api.getProducts().then(p => setProducts(p)).catch(() => {});
+    };
+    window.addEventListener('sukunaru:sync_completed', handleRefresh);
+    window.addEventListener('sukunaru:data_mutation', handleRefresh);
+    return () => {
+      window.removeEventListener('sukunaru:sync_completed', handleRefresh);
+      window.removeEventListener('sukunaru:data_mutation', handleRefresh);
+    };
   }, [targetOrderId]);
 
   // Categories for POS mode
@@ -978,7 +989,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
               ) : (
                 <>
                   {/* ── MOBILE: 1-Column Horizontal ListBulletIcon (< sm) ── */}
-                  <div className="sm:hidden divide-y divide-slate-100 bg-white rounded-xl border border-[#BFC9D1]/25 shadow-md overflow-hidden">
+                  <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-800/60 bg-white rounded-xl border border-[#BFC9D1]/25 dark:border-slate-800/80 shadow-md overflow-hidden">
                     {filteredCatalogProducts.map(product => {
                       const existingInCart = newOrderItems.find(i => i.productId === product.id);
 
