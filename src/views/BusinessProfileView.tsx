@@ -258,7 +258,7 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
               type="email"
               value={formData.email || ''}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
-              placeholder="studio@sukunaru.com"
+              placeholder="email@bisnisanda.com"
               className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl"
             />
           </div>
@@ -269,7 +269,7 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
               rows={2}
               value={formData.bankAccount || ''}
               onChange={e => setFormData({ ...formData, bankAccount: e.target.value })}
-              placeholder="BCA: 123-456-7890 a.n Sukunaru Studio&#10;Mandiri: 987-654-3210 a.n Sukunaru Studio"
+              placeholder="BCA: 123-456-7890 a.n Bisnis Anda&#10;Mandiri: 987-654-3210 a.n Bisnis Anda"
               className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl font-mono text-[11px]"
             />
           </div>

@@ -259,7 +259,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <span>Muat Ulang Data Sampel Default</span>
               </div>
               <p className="text-[11px] text-[#898989] mt-1 leading-relaxed">
-                Kembalikan database ke template bawaan Sukunaru Studio untuk demo.
+                Kembalikan database ke template awal untuk demo.
               </p>
             </div>
             <button
@@ -286,7 +286,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <ConfirmDialog
         isOpen={isResetConfirmOpen}
         title="Reset ke Data Sampel Default?"
-        message="Seluruh data saat ini akan digantikan dengan data contoh awal Sukunaru Studio."
+        message="Seluruh data saat ini akan digantikan dengan data contoh awal."
         confirmLabel="Ya, Reset Sekarang"
         isDanger={false}
         onConfirm={() => {

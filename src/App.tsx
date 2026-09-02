@@ -37,14 +37,14 @@ import { initThemeSystem } from './services/themeManager';
 import { initSyncSystem } from './services/syncManager';
 
 const defaultSettings: BusinessSettings = {
-  businessName: 'SUKUNARU STUDIO',
-  tagline: 'Percetakan & Desain Grafis Cepat',
-  phone: '0812-3456-7890',
-  email: 'sukunarustudio@gmail.com',
-  address: 'Jl. Percetakan Studio No. 12, Malang, Jawa Timur',
-  receiptHeader: 'SUKUNARU STUDIO - Cetak Stiker, MDF, Undangan & Desain',
+  businessName: 'Nama Bisnis Anda',
+  tagline: 'Tagline / Slogan Bisnis Anda',
+  phone: '',
+  email: '',
+  address: '',
+  receiptHeader: '',
   receiptFooter: 'Terima kasih atas kepercayaan Anda!',
-  bankAccount: 'BCA: 123-456-7890 a.n Sukunaru Studio\nMandiri: 987-654-3210 a.n Sukunaru Studio',
+  bankAccount: '',
 };
 
 function MainAppContent() {
@@ -270,7 +270,7 @@ function MainAppContent() {
   const handleResetSampleData = async () => {
     try {
       await api.resetSampleData();
-      showToast('Data berhasil di-reset ke sample default Sukunaru Studio!', 'success');
+      showToast('Data berhasil di-reset ke sample default!', 'success');
       await refreshStatsAndSettings();
       handleNavigate('dashboard');
     } catch (err: any) {

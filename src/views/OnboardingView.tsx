@@ -744,7 +744,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                   required
                   value={profileForm.businessName}
                   onChange={e => setProfileForm(prev => ({ ...prev, businessName: e.target.value }))}
-                  placeholder="Contoh: Sukunaru Studio"
+                  placeholder="Contoh: Toko Bisnis Anda"
                   className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-bold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none"
                 />
               </div>
