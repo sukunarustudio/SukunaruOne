@@ -158,36 +158,40 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
     };
   }, []);
 
-  // ── Barcode scan handler (shared by camera modal & USB keyboard scanner) ──
-  const handleBarcodeScan = async (code: string) => {
+  // â”€â”€ Barcode scan handler (shared by camera modal & USB keyboard scanner) â”€â”€
+  const handleBarcodeScan = async (code: string): Promise<boolean> => {
     if (!isPro) {
       playScanErrorFeedback();
       showToast('Fitur scan barcode kasir terkunci. Silakan aktivasi lisensi.', 'error');
       setIsBarcodeLockedModalOpen(true);
-      return;
+      return false;
     }
     const trimmed = code.trim();
-    if (!trimmed) return;
+    if (!trimmed) return false;
     try {
       const found = await api.getProductByBarcode(trimmed);
       if (found && found.isActive) {
         addToCart(found);
         playScanSuccessFeedback();
         showToast(`✓ ${found.name} ditambahkan ke keranjang`, 'success');
+        return true;
       } else if (found && !found.isActive) {
         playScanErrorFeedback();
         showToast(`Produk "${found.name}" tidak aktif`, 'error');
+        return false;
       } else {
         playScanErrorFeedback();
         showToast(`Barcode "${trimmed}" tidak ditemukan di katalog`, 'error');
+        return false;
       }
     } catch (err: any) {
       playScanErrorFeedback();
       showToast(err.message || 'Gagal mencari produk barcode', 'error');
+      return false;
     }
   };
 
-  // ── USB / Bluetooth scanner (keyboard emulation mode) ─────────────────────
+  // â”€â”€ USB / Bluetooth scanner (keyboard emulation mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Active while POS view is mounted; ignores input when text field is focused
   useEffect(() => {
     const stopFn = startKeyboardScanner(handleBarcodeScan);
@@ -913,7 +917,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                 onClick={() => setIsPaymentModalOpen(false)}
                 className="p-1 rounded text-[#898989] hover:text-[#25343F]"
               >
-                ✕
+                âœ•
               </button>
             </div>
 

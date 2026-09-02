@@ -7,7 +7,7 @@ interface BarcodeScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   /** Called when a barcode is successfully scanned */
-  onScanned: (code: string) => void;
+  onScanned: (code: string) => void | boolean | Promise<void | boolean>;
   /** If true, modal stays open after a scan so user can scan multiple items */
   stayOpenAfterScan?: boolean;
 }
@@ -27,6 +27,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [status, setStatus] = useState<ScanStatus>('initializing');
   const [manualInput, setManualInput] = useState('');
   const [flashDetected, setFlashDetected] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const stopCamera = useCallback(() => {
     if (stopScannerRef.current) {
@@ -41,20 +42,32 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     }
   }, []);
 
-  const handleDetected = useCallback((code: string) => {
-    if (!code.trim()) return;
+  const handleDetected = useCallback(async (code: string) => {
+    if (!code.trim() || isProcessing) return;
+    setIsProcessing(true);
+
     // Flash effect
     setFlashDetected(true);
     setTimeout(() => setFlashDetected(false), 400);
 
-    showToast(`Barcode terdeteksi: ${code}`, 'success');
-    onScanned(code.trim());
+    let shouldClose = !stayOpenAfterScan;
+    try {
+      const result = await onScanned(code.trim());
+      // If the handler explicitly returns false (e.g. item not found), keep scanner open
+      if (result === false) {
+        shouldClose = false;
+      }
+    } catch (err) {
+      shouldClose = false;
+    }
 
-    if (!stayOpenAfterScan) {
+    if (shouldClose) {
       stopCamera();
       onClose();
+    } else {
+      setTimeout(() => setIsProcessing(false), 1200); // 1.2s delay before next scan
     }
-  }, [onScanned, onClose, stayOpenAfterScan, stopCamera, showToast]);
+  }, [onScanned, onClose, stayOpenAfterScan, stopCamera, isProcessing]);
 
   // Start camera when modal opens
   useEffect(() => {
