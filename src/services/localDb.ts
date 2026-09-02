@@ -27,21 +27,21 @@ export interface LocalDatabaseSchema {
 
 const DEFAULT_INITIAL_DATA: LocalDatabaseSchema = {
   settings: {
-    businessName: "Sukunaru Studio",
-    tagline: "Solusi Usaha & Layanan Kreatif",
-    address: "Jl. Raya Utama No. 88, Indonesia",
-    phone: "081234567890",
-    whatsapp: "081234567890",
-    email: "sukunarustudio@gmail.com",
-    receiptHeader: "SUKUNARU STUDIO - Solusi Produk & Layanan Berkualitas",
-    receiptFooter: "Terima kasih telah bertransaksi di Sukunaru Studio! Layanan & produk kami selalu siap melayani Anda.",
-    bankAccount: "BCA: 123-456-7890 a.n Sukunaru Studio\nMandiri: 987-654-3210 a.n Sukunaru Studio",
+    businessName: "Nama Bisnis Anda",
+    tagline: "Tagline / Slogan Bisnis Anda",
+    address: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    receiptHeader: "",
+    receiptFooter: "Terima kasih telah berbelanja!",
+    bankAccount: "",
     currency: "IDR",
     invoicePrefix: "INV-",
     receiptPrefix: "STR-",
     defaultTaxPercent: 0,
     defaultDiscountPercent: 0,
-    footerNotes: "Terima kasih atas kepercayaan Anda bermitra bersama kami!"
+    footerNotes: "Terima kasih atas kepercayaan Anda!"
   },
   customers: [
     {
