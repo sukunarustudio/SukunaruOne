@@ -172,10 +172,17 @@ function MainAppContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const historyStackRef = useRef<ViewType[]>([currentView]);
+
   const handleNavigate = useCallback((view: ViewType, recordId?: string) => {
     setCurrentView(curr => {
       if (curr !== view) {
         setPreviousView(curr);
+        if (view === 'dashboard') {
+          historyStackRef.current = ['dashboard'];
+        } else if (historyStackRef.current[historyStackRef.current.length - 1] !== view) {
+          historyStackRef.current.push(view);
+        }
       }
       return view;
     });
@@ -222,7 +229,16 @@ function MainAppContent() {
             return;
           }
 
-          // 3. If currently on a sub-view (Settings, Products, POS, etc.), navigate back to Dashboard
+          // 3. Navigate back through history stack
+          if (historyStackRef.current.length > 1) {
+            historyStackRef.current.pop(); // remove current view
+            const prevView = historyStackRef.current[historyStackRef.current.length - 1] || 'dashboard';
+            setCurrentView(prevView);
+            currentViewRef.current = prevView;
+            try { localStorage.setItem('sukunaru_current_view', prevView); } catch {}
+            return;
+          }
+
           if (currentViewRef.current !== 'dashboard') {
             handleNavigate('dashboard');
             return;
