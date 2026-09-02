@@ -8,7 +8,7 @@ import { useToast } from '../components/Toast';
 import { PrintReceiptModal } from '../components/PrintReceiptModal';
 import { ProductImage } from '../components/ProductImage';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
-import { startKeyboardScanner, stopKeyboardScanner } from '../lib/barcodeScanner';
+import { startKeyboardScanner, stopKeyboardScanner, playScanSuccessFeedback, playScanErrorFeedback } from '../lib/barcodeScanner';
 import { useLicense } from '../hooks/useLicense';
 
 interface PosViewProps {
@@ -161,6 +161,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
   // ── Barcode scan handler (shared by camera modal & USB keyboard scanner) ──
   const handleBarcodeScan = async (code: string) => {
     if (!isPro) {
+      playScanErrorFeedback();
       showToast('Fitur scan barcode kasir terkunci. Silakan aktivasi lisensi.', 'error');
       setIsBarcodeLockedModalOpen(true);
       return;
@@ -171,13 +172,17 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
       const found = await api.getProductByBarcode(trimmed);
       if (found && found.isActive) {
         addToCart(found);
+        playScanSuccessFeedback();
         showToast(`✓ ${found.name} ditambahkan ke keranjang`, 'success');
       } else if (found && !found.isActive) {
+        playScanErrorFeedback();
         showToast(`Produk "${found.name}" tidak aktif`, 'error');
       } else {
+        playScanErrorFeedback();
         showToast(`Barcode "${trimmed}" tidak ditemukan di katalog`, 'error');
       }
     } catch (err: any) {
+      playScanErrorFeedback();
       showToast(err.message || 'Gagal mencari produk barcode', 'error');
     }
   };

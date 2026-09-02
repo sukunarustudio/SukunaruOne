@@ -10,32 +10,72 @@ import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 
 export type ScannerStopFn = () => void;
 
-// ── AUDIO BEEP & HAPTIC FEEDBACK ───────────────────────────────────────────
+// ── AUDIO SOUND EFFECTS & HAPTIC VIBRATION FEEDBACK ────────────────────────
 
-function playBeepSound() {
+/**
+ * Play high-pitch cheerful chime and crisp vibration when barcode is successfully scanned & found.
+ */
+export function playScanSuccessFeedback(): void {
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1800, ctx.currentTime);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.12);
-  } catch (_) {
-    // Ignore audio context restrictions
-  }
-}
+    if (AudioContextClass) {
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-function triggerHaptic() {
+      // Cheerful 2-tone cash register chime (1400Hz -> 1900Hz)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1400, ctx.currentTime);
+      osc.frequency.setValueAtTime(1900, ctx.currentTime + 0.05);
+
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.18);
+    }
+  } catch (_) {}
+
+  // Single crisp vibration for success (90ms)
   try {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(80);
+      navigator.vibrate(90);
+    }
+  } catch (_) {}
+}
+
+/**
+ * Play low warning double-buzz sound and double-vibration when barcode is not found or error.
+ */
+export function playScanErrorFeedback(): void {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContextClass) {
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      // Warning buzzer tone (320Hz -> 200Hz)
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320, ctx.currentTime);
+      osc.frequency.setValueAtTime(200, ctx.currentTime + 0.1);
+
+      gain.gain.setValueAtTime(0.22, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.28);
+    }
+  } catch (_) {}
+
+  // Double vibration pattern for error: buzz-pause-buzz ([120ms, 70ms, 120ms])
+  try {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([120, 70, 120]);
     }
   } catch (_) {}
 }
