@@ -839,6 +839,28 @@ let activeSubscriptionSchema = '';
 let isSubscribing = false;
 let autoSyncDebounceTimer: any = null;
 
+// ── Realtime Pause Guard ────────────────────────────────────────────────────
+// Used to temporarily suspend processing of incoming realtime events during
+// bulk operations like clearAllTransactions so that master data (customers,
+// materials, products) is not accidentally wiped by cascading DELETE events.
+let realtimePaused = false;
+
+export function pauseRealtime(): void {
+  realtimePaused = true;
+}
+
+export function resumeRealtime(resyncDelay = 1500): void {
+  realtimePaused = false;
+  // After resuming, do a delayed re-sync to catch up with any missed events
+  if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+    scheduleAutoSync(resyncDelay);
+  }
+}
+
+// Tables that should NEVER be mass-deleted by an incoming realtime DELETE
+// event (i.e. they are "master data" and must only be deleted row-by-row).
+const PROTECTED_MASTER_TABLES = new Set(['customers', 'materials', 'products']);
+
 export function scheduleAutoSync(delayMs = 2000): void {
   if (typeof window === 'undefined') return;
   if (!isSupabaseConfigured() || !navigator.onLine) return;
@@ -854,6 +876,10 @@ export function scheduleAutoSync(delayMs = 2000): void {
 }
 
 function handleIncomingRealtimeChange(payload: any) {
+  // If a bulk operation (e.g. clearAllTransactions) is in progress, ignore all
+  // incoming realtime changes to prevent cascading deletes on master data.
+  if (realtimePaused) return;
+
   try {
     const table = payload.table;
     const eventType = payload.eventType; // 'INSERT' | 'UPDATE' | 'DELETE'
@@ -861,6 +887,10 @@ function handleIncomingRealtimeChange(payload: any) {
     if (eventType === 'DELETE') {
       const oldRecordId = payload.old?.id;
       if (oldRecordId) {
+        // Guard: skip DELETE for master data tables entirely — they must only
+        // be deleted via explicit single-record delete actions in the UI.
+        if (PROTECTED_MASTER_TABLES.has(table)) return;
+
         const deleted = localDb.applyRemoteDelete(table, oldRecordId);
         if (deleted) emitSyncCompleted();
       }

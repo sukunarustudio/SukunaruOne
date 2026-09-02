@@ -12,7 +12,7 @@ import {
 } from '../types';
 import { localDb } from './localDb';
 import { uploadTenantFile, deleteTenantFile, isSupabaseConfigured, getSupabaseClientForSchema } from './supabaseClient';
-import { getActiveLicenseKey, enqueueSyncMutation } from './syncManager';
+import { getActiveLicenseKey, enqueueSyncMutation, pauseRealtime, resumeRealtime } from './syncManager';
 
 export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
@@ -432,17 +432,30 @@ export const api = {
         const schemaName = licenseKey.trim().toLowerCase().replace(/-/g, '_');
         const targetDb = getSupabaseClientForSchema(schemaName);
         if (targetDb) {
-          await targetDb.from('transactions').delete().neq('id', '___NEVER_MATCH___');
-          await targetDb.from('orders').delete().neq('id', '___NEVER_MATCH___');
-          await targetDb.from('financial_transactions').delete().neq('id', '___NEVER_MATCH___');
-          if (options.resetExpenses) {
-            await targetDb.from('expenses').delete().neq('id', '___NEVER_MATCH___');
-          }
-          if (options.resetMovements) {
-            await targetDb.from('inventory_movements').delete().neq('id', '___NEVER_MATCH___');
+          // ── Pause realtime BEFORE bulk delete ──────────────────────────────
+          // Supabase sends a DELETE event for every row we delete. Without this
+          // guard, `handleIncomingRealtimeChange` would propagate those events
+          // and wipe local master data (customers, materials, products).
+          pauseRealtime();
+          try {
+            await targetDb.from('transactions').delete().neq('id', '___NEVER_MATCH___');
+            await targetDb.from('orders').delete().neq('id', '___NEVER_MATCH___');
+            await targetDb.from('financial_transactions').delete().neq('id', '___NEVER_MATCH___');
+            if (options.resetExpenses) {
+              await targetDb.from('expenses').delete().neq('id', '___NEVER_MATCH___');
+            }
+            if (options.resetMovements) {
+              await targetDb.from('inventory_movements').delete().neq('id', '___NEVER_MATCH___');
+            }
+          } finally {
+            // ── Resume realtime AFTER all deletes complete ─────────────────
+            // Allow a brief window (2 s) so any in-flight DELETE events from
+            // Supabase are drained before we start listening again.
+            setTimeout(() => resumeRealtime(500), 2000);
           }
         }
       } catch (err) {
+        resumeRealtime(0); // safety: always re-enable on error
         console.warn('[Clear All Trx Cloud Error]:', err);
       }
     }
