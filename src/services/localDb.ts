@@ -800,7 +800,30 @@ export const localDb = {
     const db = getLocalData();
     const clean = barcode.trim();
     if (!clean) return null;
-    const found = db.products.find(p => p.barcode && p.barcode.trim() === clean);
+    const cleanLower = clean.toLowerCase();
+
+    // 1. Exact match on barcode (case-insensitive)
+    let found = db.products.find(p => p.barcode && p.barcode.trim().toLowerCase() === cleanLower);
+
+    // 2. Match on SKU (case-insensitive)
+    if (!found) {
+      found = db.products.find(p => p.sku && p.sku.trim().toLowerCase() === cleanLower);
+    }
+
+    // 3. Match on ID
+    if (!found) {
+      found = db.products.find(p => p.id && p.id.trim().toLowerCase() === cleanLower);
+    }
+
+    // 4. Numeric barcode comparison (e.g. EAN-13 / EAN-8 with/without leading zero)
+    if (!found && /^\d+$/.test(clean)) {
+      const cleanNum = clean.replace(/^0+/, '');
+      found = db.products.find(p => {
+        if (!p.barcode || !/^\d+$/.test(p.barcode.trim())) return false;
+        return p.barcode.trim().replace(/^0+/, '') === cleanNum;
+      });
+    }
+
     return found || null;
   },
 
