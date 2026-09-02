@@ -117,7 +117,7 @@ export async function saveAndDownloadFile(options: FileDownloadOptions): Promise
       // 1. Primary write to Directory.Documents (accessible on Android)
       try {
         const res = await Filesystem.writeFile({
-          path: cleanFilename,
+          path: `BisnisUrang/${cleanFilename}`,
           data: rawBase64,
           directory: Directory.Documents,
           recursive: true,
@@ -128,7 +128,7 @@ export async function saveAndDownloadFile(options: FileDownloadOptions): Promise
         console.warn('[FileDownloader] Write to Documents failed, attempting Cache directory:', docErr);
         // 2. Fallback write to Directory.Cache
         const fallbackRes = await Filesystem.writeFile({
-          path: cleanFilename,
+          path: `BisnisUrang/${cleanFilename}`,
           data: rawBase64,
           directory: Directory.Cache,
           recursive: true,

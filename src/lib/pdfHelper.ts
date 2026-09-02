@@ -528,13 +528,13 @@ export async function shareElementAsJpg(
     // 1. PRIMARY ANDROID / CAPACITOR NATIVE PATH
     if (Capacitor.isNativePlatform()) {
       try {
-        await requestStoragePermissions();
+        await ensureStoragePermissions();
 
-        // Write to Cache for native sharing
+        // Write to Documents so user can find it in their file manager
         const writeResult = await Filesystem.writeFile({
-          path: cleanFilename,
+          path: `BisnisUrang/${cleanFilename}`,
           data: base64Data,
-          directory: Directory.Cache,
+          directory: Directory.Documents,
           recursive: true,
         });
 
