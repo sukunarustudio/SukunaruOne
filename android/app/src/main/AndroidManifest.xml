@@ -16,8 +16,8 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
-            android:screenOrientation="fullSensor"
-            android:resizeableActivity="true"
+            android:screenOrientation="portrait"
+            android:resizeableActivity="false"
             android:supportsPictureInPicture="false"
             android:exported="true">
 

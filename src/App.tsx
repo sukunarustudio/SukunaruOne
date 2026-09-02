@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
 import { api } from './services/api';
 import { ViewType, BusinessSettings } from './types';
 import { ToastProvider, useToast } from './components/Toast';
@@ -171,15 +172,84 @@ function MainAppContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleNavigate = (view: ViewType, recordId?: string) => {
-    setPreviousView(currentView); // simpan halaman sebelumnya
+  const handleNavigate = useCallback((view: ViewType, recordId?: string) => {
+    setCurrentView(curr => {
+      if (curr !== view) {
+        setPreviousView(curr);
+      }
+      return view;
+    });
     setTargetRecordId(recordId);
-    setCurrentView(view);
     setIsMobileSidebarOpen(false);
     try {
       localStorage.setItem('sukunaru_current_view', view);
     } catch {}
-  };
+  }, []);
+
+  // Android Hardware / Gesture Back Button Interceptor
+  const currentViewRef = useRef<ViewType>(currentView);
+  const isSearchOpenRef = useRef<boolean>(isSearchOpen);
+  const isMobileSidebarOpenRef = useRef<boolean>(isMobileSidebarOpen);
+  const lastBackPressTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
+
+  useEffect(() => {
+    isSearchOpenRef.current = isSearchOpen;
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    isMobileSidebarOpenRef.current = isMobileSidebarOpen;
+  }, [isMobileSidebarOpen]);
+
+  useEffect(() => {
+    let backListener: any = null;
+
+    const attachBackListener = async () => {
+      try {
+        backListener = await CapacitorApp.addListener('backButton', () => {
+          // 1. Close search modal if open
+          if (isSearchOpenRef.current) {
+            setIsSearchOpen(false);
+            return;
+          }
+
+          // 2. Close mobile drawer sidebar if open
+          if (isMobileSidebarOpenRef.current) {
+            setIsMobileSidebarOpen(false);
+            return;
+          }
+
+          // 3. If currently on a sub-view (Settings, Products, POS, etc.), navigate back to Dashboard
+          if (currentViewRef.current !== 'dashboard') {
+            handleNavigate('dashboard');
+            return;
+          }
+
+          // 4. If already on Dashboard, ask user confirmation or exit on double tap within 2 seconds
+          const now = Date.now();
+          if (now - lastBackPressTimeRef.current < 2000) {
+            CapacitorApp.exitApp();
+          } else {
+            lastBackPressTimeRef.current = now;
+            showToast('Tekan sekali lagi untuk keluar dari BisnisUrang', 'info');
+          }
+        });
+      } catch (err) {
+        // Not on mobile / Capacitor environment
+      }
+    };
+
+    attachBackListener();
+
+    return () => {
+      if (backListener && typeof backListener.remove === 'function') {
+        backListener.remove();
+      }
+    };
+  }, [handleNavigate, showToast]);
 
   const handleResetSampleData = async () => {
     try {
