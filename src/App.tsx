@@ -549,11 +549,11 @@ function MainAppContent() {
 
       {/* Animated App Splash Screen */}
       {showSplash && (
-        <div className="fixed inset-0 z-[9999] bg-[#0B0F17] transition-opacity duration-700 ease-in-out pointer-events-none flex items-center justify-center">
+        <div className="fixed inset-0 z-[9999] bg-[#25343F] transition-opacity duration-700 ease-in-out pointer-events-none flex items-center justify-center">
           <img
             src="/splash.png"
             alt="BisnisUrang"
-            className="w-full h-full object-cover animate-fade-in"
+            className="w-full h-full object-contain animate-fade-in"
           />
         </div>
       )}
