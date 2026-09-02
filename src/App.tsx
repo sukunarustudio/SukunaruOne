@@ -552,13 +552,9 @@ function MainAppContent() {
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white dark:bg-[#0B0F17] transition-all duration-700 ease-in-out pointer-events-none">
           <div className="flex flex-col items-center justify-center p-6 text-center animate-fade-in max-w-sm w-full">
             <img
-              src="/splash screen app.png"
+              src="/splash.png"
               alt="BisnisUrang"
               className="w-full max-w-[280px] object-contain drop-shadow-sm"
-              onError={(e) => {
-                // Fallback to /splash.png
-                (e.currentTarget as HTMLImageElement).src = '/splash.png';
-              }}
             />
           </div>
         </div>
