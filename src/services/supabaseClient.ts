@@ -1,5 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+const DEFAULT_SUPABASE_URL = 'https://jeydktowldsduarptsur.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_g3y6cS7DcyaLUSOuk0Y9Kg_Ufc1BB3a';
+
 const STORAGE_KEY_URL = 'sukunaru_supabase_url';
 const STORAGE_KEY_KEY = 'sukunaru_supabase_key';
 
@@ -16,7 +19,7 @@ export interface SupabaseConfig {
 
 export function getSupabaseConfig(): SupabaseConfig {
   if (typeof window === 'undefined') {
-    return { url: '', key: '' };
+    return { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_ANON_KEY };
   }
 
   const savedUrl = localStorage.getItem(STORAGE_KEY_URL);
@@ -25,9 +28,12 @@ export function getSupabaseConfig(): SupabaseConfig {
   const envUrl = ((import.meta as any).env?.VITE_SUPABASE_URL as string) || '';
   const envKey = ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string) || '';
 
+  const finalUrl = (savedUrl || envUrl || DEFAULT_SUPABASE_URL).trim();
+  const finalKey = (savedKey || envKey || DEFAULT_SUPABASE_ANON_KEY).trim();
+
   return {
-    url: (savedUrl || envUrl || '').trim(),
-    key: (savedKey || envKey || '').trim(),
+    url: finalUrl,
+    key: finalKey,
   };
 }
 
