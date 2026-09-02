@@ -116,8 +116,6 @@ export async function startCameraScanner(
 
     lastScannedCode = cleanCode;
     lastScannedTime = now;
-    playBeepSound();
-    triggerHaptic();
     onDetected(cleanCode);
   };
 
