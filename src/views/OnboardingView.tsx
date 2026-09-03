@@ -25,6 +25,7 @@ import { BusinessSettings } from '../types';
 import { api } from '../services/api';
 import { useToast } from '../components/Toast';
 import { verifyLicenseInCloud, isSupabaseConfigured } from '../services/supabaseClient';
+import { performInitialCloudSync, subscribeToRealtimeChanges } from '../services/syncManager';
 import appLogo from '../assets/app-logo.png';
 
 interface OnboardingViewProps {
@@ -281,9 +282,25 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
 
         setLicenseStatus('success');
         showToast('✓ License Key berhasil diaktifkan.', 'success');
+
+        // Perform initial cloud sync BEFORE proceeding to app
+        // This pulls any existing data for this license key from cloud
+        if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+          try {
+            showToast('Memeriksa data cloud...', 'info');
+            const initSync = await performInitialCloudSync();
+            if (initSync.hasCloudData && initSync.pulled > 0) {
+              showToast(`✓ ${initSync.pulled} data bisnis ditemukan dan dipulihkan dari cloud!`, 'success');
+            }
+            subscribeToRealtimeChanges(true);
+          } catch {
+            // Non-fatal: proceed to app even if initial sync fails
+          }
+        }
+
         setTimeout(() => {
           setCurrentStep('permissions');
-        }, 1200);
+        }, 800);
       } else {
         setLicenseStatus('error');
         setLicenseErrorMessage('License Key tidak valid. Periksa kembali key yang kamu masukkan.');

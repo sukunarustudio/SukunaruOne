@@ -119,7 +119,7 @@ function MainAppContent() {
         api.getSettings(),
         api.getStats(),
       ]);
-      if (settingsData && settingsData.businessName) {
+      if (settingsData) {
         setSettings(settingsData);
       }
       if (statsData) {

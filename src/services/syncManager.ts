@@ -611,6 +611,130 @@ export async function flushSyncQueue(): Promise<void> {
   notifyListeners();
 }
 
+// ── INITIAL CLOUD SYNC (called on first login with existing license) ────────
+// Only PULLS data from cloud. Never pushes. Used when a fresh/reset device
+// logs in with an existing license key that may already have cloud data.
+
+export async function performInitialCloudSync(): Promise<{
+  hasCloudData: boolean;
+  pulled: number;
+  message: string;
+}> {
+  if (!isSupabaseConfigured()) {
+    return { hasCloudData: false, pulled: 0, message: 'Supabase belum dikonfigurasi.' };
+  }
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return { hasCloudData: false, pulled: 0, message: 'Perangkat offline.' };
+  }
+
+  const licenseKey = getActiveLicenseKey();
+  if (!licenseKey || licenseKey === 'SKNR-DEFAULT-OFFLINE') {
+    return { hasCloudData: false, pulled: 0, message: 'License Key tidak aktif.' };
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return { hasCloudData: false, pulled: 0, message: 'Gagal koneksi Supabase.' };
+  }
+
+  let pulled = 0;
+
+  try {
+    console.log('[INITIAL_SYNC] Checking cloud for existing data with license:', licenseKey);
+
+    // 1. Check business settings first (fastest check)
+    const { data: remoteSettings } = await client
+      .from('business_settings')
+      .select('*')
+      .eq('license_key', licenseKey)
+      .limit(1);
+
+    const hasSettings = remoteSettings && remoteSettings.length > 0;
+
+    // 2. Check products count as additional signal
+    const { count: productCount } = await client
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('license_key', licenseKey);
+
+    const hasCloudData = hasSettings || (productCount !== null && productCount > 0);
+
+    console.log(`[INITIAL_SYNC] hasCloudData: ${hasCloudData}, settings: ${hasSettings}, products: ${productCount}`);
+
+    if (!hasCloudData) {
+      return { hasCloudData: false, pulled: 0, message: 'Tidak ada data cloud untuk license ini. Memulai database baru.' };
+    }
+
+    // 3. Pull all data from cloud → local (PULL ONLY, no push)
+    if (hasSettings) {
+      await localDb.updateSettings(settingsFromSupabase(remoteSettings![0]));
+      pulled++;
+    }
+
+    const { data: remoteCustomers } = await client
+      .from('customers').select('*').eq('license_key', licenseKey).order('updated_at', { ascending: false });
+    if (remoteCustomers && remoteCustomers.length > 0) {
+      localDb.mergeCustomers(remoteCustomers.map(customerFromSupabase));
+      pulled += remoteCustomers.length;
+    }
+
+    const { data: remoteMaterials } = await client
+      .from('materials').select('*').eq('license_key', licenseKey).order('updated_at', { ascending: false });
+    if (remoteMaterials && remoteMaterials.length > 0) {
+      localDb.mergeMaterials(remoteMaterials.map(materialFromSupabase));
+      pulled += remoteMaterials.length;
+    }
+
+    const { data: remoteProducts } = await client
+      .from('products').select('*').eq('license_key', licenseKey).order('updated_at', { ascending: false });
+    if (remoteProducts && remoteProducts.length > 0) {
+      localDb.mergeProducts(remoteProducts.map(productFromSupabase));
+      pulled += remoteProducts.length;
+    }
+
+    const { data: remoteOrders } = await client
+      .from('orders').select('*').eq('license_key', licenseKey).order('updated_at', { ascending: false });
+    if (remoteOrders && remoteOrders.length > 0) {
+      localDb.mergeOrders(remoteOrders.map(orderFromSupabase));
+      pulled += remoteOrders.length;
+    }
+
+    const { data: remoteTransactions } = await client
+      .from('transactions').select('*').eq('license_key', licenseKey).order('updated_at', { ascending: false });
+    if (remoteTransactions && remoteTransactions.length > 0) {
+      localDb.mergeTransactions(remoteTransactions.map(transactionFromSupabase));
+      pulled += remoteTransactions.length;
+    }
+
+    const { data: remoteExpenses } = await client
+      .from('expenses').select('*').eq('license_key', licenseKey).order('created_at', { ascending: false });
+    if (remoteExpenses && remoteExpenses.length > 0) {
+      localDb.mergeExpenses(remoteExpenses.map(expenseFromSupabase));
+      pulled += remoteExpenses.length;
+    }
+
+    const { data: remoteFinTrx } = await client
+      .from('financial_transactions').select('*').eq('license_key', licenseKey).order('created_at', { ascending: false });
+    if (remoteFinTrx && remoteFinTrx.length > 0) {
+      localDb.mergeFinancialTransactions(remoteFinTrx.map(finTransactionFromSupabase));
+      pulled += remoteFinTrx.length;
+    }
+
+    const nowIso = new Date().toISOString();
+    localStorage.setItem(LAST_SYNC_KEY, nowIso);
+    currentSyncState.lastSyncAt = nowIso;
+    currentSyncState.status = 'CONNECTED';
+    notifyListeners();
+
+    console.log(`[INITIAL_SYNC] Complete. Pulled ${pulled} records.`);
+    return { hasCloudData: true, pulled, message: `${pulled} data berhasil dipulihkan dari cloud.` };
+
+  } catch (err: any) {
+    console.error('[INITIAL_SYNC] Error:', err);
+    return { hasCloudData: false, pulled, message: `Gagal initial sync: ${err.message}` };
+  }
+}
+
 // ── FULL SYNC ENGINE (ON STARTUP & MANUAL REFRESH) ───────────
 
 export async function syncWithSupabase(): Promise<{
@@ -667,13 +791,47 @@ export async function syncWithSupabase(): Promise<{
 
     const rawLocal = localDb.getRawData();
 
+    // ── SAFETY CHECK: detect if local is empty/default ──────────────────────
+    // If local has no business data (products, customers, materials all empty)
+    // AND cloud has data → pull only, don't push empty default data to cloud.
+    const localIsEmpty = rawLocal.products.length === 0
+      && rawLocal.customers.length === 0
+      && rawLocal.materials.length === 0;
+
+    if (localIsEmpty) {
+      // Check if cloud has existing data
+      const { data: cloudSettings } = await client
+        .from('business_settings')
+        .select('id')
+        .eq('license_key', licenseKey)
+        .limit(1);
+      const cloudHasData = cloudSettings && cloudSettings.length > 0;
+
+      if (cloudHasData) {
+        // Pull-only mode: don't push empty local data to cloud
+        console.log('[SYNC] Local is empty, cloud has data → pull-only mode');
+        const initResult = await performInitialCloudSync();
+        currentSyncState.status = 'CONNECTED';
+        currentSyncState.lastSyncAt = new Date().toISOString();
+        notifyListeners();
+        return {
+          success: true,
+          message: `Pull-only sync: ${initResult.pulled} item diperbarui dari Cloud.`,
+          pushedCount: 0,
+          pulledCount: initResult.pulled,
+        };
+      }
+    }
+
     // ── 1. SYNC SETTINGS ──────────────────────────────────────
-    if (rawLocal.settings) {
+    // Only push settings if businessName has been customized (not default)
+    const isDefaultSettings = rawLocal.settings.businessName === 'Nama Bisnis Anda';
+    if (rawLocal.settings && !isDefaultSettings) {
       const setPayload = settingsToSupabase(rawLocal.settings, licenseKey);
       await client.from('business_settings').upsert(setPayload);
       pushed++;
     }
-    
+
     const { data: remoteSettings } = await client
       .from('business_settings')
       .select('*')
@@ -681,7 +839,7 @@ export async function syncWithSupabase(): Promise<{
       .limit(1);
 
     if (remoteSettings && remoteSettings.length > 0) {
-      localDb.updateSettings(settingsFromSupabase(remoteSettings[0]));
+      await localDb.updateSettings(settingsFromSupabase(remoteSettings[0]));
       pulled++;
     }
 
@@ -898,12 +1056,15 @@ function handleIncomingRealtimeChange(payload: any) {
     console.log(`[REALTIME] EVENT RECEIVED\ntable: ${table}\nevent: ${eventType}\nrecord_id: ${recordId}`);
     console.log(`[SYNC] PROCESSING EVENT`);
 
+    // Tables that affect Dashboard Hero Card — always force a UI refresh on event
+    const DASHBOARD_TABLES = new Set(['transactions', 'orders', 'expenses', 'financial_transactions', 'business_settings']);
+
     if (eventType === 'DELETE') {
       const oldRecordId = payload.old?.id || payload.old?.license_key;
       if (oldRecordId) {
         console.log(`[SQLITE] APPLYING CHANGE`);
         const deleted = localDb.applyRemoteDelete(table, oldRecordId);
-        if (deleted) {
+        if (deleted || DASHBOARD_TABLES.has(table)) {
           console.log(`[SQLITE] CHANGE SUCCESS`);
           console.log(`[UI] REFRESH`);
           emitSyncCompleted();
@@ -915,7 +1076,7 @@ function handleIncomingRealtimeChange(payload: any) {
         const mapped = fromSupabasePayload(table, newRecord);
         console.log(`[SQLITE] APPLYING CHANGE`);
         const updated = localDb.applyRemoteUpsert(table, mapped);
-        if (updated) {
+        if (updated || DASHBOARD_TABLES.has(table)) {
           console.log(`[SQLITE] CHANGE SUCCESS`);
           console.log(`[UI] REFRESH`);
           emitSyncCompleted();
