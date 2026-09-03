@@ -744,6 +744,214 @@ export async function performInitialCloudSync(): Promise<{
   }
 }
 
+// ── LOCAL & CLOUD DATA PRESENCE AND RECOVERY RESOLUTION ────────
+
+export interface DataPresenceInfo {
+  hasLocalData: boolean;
+  localCounts: {
+    products: number;
+    orders: number;
+    transactions: number;
+    customers: number;
+  };
+  hasCloudData: boolean;
+  cloudCounts: {
+    products: number;
+    orders: number;
+    transactions: number;
+    customers: number;
+  };
+}
+
+export async function checkLocalAndCloudDataPresence(): Promise<DataPresenceInfo> {
+  const result: DataPresenceInfo = {
+    hasLocalData: false,
+    localCounts: { products: 0, orders: 0, transactions: 0, customers: 0 },
+    hasCloudData: false,
+    cloudCounts: { products: 0, orders: 0, transactions: 0, customers: 0 },
+  };
+
+  try {
+    const [localProds, localOrds, localTrx, localCust] = await Promise.all([
+      localDb.getProducts(),
+      localDb.getOrders(),
+      localDb.getTransactions(),
+      localDb.getCustomers(),
+    ]);
+
+    result.localCounts = {
+      products: localProds.length,
+      orders: localOrds.length,
+      transactions: localTrx.length,
+      customers: localCust.length,
+    };
+
+    result.hasLocalData =
+      localProds.length > 0 ||
+      localOrds.length > 0 ||
+      localTrx.length > 0 ||
+      localCust.length > 0;
+  } catch (err) {
+    console.warn('[Check Local Data Error]:', err);
+  }
+
+  if (!isSupabaseConfigured() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return result;
+  }
+
+  const client = getSupabaseClient();
+  const licenseKey = getActiveLicenseKey();
+  if (!client || !licenseKey || licenseKey === 'SKNR-DEFAULT-OFFLINE') {
+    return result;
+  }
+
+  try {
+    const [pRes, oRes, tRes, cRes] = await Promise.all([
+      client.from('products').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
+      client.from('orders').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
+      client.from('transactions').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
+      client.from('customers').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
+    ]);
+
+    result.cloudCounts = {
+      products: pRes.count || 0,
+      orders: oRes.count || 0,
+      transactions: tRes.count || 0,
+      customers: cRes.count || 0,
+    };
+
+    result.hasCloudData =
+      (pRes.count || 0) > 0 ||
+      (oRes.count || 0) > 0 ||
+      (tRes.count || 0) > 0 ||
+      (cRes.count || 0) > 0;
+  } catch (err) {
+    console.warn('[Check Cloud Data Error]:', err);
+  }
+
+  return result;
+}
+
+export async function applyCloudToLocalWithBackup(): Promise<{ success: boolean; message: string }> {
+  try {
+    const client = getSupabaseClient();
+    const licenseKey = getActiveLicenseKey();
+    if (!client || !licenseKey) throw new Error('Supabase client atau lisensi tidak aktif.');
+
+    // 1. Snapshot local database first for safety
+    const localBackup = await localDb.getBackupData();
+    try {
+      localStorage.setItem('sukunaru_pre_recovery_local_backup', JSON.stringify(localBackup));
+    } catch {}
+
+    // 2. Fetch all data from Cloud
+    const [
+      { data: remoteSettings },
+      { data: remoteCustomers },
+      { data: remoteMaterials },
+      { data: remoteProducts },
+      { data: remoteOrders },
+      { data: remoteTransactions },
+      { data: remoteExpenses },
+      { data: remoteFinTrx },
+    ] = await Promise.all([
+      client.from('business_settings').select('*').eq('license_key', licenseKey).limit(1),
+      client.from('customers').select('*').eq('license_key', licenseKey),
+      client.from('materials').select('*').eq('license_key', licenseKey),
+      client.from('products').select('*').eq('license_key', licenseKey),
+      client.from('orders').select('*').eq('license_key', licenseKey),
+      client.from('transactions').select('*').eq('license_key', licenseKey),
+      client.from('expenses').select('*').eq('license_key', licenseKey),
+      client.from('financial_transactions').select('*').eq('license_key', licenseKey),
+    ]);
+
+    const newDb = {
+      settings: remoteSettings && remoteSettings[0] ? settingsFromSupabase(remoteSettings[0]) : localBackup.settings,
+      customers: (remoteCustomers || []).map(customerFromSupabase),
+      materials: (remoteMaterials || []).map(materialFromSupabase),
+      inventory_movements: [],
+      products: (remoteProducts || []).map(productFromSupabase),
+      orders: (remoteOrders || []).map(orderFromSupabase),
+      transactions: (remoteTransactions || []).map(transactionFromSupabase),
+      expenses: (remoteExpenses || []).map(expenseFromSupabase),
+      financial_transactions: (remoteFinTrx || []).map(finTransactionFromSupabase),
+    };
+
+    await localDb.restoreDatabase(newDb);
+    emitSyncCompleted();
+    subscribeToRealtimeChanges(true);
+
+    return { success: true, message: 'Data Cloud berhasil dipulihkan ke perangkat!' };
+  } catch (err: any) {
+    return { success: false, message: `Gagal memulihkan data cloud: ${err.message}` };
+  }
+}
+
+export async function applyLocalToCloudWithConfirmation(): Promise<{ success: boolean; message: string }> {
+  try {
+    const client = getSupabaseClient();
+    const licenseKey = getActiveLicenseKey();
+    if (!client || !licenseKey) throw new Error('Supabase client atau lisensi tidak aktif.');
+
+    // Push local to cloud
+    const rawLocal = await localDb.getBackupData();
+    let pushed = 0;
+
+    if (rawLocal.settings) {
+      await client.from('business_settings').upsert(settingsToSupabase(rawLocal.settings, licenseKey));
+    }
+    if (rawLocal.customers?.length > 0) {
+      await client.from('customers').upsert(rawLocal.customers.map((c: any) => customerToSupabase(c, licenseKey)));
+      pushed += rawLocal.customers.length;
+    }
+    if (rawLocal.materials?.length > 0) {
+      await client.from('materials').upsert(rawLocal.materials.map((m: any) => materialToSupabase(m, licenseKey)));
+      pushed += rawLocal.materials.length;
+    }
+    if (rawLocal.products?.length > 0) {
+      await client.from('products').upsert(rawLocal.products.map((p: any) => productToSupabase(p, licenseKey)));
+      pushed += rawLocal.products.length;
+    }
+    if (rawLocal.orders?.length > 0) {
+      await client.from('orders').upsert(rawLocal.orders.map((o: any) => orderToSupabase(o, licenseKey)));
+      pushed += rawLocal.orders.length;
+    }
+    if (rawLocal.transactions?.length > 0) {
+      await client.from('transactions').upsert(rawLocal.transactions.map((t: any) => transactionToSupabase(t, licenseKey)));
+      pushed += rawLocal.transactions.length;
+    }
+    if (rawLocal.expenses?.length > 0) {
+      await client.from('expenses').upsert(rawLocal.expenses.map((e: any) => expenseToSupabase(e, licenseKey)));
+      pushed += rawLocal.expenses.length;
+    }
+    if (rawLocal.financial_transactions?.length > 0) {
+      await client.from('financial_transactions').upsert(rawLocal.financial_transactions.map((f: any) => finTransactionToSupabase(f, licenseKey)));
+      pushed += rawLocal.financial_transactions.length;
+    }
+
+    emitSyncCompleted();
+    subscribeToRealtimeChanges(true);
+
+    return { success: true, message: `${pushed} data perangkat berhasil disimpan ke Cloud!` };
+  } catch (err: any) {
+    return { success: false, message: `Gagal mengunggah data perangkat: ${err.message}` };
+  }
+}
+
+export async function mergeLocalAndCloud(): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await syncWithSupabase();
+    if (res.success) {
+      emitSyncCompleted();
+      subscribeToRealtimeChanges(true);
+      return { success: true, message: 'Data perangkat dan cloud berhasil digabungkan!' };
+    }
+    return { success: false, message: res.message };
+  } catch (err: any) {
+    return { success: false, message: `Gagal menggabungkan data: ${err.message}` };
+  }
+}
+
 // ── FULL SYNC ENGINE (ON STARTUP & MANUAL REFRESH) ───────────
 
 export async function syncWithSupabase(): Promise<{

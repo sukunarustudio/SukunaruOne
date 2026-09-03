@@ -149,6 +149,126 @@ export async function resetPassword(email: string): Promise<{ success: boolean; 
   }
 }
 
+export function getOrCreateDeviceId(): string {
+  try {
+    let id = localStorage.getItem('sukunaru_device_id');
+    if (!id) {
+      const randHex = Array.from({ length: 4 }, () =>
+        Math.floor((1 + Math.random()) * 0x10000)
+          .toString(16)
+          .substring(1)
+          .toUpperCase()
+      ).join('-');
+      id = `DEV-${randHex}`;
+      localStorage.setItem('sukunaru_device_id', id);
+    }
+    return id;
+  } catch {
+    return 'DEV-88A2-99F1-44B0';
+  }
+}
+
+const SESSION_LOCK_KEY = 'sukunaru_session_locked';
+
+export function isSessionLocked(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(SESSION_LOCK_KEY) === 'true';
+}
+
+export function lockBusinessSession(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SESSION_LOCK_KEY, 'true');
+  try {
+    const rawLic = localStorage.getItem('sukunaru_license_info');
+    if (rawLic) {
+      localStorage.setItem('sukunaru_license_info_cached', rawLic);
+      localStorage.removeItem('sukunaru_license_info');
+    }
+  } catch {}
+}
+
+export function unlockBusinessSession(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(SESSION_LOCK_KEY);
+}
+
+export async function restoreUserLicenseSession(user: User): Promise<{
+  found: boolean;
+  valid: boolean;
+  licenseKey?: string;
+  message?: string;
+  isTrial?: boolean;
+}> {
+  try {
+    const client = getAuthClient();
+    const deviceId = getOrCreateDeviceId();
+    const displayName =
+      user.user_metadata?.display_name || user.email?.split('@')[0] || 'Owner';
+
+    // 1. Query licenses linked to this user_id
+    const { data: licList, error: licErr } = await client
+      .from('licenses')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'ACTIVE')
+      .order('created_at', { ascending: false });
+
+    if (licErr || !licList || licList.length === 0) {
+      return { found: false, valid: false };
+    }
+
+    const linkedLic = licList[0];
+    const licKey = linkedLic.license_key;
+
+    // 2. Verify with cloud validation & register current device
+    const verifyRes = await verifyLicenseInCloud(licKey, deviceId, displayName);
+    if (!verifyRes.valid) {
+      return {
+        found: true,
+        valid: false,
+        licenseKey: licKey,
+        message: verifyRes.message,
+      };
+    }
+
+    const cloudLic = verifyRes.license || linkedLic;
+    const isTrial = cloudLic.tier === 'TRIAL_14_DAYS' || Boolean(cloudLic.duration_days);
+    const now = new Date();
+    const nowStr = now.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+
+    const licenseData = {
+      isActivated: true,
+      licenseKey: licKey,
+      licenseType: cloudLic.tier || (isTrial ? 'TRIAL_14_DAYS' : 'PRO_LIFETIME'),
+      activatedAt: cloudLic.activated_at || now.toISOString(),
+      activatedAtLabel: nowStr,
+      expiresAt: cloudLic.expires_at,
+      durationDays: cloudLic.duration_days || (isTrial ? 14 : null),
+      registeredTo: displayName,
+      deviceId,
+    };
+
+    localStorage.setItem('sukunaru_license_info', JSON.stringify(licenseData));
+    localStorage.setItem('sukunaru_onboarding_completed', 'true');
+    unlockBusinessSession();
+
+    return {
+      found: true,
+      valid: true,
+      licenseKey: licKey,
+      message: verifyRes.message,
+      isTrial,
+    };
+  } catch (err: any) {
+    console.warn('[Restore User License Error]:', err);
+    return { found: false, valid: false, message: err.message };
+  }
+}
+
 export async function claimLicenseForUser(
   licenseKey: string
 ): Promise<{ success: boolean; message: string }> {
@@ -219,7 +339,7 @@ export async function getUserLicenseKey(): Promise<string | null> {
   }
 }
 
-function translateAuthError(error: AuthError | Error): string {
+export function translateAuthError(error: AuthError | Error): string {
   const msg = error.message?.toLowerCase() || '';
 
   if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {

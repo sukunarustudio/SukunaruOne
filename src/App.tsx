@@ -11,8 +11,23 @@ import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { SignInView } from './views/auth/SignInView';
 import { SignUpView } from './views/auth/SignUpView';
 import { ForgotPasswordView } from './views/auth/ForgotPasswordView';
-import { onAuthStateChange, getSession, getUserLicenseKey } from './services/authService';
-import { performInitialCloudSync } from './services/syncManager';
+import { LimitedModeView } from './views/LimitedModeView';
+import { DataRecoveryModal } from './components/DataRecoveryModal';
+import {
+  onAuthStateChange,
+  getSession,
+  restoreUserLicenseSession,
+  isSessionLocked,
+  unlockBusinessSession,
+} from './services/authService';
+import {
+  checkLocalAndCloudDataPresence,
+  applyCloudToLocalWithBackup,
+  applyLocalToCloudWithConfirmation,
+  mergeLocalAndCloud,
+  subscribeToRealtimeChanges,
+  DataPresenceInfo,
+} from './services/syncManager';
 
 // Views
 import { DashboardView } from './views/DashboardView';
@@ -69,6 +84,8 @@ function MainAppContent() {
   const [authUser, setAuthUser] = useState<User | null | undefined>(undefined);
   // Auth sub-screen: 'sign-in' | 'sign-up' | 'forgot-password'
   const [authScreen, setAuthScreen] = useState<'sign-in' | 'sign-up' | 'forgot-password'>('sign-in');
+  // Whether session is currently locked (e.g. after user logout)
+  const [sessionLocked, setSessionLocked] = useState<boolean>(() => isSessionLocked());
   // Whether user explicitly chose offline mode (skip auth)
   const [offlineMode, setOfflineMode] = useState<boolean>(() => {
     try {
@@ -78,20 +95,75 @@ function MainAppContent() {
     }
   });
 
+  // Data Recovery Modal state (conflict resolution between local & cloud)
+  const [recoveryPresence, setRecoveryPresence] = useState<DataPresenceInfo | null>(null);
+  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState<boolean>(false);
+
+  // Load initial settings and badge counters
+  const refreshStatsAndSettings = useCallback(async () => {
+    try {
+      const [settingsData, statsData] = await Promise.all([
+        api.getSettings(),
+        api.getStats(),
+      ]);
+      if (settingsData) {
+        setSettings(settingsData);
+      }
+      if (statsData) {
+        setActiveOrdersCount(statsData.activeOrdersCount || 0);
+        setLowStockCount(statsData.lowStockItemsCount || 0);
+      }
+    } catch (err) {
+      console.error('Failed to load initial settings/stats:', err);
+    }
+  }, []);
+
+  // Handle restoring business context & license entitlement on login
+  const handleUserSessionRestoration = useCallback(
+    async (user: User) => {
+      try {
+        unlockBusinessSession();
+        setSessionLocked(false);
+
+        // 1. Auto-restore license entitlement from Cloud
+        const licRes = await restoreUserLicenseSession(user);
+        if (licRes.found && licRes.valid) {
+          localStorage.setItem('sukunaru_onboarding_completed', 'true');
+          setIsOnboardingCompleted(true);
+        } else if (licRes.found && !licRes.valid && licRes.message) {
+          showToast(licRes.message, 'error');
+        }
+
+        // 2. Check local vs cloud data presence
+        const presence = await checkLocalAndCloudDataPresence();
+        if (presence.hasLocalData && presence.hasCloudData) {
+          setRecoveryPresence(presence);
+          setIsRecoveryModalOpen(true);
+        } else if (presence.hasCloudData && !presence.hasLocalData) {
+          // Fresh / reset device: pull from Cloud
+          await applyCloudToLocalWithBackup();
+          subscribeToRealtimeChanges(true);
+          await refreshStatsAndSettings();
+        } else {
+          subscribeToRealtimeChanges(true);
+          await refreshStatsAndSettings();
+        }
+      } catch (err: any) {
+        console.warn('[Session Restore Error]:', err);
+        subscribeToRealtimeChanges(true);
+        await refreshStatsAndSettings();
+      }
+    },
+    [refreshStatsAndSettings, showToast]
+  );
+
   // Check existing session on mount
   useEffect(() => {
     getSession().then(async (session) => {
       const user = session?.user ?? null;
       setAuthUser(user);
-      if (user) {
-        try {
-          const licKey = await getUserLicenseKey();
-          if (licKey) {
-            localStorage.setItem('sukunaru_onboarding_completed', 'true');
-            setIsOnboardingCompleted(true);
-            performInitialCloudSync().catch(() => {});
-          }
-        } catch {}
+      if (user && !isSessionLocked()) {
+        await handleUserSessionRestoration(user);
       }
     });
 
@@ -99,22 +171,15 @@ function MainAppContent() {
     const cleanup = onAuthStateChange(async (user) => {
       setAuthUser(user);
       if (user) {
-        try {
-          const licKey = await getUserLicenseKey();
-          if (licKey) {
-            localStorage.setItem('sukunaru_onboarding_completed', 'true');
-            setIsOnboardingCompleted(true);
-            performInitialCloudSync().catch(() => {});
-          }
-        } catch {}
+        await handleUserSessionRestoration(user);
       } else {
-        // User signed out — clear offline mode so sign-in screen shows
         localStorage.removeItem('sukunaru_offline_mode');
         setOfflineMode(false);
+        setSessionLocked(isSessionLocked());
       }
     });
     return cleanup;
-  }, []);
+  }, [handleUserSessionRestoration]);
 
   // App Startup Splash Screen state
   const [showSplash, setShowSplash] = useState<boolean>(true);
@@ -169,25 +234,6 @@ function MainAppContent() {
     });
   };
 
-  // Load initial settings and badge counters
-  const refreshStatsAndSettings = useCallback(async () => {
-    try {
-      const [settingsData, statsData] = await Promise.all([
-        api.getSettings(),
-        api.getStats(),
-      ]);
-      if (settingsData) {
-        setSettings(settingsData);
-      }
-      if (statsData) {
-        setActiveOrdersCount(statsData.activeOrdersCount || 0);
-        setLowStockCount(statsData.lowStockItemsCount || 0);
-      }
-    } catch (err) {
-      console.error('Failed to load initial settings/stats:', err);
-    }
-  }, []);
-
   useEffect(() => {
     const cleanupTheme = initThemeSystem();
     const cleanupSync = initSyncSystem();
@@ -211,6 +257,43 @@ function MainAppContent() {
   useEffect(() => {
     refreshStatsAndSettings();
   }, [refreshStatsAndSettings]);
+
+  // Data Recovery Action Handlers
+  const handleUseCloud = async () => {
+    const res = await applyCloudToLocalWithBackup();
+    if (res.success) {
+      showToast(res.message, 'success');
+      setIsRecoveryModalOpen(false);
+      await refreshStatsAndSettings();
+      handleNavigate('dashboard');
+    } else {
+      showToast(res.message, 'error');
+    }
+  };
+
+  const handleUseLocal = async () => {
+    const res = await applyLocalToCloudWithConfirmation();
+    if (res.success) {
+      showToast(res.message, 'success');
+      setIsRecoveryModalOpen(false);
+      await refreshStatsAndSettings();
+      handleNavigate('dashboard');
+    } else {
+      showToast(res.message, 'error');
+    }
+  };
+
+  const handleMergeData = async () => {
+    const res = await mergeLocalAndCloud();
+    if (res.success) {
+      showToast(res.message, 'success');
+      setIsRecoveryModalOpen(false);
+      await refreshStatsAndSettings();
+      handleNavigate('dashboard');
+    } else {
+      showToast(res.message, 'error');
+    }
+  };
 
   // Global Keyboard shortcuts:
   // - Ctrl+K / Cmd+K: Search modal
@@ -365,10 +448,26 @@ function MainAppContent() {
     );
   }
 
-  // ── 2. Auth Gate ────────────────────────────────────────────────────────────
+  // ── 2. Auth / Limited Mode Gate ────────────────────────────────────────────
   const needsAuth = authUser === null && !offlineMode;
 
   if (needsAuth) {
+    if (sessionLocked) {
+      return (
+        <LimitedModeView
+          onSignIn={() => {
+            setSessionLocked(false);
+            setAuthScreen('sign-in');
+          }}
+          onSignUp={() => {
+            setSessionLocked(false);
+            setAuthScreen('sign-up');
+          }}
+          onContinueOffline={handleContinueOffline}
+        />
+      );
+    }
+
     if (authScreen === 'sign-up') {
       return (
         <SignUpView
@@ -394,11 +493,7 @@ function MainAppContent() {
     return (
       <SignInView
         onSignInSuccess={() => {
-          // If user already had an existing license or business data, skip onboarding directly
-          if (localStorage.getItem('sukunaru_license_info')) {
-            localStorage.setItem('sukunaru_onboarding_completed', 'true');
-            setIsOnboardingCompleted(true);
-          }
+          // Handled via onAuthStateChange and handleUserSessionRestoration
         }}
         onNavigateToSignUp={() => setAuthScreen('sign-up')}
         onNavigateToForgotPassword={() => setAuthScreen('forgot-password')}
@@ -666,6 +761,17 @@ function MainAppContent() {
           handleNavigate(view, recordId);
         }}
       />
+
+      {/* Data Recovery Conflict Resolution Modal */}
+      {isRecoveryModalOpen && recoveryPresence && (
+        <DataRecoveryModal
+          isOpen={isRecoveryModalOpen}
+          presenceInfo={recoveryPresence}
+          onUseCloud={handleUseCloud}
+          onUseLocal={handleUseLocal}
+          onMerge={handleMergeData}
+        />
+      )}
     </div>
   );
 }

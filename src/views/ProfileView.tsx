@@ -15,7 +15,8 @@ import {
   CloudArrowUpIcon,
 } from '@heroicons/react/24/solid';
 import { ViewType, BusinessSettings } from '../types';
-import { signOut, getSession } from '../services/authService';
+import { signOut, getSession, lockBusinessSession } from '../services/authService';
+import { pauseRealtime } from '../services/syncManager';
 import { useToast } from '../components/Toast';
 
 interface ProfileViewProps {
@@ -75,12 +76,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     if (!window.confirm('Keluar dari akun BisnisUrang? Data lokal Anda tetap aman di perangkat ini.')) return;
     setIsSigningOut(true);
     try {
+      pauseRealtime();
+      lockBusinessSession();
       const result = await signOut();
       if (result.success) {
         showToast('Berhasil keluar dari akun.', 'success');
-        // Clear offline mode so sign-in screen shows
         localStorage.removeItem('sukunaru_offline_mode');
-        // Reload to re-trigger auth check in App.tsx
         window.location.reload();
       } else {
         showToast(result.message, 'error');
