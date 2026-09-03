@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 dist/
 build/
 coverage/
@@ -17,3 +17,8 @@ android/.idea/
 android/*.iml
 android/**/*.apk
 android/**/*.aab
+
+# Local SQLite temporary dumps & journal files
+data/sukunaru_pre_*.db
+data/*.db-shm
+data/*.db-wal
