@@ -872,9 +872,24 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
       {/* ── FLOATING MINIMALIST CART SUMMARY BUTTON (BOTTOM-RIGHT) ── */}
       {mobileTab === 'catalog' && cart.length > 0 && (
         <div
-          className="lg:hidden fixed right-3 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-auto"
+          className="lg:hidden fixed right-3 z-30 flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-auto"
           style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 8px))' }}
         >
+          {/* Compact Trash / Clear Cart Icon Button */}
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              clearCart();
+            }}
+            aria-label="Kosongkan Keranjang"
+            title="Kosongkan Keranjang"
+            className="w-11 h-11 rounded-full bg-[#25343F] hover:bg-[#1c2730] active:scale-95 text-rose-400 shadow-lg shadow-[#25343F]/30 flex items-center justify-center cursor-pointer border border-white/10 transition-all shrink-0"
+          >
+            <TrashIcon className="w-4 h-4 text-rose-400" />
+          </button>
+
+          {/* Cart Summary Pill Button */}
           <button
             type="button"
             onClick={() => setMobileTab('cart')}
