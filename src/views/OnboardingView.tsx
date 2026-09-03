@@ -1,1093 +1,368 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
-  SparklesIcon,
+  XMarkIcon,
+  ChevronRightIcon,
   ArrowRightIcon,
-  ArrowLeftIcon,
-  CheckCircleIcon,
-  ShieldCheckIcon,
-  BuildingStorefrontIcon,
-  ClipboardDocumentListIcon,
-  UsersIcon,
-  CubeIcon,
-  CalculatorIcon,
-  Square3Stack3DIcon,
-  WalletIcon,
-  ArrowTrendingUpIcon,
-  Cog6ToothIcon,
+  DevicePhoneMobileIcon,
+  ComputerDesktopIcon,
   CloudArrowUpIcon,
-  CameraIcon,
-  FolderIcon,
-  KeyIcon,
-  ExclamationTriangleIcon,
-  TrashIcon,
+  ShoppingCartIcon,
+  CurrencyDollarIcon,
+  ClipboardDocumentCheckIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, SparklesIcon } from '@heroicons/react/24/solid';
 import { BusinessSettings } from '../types';
-import { api } from '../services/api';
-import { useToast } from '../components/Toast';
-import { verifyLicenseInCloud, isSupabaseConfigured } from '../services/supabaseClient';
-import { performInitialCloudSync, subscribeToRealtimeChanges } from '../services/syncManager';
-import { claimLicenseForUser, getSession } from '../services/authService';
 import appLogo from '../assets/app-logo.png';
 
 interface OnboardingViewProps {
-  settings: BusinessSettings;
-  onUpdateSettings: (newSettings: BusinessSettings) => void;
+  settings?: BusinessSettings;
+  onUpdateSettings?: (newSettings: BusinessSettings) => void;
   onComplete: () => void;
 }
 
-type OnboardingStep = 'welcome' | 'intro' | 'features' | 'profile' | 'license' | 'permissions' | 'done';
-
-const MASTER_KEYS = [
-  'SKNR-PRO-2026-LIFETIME',
-  'SKNR-LIFETIME-PREMIUM',
-  'SKNR-STUDIO-UNLIMITED',
-  'SKNR-AKTIF-SELAMANYA',
-  'SUKUNARU-PRO-UNLIMITED',
-];
-
-const validateSerialKey = (key: string): boolean => {
-  const clean = key.trim().toUpperCase();
-  if (MASTER_KEYS.includes(clean)) return true;
-  const pattern = /^SKNR-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-  if (!pattern.test(clean)) return false;
-  const chars = clean.replace(/-/g, '');
-  let sum = 0;
-  for (let i = 0; i < chars.length; i++) {
-    sum += chars.charCodeAt(i);
-  }
-  return sum > 0;
-};
-
 export const OnboardingView: React.FC<OnboardingViewProps> = ({
-  settings,
-  onUpdateSettings,
   onComplete,
 }) => {
-  const { showToast } = useToast();
+  const [currentSlide, setCurrentSlide] = useState<number>(0);
+  const touchStartXRef = useRef<number>(0);
+  const touchEndXRef = useRef<number>(0);
 
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  const [featureSlide, setFeatureSlide] = useState<number>(1);
-
-  // Profile form state
-  const [profileForm, setProfileForm] = useState<BusinessSettings>({ ...settings });
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-
-  // License state
-  const [serialKeyInput, setSerialKeyInput] = useState('');
-  const [isActivating, setIsActivating] = useState(false);
-  const [licenseStatus, setLicenseStatus] = useState<'idle' | 'success' | 'error' | 'active'>(() => {
-    try {
-      const saved = localStorage.getItem('sukunaru_license_info');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.isActivated) return 'active';
-      }
-    } catch {}
-    return 'idle';
-  });
-  const [licenseErrorMessage, setLicenseErrorMessage] = useState('');
-
-  // ── Step Navigation Helpers ──────────────────────────────────────────────
-  const goToNextStep = () => {
-    switch (currentStep) {
-      case 'welcome':
-        setCurrentStep('intro');
-        break;
-      case 'intro':
-        setFeatureSlide(1);
-        setCurrentStep('features');
-        break;
-      case 'features':
-        if (featureSlide < 3) {
-          setFeatureSlide(prev => prev + 1);
-        } else {
-          setCurrentStep('profile');
-        }
-        break;
-      case 'profile':
-        setCurrentStep('license');
-        break;
-      case 'license':
-        setCurrentStep('permissions');
-        break;
-      case 'permissions':
-        setCurrentStep('done');
-        break;
-      case 'done':
-        onComplete();
-        break;
-    }
-  };
-
-  const goToPrevStep = () => {
-    switch (currentStep) {
-      case 'intro':
-        setCurrentStep('welcome');
-        break;
-      case 'features':
-        if (featureSlide > 1) {
-          setFeatureSlide(prev => prev - 1);
-        } else {
-          setCurrentStep('intro');
-        }
-        break;
-      case 'profile':
-        setFeatureSlide(3);
-        setCurrentStep('features');
-        break;
-      case 'license':
-        setCurrentStep('profile');
-        break;
-      case 'permissions':
-        setCurrentStep('license');
-        break;
-      case 'done':
-        setCurrentStep('permissions');
-        break;
-    }
-  };
-
-  // ── Profile Handlers ─────────────────────────────────────────────────────
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      showToast('Format gambar harus JPG, PNG, atau WebP.', 'error');
-      if (logoInputRef.current) logoInputRef.current.value = '';
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('Ukuran foto terlalu besar (Maksimal 10MB).', 'error');
-      if (logoInputRef.current) logoInputRef.current.value = '';
-      return;
-    }
-
-    try {
-      setIsUploadingLogo(true);
-      const res = await api.uploadBusinessLogo(file);
-      setProfileForm(prev => ({ ...prev, logoUrl: res.logoUrl }));
-      onUpdateSettings(res.settings);
-      showToast('Foto profil / logo bisnis berhasil diunggah!', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Gagal mengunggah foto profil', 'error');
-    } finally {
-      setIsUploadingLogo(false);
-      if (logoInputRef.current) logoInputRef.current.value = '';
-    }
-  };
-
-  const handleSaveProfileAndContinue = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profileForm.businessName.trim()) {
-      showToast('Nama Studio / Toko wajib diisi', 'error');
-      return;
-    }
-
-    try {
-      setIsSavingProfile(true);
-      const updated = await api.updateSettings(profileForm);
-      onUpdateSettings(updated);
-      showToast('Profil bisnis berhasil disimpan!', 'success');
-      setCurrentStep('license');
-    } catch (err: any) {
-      showToast(err.message || 'Gagal menyimpan profil bisnis', 'error');
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  // ── License Handlers ─────────────────────────────────────────────────────
-  const handleFormatSerialKey = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.toUpperCase();
-    let clean = val.replace(/[^A-Z0-9]/g, '');
-    if (clean.startsWith('SKNR')) {
-      clean = clean.slice(4);
-      let formatted = 'SKNR';
-      for (let i = 0; i < clean.length && i < 12; i++) {
-        if (i % 4 === 0) formatted += '-';
-        formatted += clean[i];
-      }
-      setSerialKeyInput(formatted);
-    } else {
-      setSerialKeyInput(val);
-    }
-  };
-
-  const handleActivateLicense = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanKey = serialKeyInput.trim().toUpperCase();
-    if (!cleanKey) {
-      showToast('Masukkan License Key terlebih dahulu', 'error');
-      return;
-    }
-
-    setIsActivating(true);
-    setLicenseErrorMessage('');
-
-    try {
-      let isValid = false;
-      let licenseTier = cleanKey.startsWith('SKNR-T') ? 'TRIAL_14_DAYS' : 'PRO_LIFETIME';
-      let cloudLic: any = null;
-
-      // 1. Check cloud if online & configured
-      if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
-        let devId = 'DEV-DEFAULT';
-        try {
-          devId = localStorage.getItem('sukunaru_device_id') || 'DEV-DEFAULT';
-        } catch {}
-
-        const cloudRes = await verifyLicenseInCloud(
-          cleanKey,
-          devId,
-          profileForm.businessName || settings.businessName || 'Owner'
-        );
-        if (cloudRes.valid) {
-          isValid = true;
-          cloudLic = cloudRes.license;
-          licenseTier = cloudLic?.tier || licenseTier;
-        } else {
-          setLicenseStatus('error');
-          setLicenseErrorMessage(cloudRes.message || 'License Key tidak valid. Periksa kembali key yang kamu masukkan.');
-          setIsActivating(false);
-          return;
-        }
-      } else {
-        isValid = validateSerialKey(cleanKey);
-      }
-
-      if (isValid) {
-        const now = new Date();
-        const isTrial = licenseTier === 'TRIAL_14_DAYS' || Boolean(cloudLic?.duration_days);
-        const expiresAt = isTrial
-          ? new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString()
-          : undefined;
-
-        const licenseData = {
-          isActivated: true,
-          licenseKey: cleanKey,
-          licenseType: licenseTier,
-          activatedAt: now.toISOString(),
-          expiresAt,
-          durationDays: isTrial ? 14 : null,
-          registeredTo: profileForm.businessName || settings.businessName || 'BisnisUrang User',
-        };
-
-        try {
-          localStorage.setItem('sukunaru_license_info', JSON.stringify(licenseData));
-        } catch {}
-
-        // Auto-claim license for the currently logged-in auth user
-        try {
-          const session = await getSession();
-          if (session?.user) {
-            await claimLicenseForUser(cleanKey);
-          }
-        } catch (_claimErr) {
-          // Non-fatal: license still works, just not linked to account
-        }
-
-        setLicenseStatus('success');
-        showToast('✓ License Key berhasil diaktifkan.', 'success');
-
-        // Perform initial cloud sync BEFORE proceeding to app
-        // This pulls any existing data for this license key from cloud
-        if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
-          try {
-            showToast('Memeriksa data cloud...', 'info');
-            const initSync = await performInitialCloudSync();
-            if (initSync.hasCloudData && initSync.pulled > 0) {
-              showToast(`✓ ${initSync.pulled} data bisnis ditemukan dan dipulihkan dari cloud!`, 'success');
-            }
-            subscribeToRealtimeChanges(true);
-          } catch {
-            // Non-fatal: proceed to app even if initial sync fails
-          }
-        }
-
-        setTimeout(() => {
-          setCurrentStep('permissions');
-        }, 800);
-      } else {
-        setLicenseStatus('error');
-        setLicenseErrorMessage('License Key tidak valid. Periksa kembali key yang kamu masukkan.');
-      }
-    } catch {
-      setLicenseStatus('error');
-      setLicenseErrorMessage('Verifikasi License Key membutuhkan koneksi internet.');
-    } finally {
-      setIsActivating(false);
-    }
-  };
-
-  // Progress steps calculation
-  const getStepProgressIndex = () => {
-    switch (currentStep) {
-      case 'welcome':
-        return 0;
-      case 'intro':
-        return 1;
-      case 'features':
-        return 2;
-      case 'profile':
-        return 3;
-      case 'license':
-        return 4;
-      case 'permissions':
-        return 5;
-      case 'done':
-        return 6;
-      default:
-        return 0;
-    }
-  };
-
-  const totalSteps = 7;
-  const currentStepIdx = getStepProgressIndex();
-
-  return (
-    <div
-      className="min-h-screen bg-[#EAEFEF] text-[#25343F] flex flex-col justify-between p-4 sm:p-6 select-none overflow-y-auto font-sans"
-      style={{
-        paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)',
-      }}
-    >
-      {/* ── TOP HEADER / BRANDING ── */}
-      <div className="max-w-xl w-full mx-auto flex items-center justify-between pt-2 pb-4">
-        <div className="flex items-center gap-2.5">
-          <img
-            src={profileForm.logoUrl || appLogo}
-            alt="BisnisUrang Logo"
-            className="w-9 h-9 rounded-xl object-contain bg-white shadow-xs border border-[#BFC9D1]/30 p-1"
-          />
-          <div>
-            <span className="font-black text-sm text-[#25343F] tracking-tight block leading-tight">
-              BisnisUrang
-            </span>
-            <span className="text-[10px] text-[#898989] font-semibold block leading-tight">
-              Kelola bisnis, jadi lebih mudah.
+  const slides = [
+    {
+      id: 'slide-pos-products',
+      headline: 'Kelola Bisnis, Jadi Lebih Mudah.',
+      description: 'Kelola produk, pesanan, pelanggan, dan keuangan bisnis dari satu tempat.',
+      badge: 'POS & KASIR TERPADU',
+      renderPreview: () => (
+        <div className="w-full max-w-sm mx-auto bg-white dark:bg-[#151D2A] rounded-2xl border border-[#BFC9D1]/40 dark:border-slate-800 shadow-md p-4 transition-all">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between pb-3 border-b border-[#BFC9D1]/20 dark:border-slate-800/80">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#FF9B51]/15 text-[#FF6A00] flex items-center justify-center">
+                <ShoppingCartIcon className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[11px] font-bold text-[#25343F] dark:text-white">Kasir Penjualan</div>
+                <div className="text-[9px] text-[#898989] dark:text-slate-400">Order #ORD-2026-001</div>
+              </div>
+            </div>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+              POS Aktif
             </span>
           </div>
+
+          {/* Product Items Mini List */}
+          <div className="py-2.5 space-y-2">
+            <div className="flex items-center justify-between p-2 rounded-xl bg-[#EAEFEF]/60 dark:bg-slate-900/60 border border-[#BFC9D1]/20 dark:border-slate-800 text-xs">
+              <div className="min-w-0">
+                <div className="font-semibold text-[#25343F] dark:text-slate-200 truncate text-[11px]">
+                  Cetak Banner Spanduk (2x1m)
+                </div>
+                <div className="text-[9px] text-[#898989] dark:text-slate-400">2 pcs × Rp 45.000</div>
+              </div>
+              <div className="font-bold text-[#25343F] dark:text-white text-[11px]">Rp 90.000</div>
+            </div>
+
+            <div className="flex items-center justify-between p-2 rounded-xl bg-[#EAEFEF]/60 dark:bg-slate-900/60 border border-[#BFC9D1]/20 dark:border-slate-800 text-xs">
+              <div className="min-w-0">
+                <div className="font-semibold text-[#25343F] dark:text-slate-200 truncate text-[11px]">
+                  Stiker Vinyl Die Cut A3+
+                </div>
+                <div className="text-[9px] text-[#898989] dark:text-slate-400">5 lembar × Rp 15.000</div>
+              </div>
+              <div className="font-bold text-[#25343F] dark:text-white text-[11px]">Rp 75.000</div>
+            </div>
+          </div>
+
+          {/* Cart Summary Bar */}
+          <div className="pt-2.5 border-t border-[#BFC9D1]/20 dark:border-slate-800 flex items-center justify-between">
+            <span className="text-[10px] font-medium text-[#898989] dark:text-slate-400">Total Pembayaran</span>
+            <span className="text-sm font-black text-[#FF6A00]">Rp 165.000</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'slide-data-orders',
+      headline: 'Semua Data Bisnis, Lebih Teratur.',
+      description: 'Pantau transaksi, stok, pelanggan, pesanan, dan arus kas dengan lebih praktis.',
+      badge: 'LAPORAN & ARUS KAS',
+      renderPreview: () => (
+        <div className="w-full max-w-sm mx-auto bg-white dark:bg-[#151D2A] rounded-2xl border border-[#BFC9D1]/40 dark:border-slate-800 shadow-md p-4 transition-all">
+          {/* KPI Mini Grid */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="p-2.5 rounded-xl bg-[#EAEFEF]/70 dark:bg-slate-900/70 border border-[#BFC9D1]/25 dark:border-slate-800">
+              <div className="text-[9px] font-semibold text-[#898989] dark:text-slate-400 uppercase tracking-wider">
+                Omset Hari Ini
+              </div>
+              <div className="text-sm font-black text-[#25343F] dark:text-white mt-0.5">
+                Rp 2.450.000
+              </div>
+              <div className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-0.5">
+                <span>↑ 18%</span>
+                <span className="text-[#898989] dark:text-slate-500 font-normal">dari kemarin</span>
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-[#EAEFEF]/70 dark:bg-slate-900/70 border border-[#BFC9D1]/25 dark:border-slate-800">
+              <div className="text-[9px] font-semibold text-[#898989] dark:text-slate-400 uppercase tracking-wider">
+                Laba Bersih
+              </div>
+              <div className="text-sm font-black text-[#FF6A00] mt-0.5">
+                Rp 1.120.000
+              </div>
+              <div className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                Margin 45.7%
+              </div>
+            </div>
+          </div>
+
+          {/* Mini Status Pipeline */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-semibold text-[#898989] dark:text-slate-400 px-1">
+              <span>Status Pesanan</span>
+              <span className="text-[#FF6A00]">12 Aktif</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 text-center">
+              <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">
+                <div className="text-xs font-black text-amber-700 dark:text-amber-300">4</div>
+                <div className="text-[8px] font-medium text-amber-600 dark:text-amber-400">Baru</div>
+              </div>
+              <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60">
+                <div className="text-xs font-black text-blue-700 dark:text-blue-300">6</div>
+                <div className="text-[8px] font-medium text-blue-600 dark:text-blue-400">Diproses</div>
+              </div>
+              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60">
+                <div className="text-xs font-black text-emerald-700 dark:text-emerald-300">2</div>
+                <div className="text-[8px] font-medium text-emerald-600 dark:text-emerald-400">Siap Ambil</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'slide-devices-cloud',
+      headline: 'Gunakan di Lebih dari Satu Perangkat.',
+      description: 'Hubungkan perangkatmu dan akses data bisnis yang sama dengan sinkronisasi cloud.',
+      badge: 'REALTIME CLOUD SYNC',
+      renderPreview: () => (
+        <div className="w-full max-w-sm mx-auto bg-white dark:bg-[#151D2A] rounded-2xl border border-[#BFC9D1]/40 dark:border-slate-800 shadow-md p-4 transition-all">
+          {/* Cloud Sync Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-[#BFC9D1]/20 dark:border-slate-800/80">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#FF6A00]/10 text-[#FF6A00] flex items-center justify-center">
+                <CloudArrowUpIcon className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[11px] font-bold text-[#25343F] dark:text-white">Cloud Database</div>
+                <div className="text-[9px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Terhubung &amp; Sinkron
+                </div>
+              </div>
+            </div>
+            <ArrowPathIcon className="w-3.5 h-3.5 text-[#898989] dark:text-slate-400" />
+          </div>
+
+          {/* Devices Grid */}
+          <div className="py-2.5 space-y-2">
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#EAEFEF]/60 dark:bg-slate-900/60 border border-[#BFC9D1]/20 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-[#BFC9D1]/30 dark:border-slate-700 flex items-center justify-center text-[#25343F] dark:text-white">
+                  <ComputerDesktopIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold text-[#25343F] dark:text-white">PC Kasir Utama</div>
+                  <div className="text-[9px] text-[#898989] dark:text-slate-400">Desktop · Windows</div>
+                </div>
+              </div>
+              <CheckCircleIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#EAEFEF]/60 dark:bg-slate-900/60 border border-[#BFC9D1]/20 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-[#BFC9D1]/30 dark:border-slate-700 flex items-center justify-center text-[#25343F] dark:text-white">
+                  <DevicePhoneMobileIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold text-[#25343F] dark:text-white">HP Owner / Kasir 2</div>
+                  <div className="text-[9px] text-[#898989] dark:text-slate-400">Mobile · Android</div>
+                </div>
+              </div>
+              <CheckCircleIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+            </div>
+          </div>
+
+          {/* Security footnote */}
+          <div className="pt-2 text-center text-[9px] text-[#898989] dark:text-slate-400">
+            Enkripsi database multi-perangkat via Supabase Cloud
+          </div>
+        </div>
+      ),
+    },
+  ];
+
+  const handleFinish = () => {
+    try {
+      localStorage.setItem('sukunaru_onboarding_completed', 'true');
+    } catch {}
+    onComplete();
+  };
+
+  const handleNext = () => {
+    if (currentSlide < slides.length - 1) {
+      setCurrentSlide(prev => prev + 1);
+    } else {
+      handleFinish();
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(prev => prev - 1);
+    }
+  };
+
+  // Touch handlers for natural horizontal swipe
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEndXRef.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    const diffX = touchStartXRef.current - touchEndXRef.current;
+    if (Math.abs(diffX) > 45) {
+      if (diffX > 0) {
+        // swipe left -> next
+        handleNext();
+      } else {
+        // swipe right -> prev
+        handlePrev();
+      }
+    }
+  };
+
+  // Keyboard arrow listener
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === 'ArrowLeft') handlePrev();
+      if (e.key === 'Escape') handleFinish();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [currentSlide]);
+
+  const activeSlide = slides[currentSlide];
+
+  return (
+    <div className="min-h-screen bg-[#EAEFEF] dark:bg-[#0B0F17] flex flex-col justify-between px-4 py-6 sm:py-8 sm:px-6 select-none transition-colors">
+      
+      {/* Top Navigation Bar: Brand + Skip & Close */}
+      <div className="max-w-md w-full mx-auto flex items-center justify-between pt-1">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl overflow-hidden border border-[#BFC9D1]/30 dark:border-slate-800 bg-white dark:bg-slate-800 shrink-0">
+            <img src={appLogo} alt="BisnisUrang" className="w-full h-full object-cover" />
+          </div>
+          <span className="font-bold text-sm text-[#25343F] dark:text-white tracking-tight">
+            BisnisUrang
+          </span>
         </div>
 
-        {/* Step Indicator dots */}
-        <div className="flex items-center gap-1.5">
-          {Array.from({ length: totalSteps }).map((_, idx) => (
-            <span
+        {/* Skip and Close Button */}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleFinish}
+            className="text-xs font-semibold text-[#898989] hover:text-[#25343F] dark:hover:text-white px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+          >
+            Lewati
+          </button>
+          <button
+            type="button"
+            onClick={handleFinish}
+            aria-label="Tutup onboarding dan langsung masuk Dashboard"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#898989] hover:text-[#25343F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Slide Content (Horizontal Swipe Area) */}
+      <div
+        className="max-w-md w-full mx-auto my-auto py-4 flex flex-col items-center touch-pan-y"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Category Pill Tag */}
+        <div className="mb-4">
+          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#FF9B51]/15 text-[#FF6A00] border border-[#FF9B51]/30">
+            {activeSlide.badge}
+          </span>
+        </div>
+
+        {/* Visual / UI Preview */}
+        <div className="w-full mb-6 transition-all duration-300 transform">
+          {activeSlide.renderPreview()}
+        </div>
+
+        {/* Headline & Description */}
+        <div className="text-center px-2 space-y-2 max-w-sm">
+          <h2 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white tracking-tight leading-snug">
+            {activeSlide.headline}
+          </h2>
+          <p className="text-xs sm:text-sm text-[#898989] dark:text-slate-400 leading-relaxed font-medium">
+            {activeSlide.description}
+          </p>
+        </div>
+      </div>
+
+      {/* Bottom Controls: Indicators + Action Button */}
+      <div className="max-w-md w-full mx-auto space-y-5 pb-2">
+        {/* Pagination Dots (● ○ ○) */}
+        <div className="flex items-center justify-center gap-2">
+          {slides.map((_, idx) => (
+            <button
               key={idx}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                idx === currentStepIdx
-                  ? 'w-6 bg-[#25343F]'
-                  : idx < currentStepIdx
-                  ? 'w-2 bg-[#10B981]'
-                  : 'w-2 bg-[#BFC9D1]/60'
+              type="button"
+              onClick={() => setCurrentSlide(idx)}
+              aria-label={`Pindah ke slide ${idx + 1}`}
+              className={`transition-all duration-300 rounded-full cursor-pointer ${
+                idx === currentSlide
+                  ? 'w-7 h-2 bg-[#FF6A00]'
+                  : 'w-2 h-2 bg-[#BFC9D1]/60 dark:bg-slate-700 hover:bg-[#898989]'
               }`}
             />
           ))}
         </div>
+
+        {/* Action Button */}
+        <button
+          type="button"
+          onClick={handleNext}
+          className="w-full py-3.5 px-5 rounded-2xl bg-[#FF6A00] hover:bg-[#e65c00] active:scale-[0.99] text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+        >
+          {currentSlide === slides.length - 1 ? (
+            <>
+              <SparklesIcon className="w-4 h-4" />
+              <span>Mulai Sekarang</span>
+            </>
+          ) : (
+            <>
+              <span>Lanjut</span>
+              <ChevronRightIcon className="w-4 h-4 stroke-[2.5]" />
+            </>
+          )}
+        </button>
       </div>
 
-      {/* ── MAIN CONTENT CONTAINER ── */}
-      <div className="max-w-xl w-full mx-auto flex-1 flex flex-col justify-center my-auto py-2">
-        {/* ============================================================ */}
-        {/* 1. STEP: WELCOME                                             */}
-        {/* ============================================================ */}
-        {currentStep === 'welcome' && (
-          <div className="bg-white rounded-3xl border border-[#BFC9D1]/30 shadow-lg p-6 sm:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-3xl bg-gradient-to-br from-[#25343F] to-[#1B2730] p-4 flex items-center justify-center shadow-lg shadow-[#25343F]/15">
-              <img src={appLogo} alt="BisnisUrang" className="w-full h-full object-contain filter drop-shadow" />
-            </div>
-
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF9B51]/15 text-[#D97706] text-xs font-bold">
-                <SparklesIcon className="w-3.5 h-3.5" />
-                <span>Kelola bisnis, jadi lebih mudah.</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#25343F] tracking-tight">
-                Selamat datang di BisnisUrang
-              </h1>
-              <p className="text-xs sm:text-sm text-[#898989] font-medium max-w-md mx-auto leading-relaxed">
-                Satu aplikasi untuk membantu mengelola operasional bisnis sehari-hari.
-              </p>
-            </div>
-
-            <div className="pt-4 space-y-2.5">
-              <button
-                type="button"
-                onClick={goToNextStep}
-                className="w-full py-3.5 bg-[#25343F] hover:bg-[#1B2730] text-white font-black text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
-              >
-                <span>Mulai</span>
-                <ArrowRightIcon className="w-4 h-4 stroke-[2.5]" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setCurrentStep('intro')}
-                className="w-full py-2.5 text-xs font-bold text-[#898989] hover:text-[#25343F] transition-colors cursor-pointer"
-              >
-                Lewati
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* 2. STEP: PENGENALAN BISNISURANG                              */}
-        {/* ============================================================ */}
-        {currentStep === 'intro' && (
-          <div className="bg-white rounded-3xl border border-[#BFC9D1]/30 shadow-lg p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="text-center space-y-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#FF9B51]">
-                Tentang BisnisUrang
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-[#25343F]">
-                Semua kebutuhan bisnis dalam satu tempat.
-              </h2>
-              <p className="text-xs sm:text-sm text-[#898989] leading-relaxed">
-                BisnisUrang membantu kamu mengelola transaksi, produk, pelanggan, keuangan, dan operasional bisnis dengan lebih sederhana.
-              </p>
-            </div>
-
-            {/* 3 Value Pillars */}
-            <div className="space-y-3 pt-1">
-              <div className="p-3.5 rounded-2xl bg-[#EAEFEF]/60 border border-[#BFC9D1]/25 flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#10B981]/15 text-[#059669] flex items-center justify-center shrink-0">
-                  <BuildingStorefrontIcon className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-xs text-[#25343F]">Operasional Praktis &amp; Kasir POS</h4>
-                  <p className="text-[11px] text-[#898989] mt-0.5">
-                    Catat penjualan kasir, scan barcode, pantau pesanan kustom, dan kelola pelanggan.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-[#EAEFEF]/60 border border-[#BFC9D1]/25 flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#FF9B51]/15 text-[#D97706] flex items-center justify-center shrink-0">
-                  <WalletIcon className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-xs text-[#25343F]">Keuangan &amp; HPP Otomatis</h4>
-                  <p className="text-[11px] text-[#898989] mt-0.5">
-                    Hitung HPP produk akurat, catat mutasi kas masuk/keluar, dan laporan perkembangan usaha.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-[#EAEFEF]/60 border border-[#BFC9D1]/25 flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#25343F]/10 text-[#25343F] flex items-center justify-center shrink-0">
-                  <CloudArrowUpIcon className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-xs text-[#25343F]">100% Offline-First &amp; Cloud Backup</h4>
-                  <p className="text-[11px] text-[#898989] mt-0.5">
-                    Aplikasi tetap berfungsi lancar tanpa koneksi internet, dengan opsi sinkronisasi cloud aman.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#BFC9D1]/20 gap-3">
-              <button
-                type="button"
-                onClick={goToPrevStep}
-                className="px-4 py-2.5 rounded-xl border border-[#BFC9D1]/30 text-xs font-bold text-[#898989] hover:bg-[#EAEFEF] cursor-pointer"
-              >
-                Kembali
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('features')}
-                  className="px-3 py-2.5 text-xs font-bold text-[#898989] hover:text-[#25343F] cursor-pointer"
-                >
-                  Lewati
-                </button>
-                <button
-                  type="button"
-                  onClick={goToNextStep}
-                  className="px-5 py-2.5 bg-[#25343F] hover:bg-[#1B2730] text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
-                >
-                  <span>Berikutnya</span>
-                  <ArrowRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* 3. STEP: PENGENALAN FITUR (3 SLIDES)                         */}
-        {/* ============================================================ */}
-        {currentStep === 'features' && (
-          <div className="bg-white rounded-3xl border border-[#BFC9D1]/30 shadow-lg p-6 sm:p-8 space-y-5 animate-in fade-in zoom-in-95 duration-200">
-            {/* Header with slide counter */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#BFC9D1]/20">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF9B51]">
-                  Fitur BisnisUrang
-                </span>
-                <h3 className="text-base sm:text-lg font-black text-[#25343F]">
-                  {featureSlide === 1 && 'Kelola Operasional'}
-                  {featureSlide === 2 && 'Kelola Keuangan'}
-                  {featureSlide === 3 && 'Atur Bisnis'}
-                </h3>
-              </div>
-              <div className="px-2.5 py-1 rounded-full bg-[#EAEFEF] text-[11px] font-mono font-bold text-[#25343F]">
-                {featureSlide} / 3
-              </div>
-            </div>
-
-            {/* Slide Content */}
-            <div className="min-h-[260px] flex flex-col justify-center space-y-2.5">
-              {featureSlide === 1 && (
-                <>
-                  <div className="p-3 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#10B981]/15 text-[#059669] flex items-center justify-center shrink-0">
-                      <BuildingStorefrontIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">KASIR &amp; SCAN BARCODE</div>
-                      <div className="text-[11px] text-[#898989]">Kelola transaksi penjualan dengan cepat. Mendukung scan barcode produk.</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#FF9B51]/15 text-[#D97706] flex items-center justify-center shrink-0">
-                      <ClipboardDocumentListIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">PESANAN</div>
-                      <div className="text-[11px] text-[#898989]">Kelola dan pantau pesanan kustom &amp; nota SPK dengan lebih mudah.</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#8B5CF6]/15 text-[#7C3AED] flex items-center justify-center shrink-0">
-                      <UsersIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">PELANGGAN</div>
-                      <div className="text-[11px] text-[#898989]">Simpan riwayat kontak pelanggan dan pesanan loyalitas.</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#0B90FE]/15 text-[#0284C7] flex items-center justify-center shrink-0">
-                      <CubeIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">PRODUK</div>
-                      <div className="text-[11px] text-[#898989]">Kelola katalog produk, harga jual, stok, dan barcode barang.</div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {featureSlide === 2 && (
-                <>
-                  <div className="p-3 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#F59E0B]/15 text-[#D97706] flex items-center justify-center shrink-0">
-                      <CalculatorIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">HITUNG HPP</div>
-                      <div className="text-[11px] text-[#898989]">Bantu menghitung harga pokok produksi (BOM, bahan, tenaga, mesin).</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#6366F1]/15 text-[#4F46E5] flex items-center justify-center shrink-0">
-                      <Square3Stack3DIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">BAHAN BAKU</div>
-                      <div className="text-[11px] text-[#898989]">Kelola bahan baku yang digunakan dalam bisnis dan supplier.</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#0D9488]/15 text-[#0F766E] flex items-center justify-center shrink-0">
-                      <WalletIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">ARUS KAS</div>
-                      <div className="text-[11px] text-[#898989]">Pantau pemasukan, pengeluaran operasional, dan saldo kas usaha.</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#F43F5E]/15 text-[#E11D48] flex items-center justify-center shrink-0">
-                      <ArrowTrendingUpIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">LAPORAN &amp; ANALISIS</div>
-                      <div className="text-[11px] text-[#898989]">Lihat ringkasan omzet, laba rugi, dan tren perkembangan bisnis.</div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {featureSlide === 3 && (
-                <>
-                  <div className="p-3.5 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#25343F]/10 text-[#25343F] flex items-center justify-center shrink-0">
-                      <Cog6ToothIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">PENGATURAN &amp; TEMA</div>
-                      <div className="text-[11px] text-[#898989]">Atur format nota struk, faktur invoice, pajak, diskon, dan tema aplikasi.</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#FF9B51]/15 text-[#D97706] flex items-center justify-center shrink-0">
-                      <BuildingStorefrontIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">PROFIL BISNIS</div>
-                      <div className="text-[11px] text-[#898989]">Identitas usaha yang akan otomatis tampil pada nota kasir dan dokumen.</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-2xl bg-[#EAEFEF]/50 border border-[#BFC9D1]/20 flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#10B981]/15 text-[#059669] flex items-center justify-center shrink-0">
-                      <CloudArrowUpIcon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-[#25343F]">CADANGAN &amp; SINKRONISASI</div>
-                      <div className="text-[11px] text-[#898989]">Backup database lokal &amp; sinkronisasi multi-device dengan Supabase.</div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#BFC9D1]/20 gap-3">
-              <button
-                type="button"
-                onClick={goToPrevStep}
-                className="px-4 py-2.5 rounded-xl border border-[#BFC9D1]/30 text-xs font-bold text-[#898989] hover:bg-[#EAEFEF] cursor-pointer"
-              >
-                Kembali
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('profile')}
-                  className="px-3 py-2.5 text-xs font-bold text-[#898989] hover:text-[#25343F] cursor-pointer"
-                >
-                  Lewati
-                </button>
-                <button
-                  type="button"
-                  onClick={goToNextStep}
-                  className="px-5 py-2.5 bg-[#25343F] hover:bg-[#1B2730] text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
-                >
-                  <span>{featureSlide === 3 ? 'Setup Profil' : 'Berikutnya'}</span>
-                  <ArrowRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* 4. STEP: SETUP PROFIL BISNIS                                */}
-        {/* ============================================================ */}
-        {currentStep === 'profile' && (
-          <div className="bg-white rounded-3xl border border-[#BFC9D1]/30 shadow-lg p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
-            <div className="pb-2 border-b border-[#BFC9D1]/20">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF9B51]">
-                Langkah 1 dari 2
-              </span>
-              <h3 className="text-lg font-black text-[#25343F]">
-                Setup Profil Bisnis
-              </h3>
-              <p className="text-xs text-[#898989] mt-0.5">
-                Identitas ini akan tampil pada nota kasir, invoice pesanan, dan laporan tokomu.
-              </p>
-            </div>
-
-            <form onSubmit={handleSaveProfileAndContinue} className="space-y-3.5 text-xs">
-              {/* Logo / Foto Profil Upload */}
-              <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-[#F8FAFC] border border-[#BFC9D1]/25">
-                <div className="w-14 h-14 rounded-2xl bg-white border border-[#BFC9D1]/40 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
-                  {profileForm.logoUrl ? (
-                    <img src={profileForm.logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                  ) : (
-                    <BuildingStorefrontIcon className="w-6 h-6 text-[#898989]" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-[#25343F]">Foto Profil / Logo Toko</div>
-                  <div className="text-[10px] text-[#898989] mt-0.5">Format JPG/PNG/WebP, maks 10MB</div>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/png, image/jpeg, image/webp"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => logoInputRef.current?.click()}
-                      disabled={isUploadingLogo}
-                      className="px-2.5 py-1 bg-white border border-[#BFC9D1]/40 hover:bg-[#EAEFEF] text-[#25343F] font-bold rounded-lg text-[11px] shadow-2xs transition-colors cursor-pointer"
-                    >
-                      {isUploadingLogo ? 'Mengunggah...' : 'Unggah Foto'}
-                    </button>
-                    {profileForm.logoUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setProfileForm(prev => ({ ...prev, logoUrl: '' }))}
-                        className="p-1 text-[#E11D48] hover:bg-[#E11D48]/10 rounded-lg transition-colors"
-                        title="Hapus Logo"
-                      >
-                        <TrashIcon className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Nama Toko * (Satu-satunya yang wajib) */}
-              <div>
-                <label className="block font-bold text-[#25343F] mb-1">
-                  Nama Studio / Toko <span className="text-[#E11D48]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={profileForm.businessName}
-                  onChange={e => setProfileForm(prev => ({ ...prev, businessName: e.target.value }))}
-                  placeholder="Contoh: Toko Bisnis Anda"
-                  className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-bold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none"
-                />
-              </div>
-
-              {/* Jenis Usaha */}
-              <div>
-                <label className="block font-bold text-[#25343F] mb-1">
-                  Jenis Usaha
-                </label>
-                <select
-                  value={profileForm.businessType || 'Percetakan & Digital Print'}
-                  onChange={e => setProfileForm(prev => ({ ...prev, businessType: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-semibold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none cursor-pointer"
-                >
-                  <option value="Percetakan & Digital Print">Percetakan &amp; Digital Printing</option>
-                  <option value="Fotografi & Studio">Fotografi &amp; Studio Foto</option>
-                  <option value="Retail & Toko">Retail, Minimarket &amp; Toko Kelontong</option>
-                  <option value="Jasa & Layanan Kreatif">Jasa &amp; Layanan Kreatif / Desain</option>
-                  <option value="Kuliner & F&B">Kuliner, Kafe &amp; F&amp;B</option>
-                  <option value="Fashion & Pakaian">Fashion, Butik &amp; Konveksi</option>
-                  <option value="Bengkel & Servis">Bengkel &amp; Jasa Servis</option>
-                  <option value="UMKM Umum">UMKM Umum &amp; Lainnya</option>
-                </select>
-              </div>
-
-              {/* Slogan */}
-              <div>
-                <label className="block font-bold text-[#25343F] mb-1">
-                  Slogan / Tagline
-                </label>
-                <input
-                  type="text"
-                  value={profileForm.tagline || ''}
-                  onChange={e => setProfileForm(prev => ({ ...prev, tagline: e.target.value }))}
-                  placeholder="Contoh: Solusi Usaha & Layanan Kreatif"
-                  className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-semibold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none"
-                />
-              </div>
-
-              {/* No Telepon & WhatsApp */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-[#25343F] mb-1">
-                    No. Telepon Toko
-                  </label>
-                  <input
-                    type="text"
-                    value={profileForm.phone || ''}
-                    onChange={e => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="0812-3456-7890"
-                    className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-semibold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-[#25343F] mb-1">
-                    WhatsApp Customer Service
-                  </label>
-                  <input
-                    type="text"
-                    value={profileForm.whatsapp || ''}
-                    onChange={e => setProfileForm(prev => ({ ...prev, whatsapp: e.target.value }))}
-                    placeholder="0895-1920-3345"
-                    className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-semibold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block font-bold text-[#25343F] mb-1">
-                  Email Bisnis
-                </label>
-                <input
-                  type="email"
-                  value={profileForm.email || ''}
-                  onChange={e => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="bisnisanda@gmail.com"
-                  className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-semibold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none"
-                />
-              </div>
-
-              {/* Alamat */}
-              <div>
-                <label className="block font-bold text-[#25343F] mb-1">
-                  Alamat Lengkap Workshop / Toko
-                </label>
-                <textarea
-                  rows={2}
-                  value={profileForm.address || ''}
-                  onChange={e => setProfileForm(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="Jl. Raya Utama No. 88, Indonesia"
-                  className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-semibold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none resize-none"
-                />
-              </div>
-
-              <div className="text-[10px] text-[#898989] italic">
-                * Rekening bank dan detail lainnya dapat dilengkapi nanti di menu Pengaturan.
-              </div>
-
-              {/* Bottom Actions */}
-              <div className="flex items-center justify-between pt-3 border-t border-[#BFC9D1]/20 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('license')}
-                  className="px-4 py-2.5 rounded-xl border border-[#BFC9D1]/30 text-xs font-bold text-[#898989] hover:bg-[#EAEFEF] cursor-pointer"
-                >
-                  Lewati
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={isSavingProfile}
-                  className="px-5 py-2.5 bg-[#25343F] hover:bg-[#1B2730] text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
-                >
-                  <span>{isSavingProfile ? 'Menyimpan...' : 'Simpan & Lanjut'}</span>
-                  <ArrowRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* 5. STEP: AKTIVASI LICENSE KEY (OPTIONAL & NON-BLOCKING)       */}
-        {/* ============================================================ */}
-        {currentStep === 'license' && (
-          <div className="bg-white rounded-3xl border border-[#BFC9D1]/30 shadow-lg p-6 sm:p-8 space-y-5 animate-in fade-in zoom-in-95 duration-200">
-            <div className="pb-2 border-b border-[#BFC9D1]/20 text-center space-y-1">
-              <div className="w-12 h-12 rounded-2xl bg-[#10B981]/15 text-[#059669] flex items-center justify-center mx-auto mb-2">
-                <KeyIcon className="w-6 h-6" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981]">
-                Aktivasi Lisensi (Opsional)
-              </span>
-              <h3 className="text-xl font-black text-[#25343F]">
-                Sudah punya License Key?
-              </h3>
-              <p className="text-xs text-[#898989]">
-                Masukkan License Key untuk mengaktifkan aplikasi secara penuh.
-              </p>
-            </div>
-
-            {licenseStatus === 'active' || licenseStatus === 'success' ? (
-              <div className="p-4 rounded-2xl bg-[#10B981]/10 border border-[#10B981]/30 text-center space-y-2">
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#059669]">
-                  <CheckCircleIcon className="w-4 h-4" />
-                  <span>✓ License Key Aktif</span>
-                </div>
-                <p className="text-xs text-[#25343F]">
-                  Aplikasi telah teraktivasi dan seluruh fitur siap digunakan.
-                </p>
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={goToNextStep}
-                    className="w-full py-3 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer active:scale-95"
-                  >
-                    Lanjutkan ke Izin Aplikasi →
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleActivateLicense} className="space-y-4">
-                <div>
-                  <label className="block font-bold text-[#25343F] text-xs mb-1">
-                    Masukkan License Key
-                  </label>
-                  <input
-                    type="text"
-                    value={serialKeyInput}
-                    onChange={handleFormatSerialKey}
-                    placeholder="SKNR-XXXX-XXXX-XXXX"
-                    className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#BFC9D1]/40 rounded-xl text-sm font-mono font-bold text-[#25343F] uppercase tracking-wider focus:bg-white focus:border-[#10B981] outline-none text-center"
-                  />
-                  {licenseStatus === 'error' && (
-                    <div className="flex items-center gap-1.5 mt-2 text-[11px] text-[#E11D48] font-bold">
-                      <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0" />
-                      <span>{licenseErrorMessage}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2 pt-1">
-                  <button
-                    type="submit"
-                    disabled={isActivating || !serialKeyInput.trim()}
-                    className="w-full py-3 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
-                  >
-                    <ShieldCheckIcon className="w-4 h-4 stroke-[2.5]" />
-                    <span>{isActivating ? 'Memverifikasi...' : 'Aktifkan Sekarang'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={goToNextStep}
-                    className="w-full py-2.5 text-xs font-bold text-[#898989] hover:text-[#25343F] cursor-pointer"
-                  >
-                    Lewati untuk Sekarang
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <div className="text-[10px] text-[#898989] text-center">
-              Kamu tetap dapat mengaktivasi License Key kapan saja melalui menu Profil → Aktivasi.
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* 6. STEP: INFORMASI PERMISSION                                */}
-        {/* ============================================================ */}
-        {currentStep === 'permissions' && (
-          <div className="bg-white rounded-3xl border border-[#BFC9D1]/30 shadow-lg p-6 sm:p-8 space-y-5 animate-in fade-in zoom-in-95 duration-200">
-            <div className="pb-2 border-b border-[#BFC9D1]/20 text-center space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#0B90FE]">
-                Izin Perangkat
-              </span>
-              <h3 className="text-xl font-black text-[#25343F]">
-                Beberapa izin diperlukan
-              </h3>
-              <p className="text-xs text-[#898989]">
-                Izin hanya akan diminta pada saat kamu menggunakan fitur terkait.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-2xl bg-[#EAEFEF]/60 border border-[#BFC9D1]/25 flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#0B90FE]/15 text-[#0284C7] flex items-center justify-center shrink-0">
-                  <CameraIcon className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-xs text-[#25343F]">Kamera</h4>
-                  <p className="text-[11px] text-[#898989] mt-0.5">
-                    Digunakan untuk fitur scan barcode produk saat transaksi kasir.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-[#EAEFEF]/60 border border-[#BFC9D1]/25 flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-[#8B5CF6]/15 text-[#7C3AED] flex items-center justify-center shrink-0">
-                  <FolderIcon className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-xs text-[#25343F]">File &amp; Media</h4>
-                  <p className="text-[11px] text-[#898989] mt-0.5">
-                    Digunakan untuk menyimpan atau membagikan file seperti nota JPG dan laporan PDF.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-[#0B90FE]/8 border border-[#0B90FE]/20 text-[11px] text-[#0284C7] flex items-start gap-2">
-              <SparklesIcon className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>
-                <strong>Transparan &amp; Aman:</strong> Izin di atas tidak diminta sekaligus sekarang, melainkan saat Anda pertama kali menekan tombol kamera atau tombol unduh.
-              </span>
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={goToNextStep}
-                className="w-full py-3 bg-[#25343F] hover:bg-[#1B2730] text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-              >
-                <span>Lanjut</span>
-                <ArrowRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* 7. STEP: SELESAI                                             */}
-        {/* ============================================================ */}
-        {currentStep === 'done' && (
-          <div className="bg-white rounded-3xl border border-[#BFC9D1]/30 shadow-lg p-6 sm:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-20 h-20 rounded-3xl bg-[#10B981]/15 text-[#059669] flex items-center justify-center mx-auto shadow-md">
-              <CheckCircleIcon className="w-12 h-12 stroke-[2]" />
-            </div>
-
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10B981]/15 text-[#059669] text-xs font-bold">
-                <SparklesIcon className="w-3.5 h-3.5" />
-                <span>Kelola bisnis, jadi lebih mudah.</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#25343F] tracking-tight">
-                BisnisUrang siap digunakan
-              </h1>
-              <p className="text-xs sm:text-sm text-[#898989] font-medium max-w-sm mx-auto leading-relaxed">
-                Semua sudah siap. Yuk mulai kelola bisnis kamu sekarang!
-              </p>
-            </div>
-
-            <div className="pt-3">
-              <button
-                type="button"
-                onClick={onComplete}
-                className="w-full py-3.5 bg-[#25343F] hover:bg-[#1B2730] text-white font-black text-sm rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
-              >
-                <span>Mulai Gunakan BisnisUrang</span>
-                <ArrowRightIcon className="w-4 h-4 stroke-[2.5]" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── FOOTER / COPYRIGHT ── */}
-      <div className="max-w-xl w-full mx-auto text-center py-1">
-        <p className="text-[10px] text-[#898989] font-medium">
-          BisnisUrang © {new Date().getFullYear()} — Solusi Operasional &amp; Manajemen Bisnis
-        </p>
-      </div>
     </div>
   );
 };

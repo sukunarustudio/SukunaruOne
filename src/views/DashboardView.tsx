@@ -346,8 +346,65 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
 
   const { isPro, isTrial, daysRemaining, isTrialExpired } = useLicense();
 
+  const [isProfileBannerDismissed, setIsProfileBannerDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('bisnisurang_dismiss_profile_prompt') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const isProfileIncomplete = React.useMemo(() => {
+    const name = settings?.businessName?.trim() || '';
+    const isDefaultName = !name || name.toLowerCase() === 'nama bisnis anda' || name.toLowerCase() === 'sukunaru studio';
+    const hasContact = Boolean(settings?.phone?.trim() || settings?.whatsapp?.trim());
+    const hasAddress = Boolean(settings?.address?.trim());
+    const hasLogo = Boolean(settings?.logoUrl?.trim());
+    return isDefaultName || !hasContact || !hasAddress || !hasLogo;
+  }, [settings]);
+
   return (
     <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
+
+      {/* ── LIGHT NON-BLOCKING BUSINESS PROFILE PROMPT ────────────────── */}
+      {!isProfileBannerDismissed && isProfileIncomplete && (
+        <div className="bg-white dark:bg-[#151D2A] p-4 rounded-2xl border border-[#BFC9D1]/30 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 transition-all">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-[#FF9B51]/15 text-[#FF6A00] dark:bg-[#FF9B51]/20 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+              <BuildingStorefrontIcon className="w-5 h-5 stroke-[2]" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-bold text-[#25343F] dark:text-white">
+                Lengkapi profil bisnis
+              </h3>
+              <p className="text-[11px] sm:text-xs text-[#898989] dark:text-slate-400 mt-0.5 leading-relaxed">
+                Tambahkan informasi bisnis agar invoice, struk, SPK, dan dokumen lainnya tampil lebih profesional.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  sessionStorage.setItem('bisnisurang_dismiss_profile_prompt', 'true');
+                } catch {}
+                setIsProfileBannerDismissed(true);
+              }}
+              className="text-xs text-[#898989] dark:text-slate-400 hover:text-[#25343F] dark:hover:text-white px-3 py-2 rounded-xl transition cursor-pointer"
+            >
+              Nanti
+            </button>
+            <button
+              type="button"
+              onClick={() => goTo('business-profile')}
+              className="flex-1 sm:flex-initial px-4 py-2 bg-[#FF6A00] hover:bg-[#e65c00] active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer text-center"
+            >
+              Lengkapi Profil →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── UNLICENSED / TRIAL NOTICE BANNER ─────────────────────────── */}
       {!isPro && (

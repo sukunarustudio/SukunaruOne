@@ -223,26 +223,29 @@ function translateAuthError(error: AuthError | Error): string {
   const msg = error.message?.toLowerCase() || '';
 
   if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
-    return 'Email atau password salah. Periksa kembali dan coba lagi.';
+    return 'Email atau password belum sesuai.';
   }
   if (msg.includes('email not confirmed')) {
-    return 'Email belum dikonfirmasi. Cek inbox email Anda dan klik link konfirmasi.';
+    return 'Email belum dikonfirmasi. Cek inbox email Anda.';
+  }
+  if (msg.includes('user not found') || msg.includes('no user')) {
+    return 'Email belum terdaftar.';
   }
   if (msg.includes('user already registered') || msg.includes('already registered')) {
-    return 'Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.';
+    return 'Email ini sudah terdaftar. Silakan masuk.';
   }
-  if (msg.includes('password should be at least')) {
-    return 'Password terlalu pendek. Minimal 6 karakter.';
+  if (msg.includes('password should be at least') || msg.includes('weak password')) {
+    return 'Password minimal 6 karakter.';
   }
   if (msg.includes('rate limit') || msg.includes('too many requests')) {
-    return 'Terlalu banyak percobaan. Tunggu beberapa saat dan coba lagi.';
+    return 'Terlalu banyak percobaan. Tunggu beberapa saat.';
   }
   if (msg.includes('invalid email') || msg.includes('unable to validate email')) {
-    return 'Format email tidak valid.';
+    return 'Format email belum sesuai.';
   }
   if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch')) {
-    return 'Koneksi gagal. Periksa koneksi internet Anda.';
+    return 'Koneksi internet bermasalah. Coba lagi.';
   }
 
-  return error.message || 'Terjadi kesalahan. Silakan coba lagi.';
+  return error.message || 'Terjadi kendala. Silakan coba lagi.';
 }

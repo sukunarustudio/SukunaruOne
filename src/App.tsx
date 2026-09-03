@@ -11,7 +11,8 @@ import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { SignInView } from './views/auth/SignInView';
 import { SignUpView } from './views/auth/SignUpView';
 import { ForgotPasswordView } from './views/auth/ForgotPasswordView';
-import { onAuthStateChange, getSession } from './services/authService';
+import { onAuthStateChange, getSession, getUserLicenseKey } from './services/authService';
+import { performInitialCloudSync } from './services/syncManager';
 
 // Views
 import { DashboardView } from './views/DashboardView';
@@ -79,13 +80,34 @@ function MainAppContent() {
 
   // Check existing session on mount
   useEffect(() => {
-    getSession().then((session) => {
-      setAuthUser(session?.user ?? null);
-    });
-    // Subscribe to future auth changes
-    const cleanup = onAuthStateChange((user) => {
+    getSession().then(async (session) => {
+      const user = session?.user ?? null;
       setAuthUser(user);
-      if (!user) {
+      if (user) {
+        try {
+          const licKey = await getUserLicenseKey();
+          if (licKey) {
+            localStorage.setItem('sukunaru_onboarding_completed', 'true');
+            setIsOnboardingCompleted(true);
+            performInitialCloudSync().catch(() => {});
+          }
+        } catch {}
+      }
+    });
+
+    // Subscribe to future auth changes
+    const cleanup = onAuthStateChange(async (user) => {
+      setAuthUser(user);
+      if (user) {
+        try {
+          const licKey = await getUserLicenseKey();
+          if (licKey) {
+            localStorage.setItem('sukunaru_onboarding_completed', 'true');
+            setIsOnboardingCompleted(true);
+            performInitialCloudSync().catch(() => {});
+          }
+        } catch {}
+      } else {
         // User signed out — clear offline mode so sign-in screen shows
         localStorage.removeItem('sukunaru_offline_mode');
         setOfflineMode(false);
@@ -100,7 +122,7 @@ function MainAppContent() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 1800);
+    }, 1400);
     return () => clearTimeout(timer);
   }, []);
 
@@ -329,12 +351,22 @@ function MainAppContent() {
     setOfflineMode(true);
   };
 
-  // ── Auth Gate ─────────────────────────────────────────────────────────────
-  // authUser === undefined → session check still loading → show nothing (splash covers)
-  // authUser === null + not offline → show sign-in/sign-up/forgot
-  // authUser !== null || offlineMode → proceed to app
+  // ── 1. Splash Screen Gate (Initial launch & session verification) ───────────
   const isAuthLoading = authUser === undefined;
-  const needsAuth = !isAuthLoading && authUser === null && !offlineMode;
+  if (showSplash || isAuthLoading) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-white dark:bg-[#0B0F17] flex items-center justify-center transition-colors">
+        <img
+          src="/splash.png"
+          alt="BisnisUrang"
+          className="w-full h-full object-contain animate-fade-in"
+        />
+      </div>
+    );
+  }
+
+  // ── 2. Auth Gate ────────────────────────────────────────────────────────────
+  const needsAuth = authUser === null && !offlineMode;
 
   if (needsAuth) {
     if (authScreen === 'sign-up') {
@@ -362,7 +394,11 @@ function MainAppContent() {
     return (
       <SignInView
         onSignInSuccess={() => {
-          // authUser will be set via onAuthStateChange
+          // If user already had an existing license or business data, skip onboarding directly
+          if (localStorage.getItem('sukunaru_license_info')) {
+            localStorage.setItem('sukunaru_onboarding_completed', 'true');
+            setIsOnboardingCompleted(true);
+          }
         }}
         onNavigateToSignUp={() => setAuthScreen('sign-up')}
         onNavigateToForgotPassword={() => setAuthScreen('forgot-password')}
@@ -630,17 +666,6 @@ function MainAppContent() {
           handleNavigate(view, recordId);
         }}
       />
-
-      {/* Animated App Splash Screen */}
-      {showSplash && (
-        <div className="fixed inset-0 z-[9999] bg-white transition-opacity duration-700 ease-in-out pointer-events-none flex items-center justify-center">
-          <img
-            src="/splash.png"
-            alt="BisnisUrang"
-            className="w-full h-full object-contain animate-fade-in"
-          />
-        </div>
-      )}
     </div>
   );
 }
