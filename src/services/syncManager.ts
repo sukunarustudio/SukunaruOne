@@ -339,7 +339,6 @@ function finTransactionFromSupabase(row: any): FinancialTransaction {
 
 function settingsToSupabase(s: BusinessSettings, licenseKey: string) {
   return {
-    id: licenseKey,
     license_key: licenseKey,
     business_name: s.businessName || 'BisnisUrang Studio',
     tagline: s.tagline || null,
@@ -844,17 +843,17 @@ export async function applyCloudToLocalWithBackup(): Promise<{ success: boolean;
       localStorage.setItem('sukunaru_pre_recovery_local_backup', JSON.stringify(localBackup));
     } catch {}
 
-    // 2. Fetch all data from Cloud
+    // 2. Fetch all data from Cloud safely
     const [
-      { data: remoteSettings },
-      { data: remoteCustomers },
-      { data: remoteMaterials },
-      { data: remoteProducts },
-      { data: remoteOrders },
-      { data: remoteTransactions },
-      { data: remoteExpenses },
-      { data: remoteFinTrx },
-    ] = await Promise.all([
+      setRes,
+      custRes,
+      matRes,
+      prodRes,
+      ordRes,
+      trxRes,
+      expRes,
+      finRes,
+    ] = await Promise.allSettled([
       client.from('business_settings').select('*').eq('license_key', licenseKey).limit(1),
       client.from('customers').select('*').eq('license_key', licenseKey),
       client.from('materials').select('*').eq('license_key', licenseKey),
@@ -865,8 +864,17 @@ export async function applyCloudToLocalWithBackup(): Promise<{ success: boolean;
       client.from('financial_transactions').select('*').eq('license_key', licenseKey),
     ]);
 
+    const remoteSettings = setRes.status === 'fulfilled' && setRes.value.data ? setRes.value.data : null;
+    const remoteCustomers = custRes.status === 'fulfilled' && custRes.value.data ? custRes.value.data : [];
+    const remoteMaterials = matRes.status === 'fulfilled' && matRes.value.data ? matRes.value.data : [];
+    const remoteProducts = prodRes.status === 'fulfilled' && prodRes.value.data ? prodRes.value.data : [];
+    const remoteOrders = ordRes.status === 'fulfilled' && ordRes.value.data ? ordRes.value.data : [];
+    const remoteTransactions = trxRes.status === 'fulfilled' && trxRes.value.data ? trxRes.value.data : [];
+    const remoteExpenses = expRes.status === 'fulfilled' && expRes.value.data ? expRes.value.data : [];
+    const remoteFinTrx = finRes.status === 'fulfilled' && finRes.value.data ? finRes.value.data : [];
+
     const newDb = {
-      settings: remoteSettings && remoteSettings[0] ? settingsFromSupabase(remoteSettings[0]) : localBackup.settings,
+      settings: remoteSettings && remoteSettings[0] ? settingsFromSupabase(remoteSettings[0]) : (localBackup?.settings || {}),
       customers: (remoteCustomers || []).map(customerFromSupabase),
       materials: (remoteMaterials || []).map(materialFromSupabase),
       inventory_movements: [],
@@ -883,6 +891,7 @@ export async function applyCloudToLocalWithBackup(): Promise<{ success: boolean;
 
     return { success: true, message: 'Data Cloud berhasil dipulihkan ke perangkat!' };
   } catch (err: any) {
+    console.error('[Apply Cloud Error]:', err);
     return { success: false, message: `Gagal memulihkan data cloud: ${err.message}` };
   }
 }

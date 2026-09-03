@@ -6,6 +6,7 @@ import {
   ShieldCheckIcon,
   ExclamationTriangleIcon,
   ArrowPathIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { DataPresenceInfo } from '../services/syncManager';
 
@@ -15,6 +16,7 @@ interface DataRecoveryModalProps {
   onUseCloud: () => Promise<void>;
   onUseLocal: () => Promise<void>;
   onMerge: () => Promise<void>;
+  onClose?: () => void;
 }
 
 export const DataRecoveryModal: React.FC<DataRecoveryModalProps> = ({
@@ -23,6 +25,7 @@ export const DataRecoveryModal: React.FC<DataRecoveryModalProps> = ({
   onUseCloud,
   onUseLocal,
   onMerge,
+  onClose,
 }) => {
   const [selectedAction, setSelectedAction] = useState<'cloud' | 'local' | 'merge' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -46,6 +49,8 @@ export const DataRecoveryModal: React.FC<DataRecoveryModalProps> = ({
       } else if (action === 'merge') {
         await onMerge();
       }
+    } catch (err) {
+      console.error('[DataRecoveryModal Action Error]:', err);
     } finally {
       setIsProcessing(false);
     }
@@ -53,9 +58,21 @@ export const DataRecoveryModal: React.FC<DataRecoveryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in overflow-y-auto">
-      <div className="w-full max-w-lg bg-white dark:bg-[#151D2A] rounded-3xl border border-[#BFC9D1]/30 dark:border-slate-800 shadow-2xl p-5 sm:p-6 text-left my-auto">
+      <div className="w-full max-w-lg bg-white dark:bg-[#151D2A] rounded-3xl border border-[#BFC9D1]/30 dark:border-slate-800 shadow-2xl p-5 sm:p-6 text-left my-auto relative">
+        {/* Close button if provided */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            title="Tutup"
+            className="absolute top-5 right-5 p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        )}
+
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4 pr-8">
           <div className="w-10 h-10 rounded-2xl bg-[#FF9B51]/15 text-[#FF6A00] flex items-center justify-center shrink-0 border border-[#FF9B51]/30">
             <ShieldCheckIcon className="w-6 h-6 stroke-[2]" />
           </div>

@@ -260,38 +260,56 @@ function MainAppContent() {
 
   // Data Recovery Action Handlers
   const handleUseCloud = async () => {
-    const res = await applyCloudToLocalWithBackup();
-    if (res.success) {
-      showToast(res.message, 'success');
+    try {
+      const res = await applyCloudToLocalWithBackup();
+      if (res.success) {
+        showToast(res.message, 'success');
+      } else {
+        showToast(res.message, 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Gagal memulihkan data', 'error');
+    } finally {
       setIsRecoveryModalOpen(false);
+      setRecoveryPresence(null);
       await refreshStatsAndSettings();
       handleNavigate('dashboard');
-    } else {
-      showToast(res.message, 'error');
     }
   };
 
   const handleUseLocal = async () => {
-    const res = await applyLocalToCloudWithConfirmation();
-    if (res.success) {
-      showToast(res.message, 'success');
+    try {
+      const res = await applyLocalToCloudWithConfirmation();
+      if (res.success) {
+        showToast(res.message, 'success');
+      } else {
+        showToast(res.message, 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mengunggah data', 'error');
+    } finally {
       setIsRecoveryModalOpen(false);
+      setRecoveryPresence(null);
       await refreshStatsAndSettings();
       handleNavigate('dashboard');
-    } else {
-      showToast(res.message, 'error');
     }
   };
 
   const handleMergeData = async () => {
-    const res = await mergeLocalAndCloud();
-    if (res.success) {
-      showToast(res.message, 'success');
+    try {
+      const res = await mergeLocalAndCloud();
+      if (res.success) {
+        showToast(res.message, 'success');
+      } else {
+        showToast(res.message, 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menggabungkan data', 'error');
+    } finally {
       setIsRecoveryModalOpen(false);
+      setRecoveryPresence(null);
       await refreshStatsAndSettings();
       handleNavigate('dashboard');
-    } else {
-      showToast(res.message, 'error');
     }
   };
 
@@ -770,6 +788,10 @@ function MainAppContent() {
           onUseCloud={handleUseCloud}
           onUseLocal={handleUseLocal}
           onMerge={handleMergeData}
+          onClose={() => {
+            setIsRecoveryModalOpen(false);
+            setRecoveryPresence(null);
+          }}
         />
       )}
     </div>
