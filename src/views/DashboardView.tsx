@@ -366,29 +366,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   return (
     <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
 
-      {/* ── FLOATING LOW-OPACITY BUSINESS PROFILE PROMPT (COMPACT) ── */}
+      {/* ── FLOATING LOW-OPACITY BUSINESS PROFILE PROMPT (CENTERED ABOVE BOTTOM BAR) ── */}
       {!isProfileBannerDismissed && isProfileIncomplete && (
         <div
-          className="fixed top-18 right-3 sm:right-6 z-40 max-w-xs sm:max-w-sm bg-white/80 dark:bg-[#151D2A]/80 backdrop-blur-md border border-[#BFC9D1]/40 dark:border-slate-800 shadow-lg shadow-black/5 p-2 sm:p-2.5 rounded-2xl flex items-center justify-between gap-2.5 transition-all animate-in fade-in slide-in-from-top-2 duration-300"
+          className="fixed left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-md bg-white/85 dark:bg-[#151D2A]/85 backdrop-blur-md border border-[#BFC9D1]/40 dark:border-slate-800 shadow-xl shadow-black/10 p-2 sm:p-2.5 rounded-full flex items-center justify-between gap-3 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto"
+          style={{ bottom: 'calc(78px + env(safe-area-inset-bottom, 8px))' }}
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-[#FF9B51]/20 text-[#FF6A00] flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 pl-1">
+            <div className="w-7 h-7 rounded-full bg-[#FF9B51]/20 text-[#FF6A00] flex items-center justify-center shrink-0">
               <BuildingStorefrontIcon className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
-              <h4 className="text-[11px] sm:text-xs font-bold text-[#25343F] dark:text-white truncate">
+              <h4 className="text-xs font-bold text-[#25343F] dark:text-white truncate">
                 Lengkapi profil bisnis
               </h4>
-              <p className="text-[10px] text-[#898989] dark:text-slate-400 truncate hidden sm:block">
-                Agar invoice &amp; SPK tampil profesional
-              </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 pr-0.5">
             <button
               type="button"
               onClick={() => goTo('business-profile')}
-              className="px-2.5 py-1 bg-[#FF6A00]/90 hover:bg-[#FF6A00] active:scale-95 text-white text-[10.5px] font-bold rounded-lg shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              className="px-3 py-1.5 bg-[#FF6A00] hover:bg-[#e65c00] active:scale-95 text-white text-xs font-bold rounded-full shadow-xs transition-all cursor-pointer whitespace-nowrap"
             >
               Lengkapi →
             </button>
@@ -400,7 +398,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                 } catch {}
                 setIsProfileBannerDismissed(true);
               }}
-              className="p-1 text-[#898989] hover:text-[#25343F] dark:hover:text-white transition-colors cursor-pointer rounded-lg hover:bg-black/5"
+              className="p-1 text-[#898989] hover:text-[#25343F] dark:hover:text-white transition-colors cursor-pointer rounded-full hover:bg-black/5"
               title="Tutup"
               aria-label="Tutup"
             >
