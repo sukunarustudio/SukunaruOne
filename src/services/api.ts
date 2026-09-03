@@ -546,15 +546,18 @@ export const api = {
     return created;
   },
 
-  async updateOrderStatus(id: string, status: string): Promise<Order> {
-    const updated = await localDb.updateOrderStatus(id, status);
+  async updateOrderStatus(id: string, status: string, reason?: string): Promise<Order> {
+    const updated = await localDb.updateOrderStatus(id, status, reason);
     enqueueSyncMutation('orders', 'UPSERT', updated.id, updated);
     if (!isStandaloneOffline()) {
       requestApi<Order>(`/api/orders/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reason }),
       }).catch(() => {});
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sukunaru:data_mutation', { detail: { table: 'orders', type: 'STATUS_UPDATE', id, status } }));
     }
     return updated;
   },

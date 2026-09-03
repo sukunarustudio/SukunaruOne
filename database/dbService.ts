@@ -550,12 +550,17 @@ export const DatabaseService = {
     return db.prepare('SELECT * FROM inventory_movements ORDER BY createdAt DESC, date DESC LIMIT 300').all();
   },
 
-  // Helper to deduct material stocks during POS/Order within active transaction
   _deductMaterialStock(db: any, productId: string, quantity: number, refType: string, refId: string, customerName?: string) {
     const product = db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
     if (!product) return;
 
     const todayStr = new Date().toISOString().split('T')[0];
+
+    // Deduct product stock if product level stock tracking is active
+    if (product.trackStock) {
+      db.prepare('UPDATE products SET currentStock = MAX(0, currentStock - ?), updatedAt = ? WHERE id = ?').run(quantity, todayStr, productId);
+    }
+
     const components = db.prepare('SELECT * FROM product_components WHERE productId = ?').all(productId);
 
     if (components && components.length > 0) {
@@ -1366,7 +1371,7 @@ export const DatabaseService = {
     });
 
     const totAmount = Number(data.totalAmount) || 0;
-    const initialDp = Number(data.dpAmount) || 0;
+    const initialDp = Number(data.paidAmount !== undefined ? data.paidAmount : (data.dpAmount || 0));
     const remaining = Math.max(0, totAmount - initialDp);
 
     let paymentStatus = 'BELUM_BAYAR';
@@ -1545,16 +1550,200 @@ export const DatabaseService = {
     return newOrder;
   },
 
-  updateOrderStatus(id: string, status: string): any {
+  updateOrderStatus(id: string, status: string, reason?: string): any {
     const db = getDb();
     const order = this.getOrderById(id);
     if (!order) throw new Error('Pesanan tidak ditemukan');
 
-    const now = new Date().toISOString().split('T')[0];
-    db.prepare('UPDATE orders SET status = ?, updatedAt = ? WHERE id = ?').run(status, now, id);
-    order.status = status;
-    order.updatedAt = now;
-    return order;
+    const normalizedNew = status.toUpperCase().trim();
+    const normalizedPrev = (order.status || '').toUpperCase().trim();
+
+    // Idempotency check: if already in target status, return order without duplicate reversal
+    if (normalizedNew === normalizedPrev) {
+      return order;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const orderTx = db.transaction(() => {
+      // 1. REVERSAL WHEN CANCELLING AN ORDER (status becomes BATAL / DIBATALKAN from an active status)
+      if (
+        (normalizedNew === 'BATAL' || normalizedNew === 'DIBATALKAN') &&
+        (normalizedPrev !== 'BATAL' && normalizedPrev !== 'DIBATALKAN')
+      ) {
+        const paidAmount = Number(order.paidAmount) || 0;
+
+        // A. Return Cash: If any payment was recorded (DP or Full), insert EXPENSE reversal entry
+        if (paidAmount > 0) {
+          db.prepare(`
+            INSERT INTO financial_transactions (
+              id, date, type, category, description, amount, referenceNumber, referenceType, referenceId, paymentMethod, notes, createdAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            'fin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            todayStr,
+            'EXPENSE',
+            'Refund Pembatalan Pesanan',
+            `Refund Pembatalan Pesanan #${order.orderNumber} - ${order.customerName}`,
+            paidAmount,
+            order.orderNumber,
+            'ORDER_REFUND',
+            order.id,
+            order.payments?.[0]?.paymentMethod || 'CASH',
+            `Alasan: ${reason || 'Pembatalan pesanan'} (Pengembalian pembayaran Rp${paidAmount.toLocaleString('id-ID')})`,
+            todayStr
+          );
+        }
+
+        // B. Return Product Stock & BOM Raw Materials
+        if (Array.isArray(order.items)) {
+          for (const item of order.items) {
+            const qty = Number(item.quantity) || 1;
+            if (item.productId) {
+              const prod = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId);
+              if (prod) {
+                if (prod.trackStock) {
+                  db.prepare('UPDATE products SET currentStock = currentStock + ?, updatedAt = ? WHERE id = ?')
+                    .run(qty, todayStr, item.productId);
+                }
+
+                // Check BOM components
+                const components = db.prepare('SELECT * FROM product_components WHERE productId = ?').all(item.productId);
+                if (components && components.length > 0) {
+                  for (const comp of components) {
+                    if (comp.materialId) {
+                      const material = db.prepare('SELECT * FROM materials WHERE id = ?').get(comp.materialId);
+                      if (material) {
+                        const returnQty = (Number(comp.quantity) || 1) * qty;
+                        const prevStock = material.currentStock;
+                        const newStock = prevStock + returnQty;
+
+                        db.prepare('UPDATE materials SET currentStock = ?, updatedAt = ? WHERE id = ?')
+                          .run(newStock, todayStr, material.id);
+
+                        db.prepare(`
+                          INSERT INTO inventory_movements (
+                            id, materialId, materialName, type, quantity, previousStock, newStock, referenceType, referenceId, notes, date, createdAt
+                          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        `).run(
+                          'mov_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                          material.id,
+                          material.name,
+                          'IN',
+                          returnQty,
+                          prevStock,
+                          newStock,
+                          'ORDER_REFUND',
+                          order.orderNumber,
+                          `Pengembalian bahan dari pembatalan pesanan #${order.orderNumber} (${prod.name} × ${qty})`,
+                          todayStr,
+                          todayStr
+                        );
+                      }
+                    }
+                  }
+                } else if (prod.trackStock) {
+                  const material = db.prepare('SELECT * FROM materials WHERE sku = ? OR LOWER(name) = LOWER(?)').get(prod.sku, prod.name);
+                  if (material) {
+                    const prevStock = material.currentStock;
+                    const newStock = prevStock + qty;
+
+                    db.prepare('UPDATE materials SET currentStock = ?, updatedAt = ? WHERE id = ?')
+                      .run(newStock, todayStr, material.id);
+
+                    db.prepare(`
+                      INSERT INTO inventory_movements (
+                        id, materialId, materialName, type, quantity, previousStock, newStock, referenceType, referenceId, notes, date, createdAt
+                      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `).run(
+                      'mov_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                      material.id,
+                      material.name,
+                      'IN',
+                      qty,
+                      prevStock,
+                      newStock,
+                      'ORDER_REFUND',
+                      order.orderNumber,
+                      `Pengembalian stok dari pembatalan pesanan #${order.orderNumber} (${prod.name} × ${qty})`,
+                      todayStr,
+                      todayStr
+                    );
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // C. Customer Stats Reversal
+        if (order.customerId) {
+          db.prepare(`
+            UPDATE customers SET
+              totalOrders = MAX(0, totalOrders - 1),
+              totalSpent = MAX(0, totalSpent - ?),
+              updatedAt = ?
+            WHERE id = ?
+          `).run(order.totalAmount || 0, todayStr, order.customerId);
+        }
+      }
+
+      // 2. RE-ACTIVATING AN ORDER FROM BATAL / DIBATALKAN TO ACTIVE STATUS
+      else if (
+        (normalizedPrev === 'BATAL' || normalizedPrev === 'DIBATALKAN') &&
+        (normalizedNew !== 'BATAL' && normalizedNew !== 'DIBATALKAN')
+      ) {
+        const paidAmount = Number(order.paidAmount) || 0;
+
+        // Re-deduct product stock & materials
+        if (Array.isArray(order.items)) {
+          for (const item of order.items) {
+            if (item.productId) {
+              this._deductMaterialStock(db, item.productId, Number(item.quantity) || 1, 'ORDER', order.orderNumber, order.customerName);
+            }
+          }
+        }
+
+        // Re-insert income entry if paidAmount > 0
+        if (paidAmount > 0) {
+          db.prepare(`
+            INSERT INTO financial_transactions (
+              id, date, type, category, description, amount, referenceNumber, referenceType, referenceId, paymentMethod, notes, createdAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            'fin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            todayStr,
+            'INCOME',
+            order.paymentStatus === 'LUNAS' ? 'Pelunasan Pesanan' : 'DP Pesanan',
+            `Reaktivasi Pesanan #${order.orderNumber} - ${order.customerName}`,
+            paidAmount,
+            order.orderNumber,
+            'ORDER',
+            order.id,
+            order.payments?.[0]?.paymentMethod || 'CASH',
+            `Reaktivasi dari status batal`,
+            todayStr
+          );
+        }
+
+        // Re-add Customer stats
+        if (order.customerId) {
+          db.prepare(`
+            UPDATE customers SET
+              totalOrders = totalOrders + 1,
+              totalSpent = totalSpent + ?,
+              updatedAt = ?
+            WHERE id = ?
+          `).run(order.totalAmount || 0, todayStr, order.customerId);
+        }
+      }
+
+      // Update Order Status in Database
+      db.prepare('UPDATE orders SET status = ?, updatedAt = ? WHERE id = ?').run(normalizedNew, todayStr, id);
+    });
+
+    orderTx();
+    return this.getOrderById(id);
   },
 
   addOrderPayment(id: string, data: { amount: number; paymentMethod: string; date?: string; notes?: string }): any {

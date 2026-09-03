@@ -532,9 +532,9 @@ app.post('/api/orders', (req, res) => {
 
 app.put('/api/orders/:id/status', (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, reason } = req.body || {};
     if (!status) return res.status(400).json({ error: 'Status wajib diisi' });
-    const order = DatabaseService.updateOrderStatus(req.params.id, status);
+    const order = DatabaseService.updateOrderStatus(req.params.id, status, reason);
     res.json(order);
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'Gagal memperbarui status pesanan' });

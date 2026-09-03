@@ -16,7 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import { Transaction, Order, BusinessSettings } from '../types';
-import { formatRupiah, formatDate, formatDateTime, getStatusBadgeClass } from '../lib/utils';
+import { formatRupiah, formatDate, formatDateTime, getStatusBadgeClass, formatPaymentStatus, formatOrderStatus } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { PrintReceiptModal } from '../components/PrintReceiptModal';
 import { PrintInvoiceModal } from '../components/PrintInvoiceModal';
@@ -380,7 +380,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                           )
                         ) : (
                           <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${getStatusBadgeClass(item.paymentMethod || '')}`}>
-                            {item.paymentMethod}
+                            {formatPaymentStatus(item.paymentMethod)}
                           </span>
                         )}
                       </div>
@@ -709,7 +709,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                           {formatRupiah(order.totalAmount)}
                         </div>
                         <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${getStatusBadgeClass(order.paymentStatus)}`}>
-                          {order.paymentStatus}
+                          {formatPaymentStatus(order.paymentStatus)}
                         </span>
                       </div>
                     </div>
@@ -718,7 +718,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-[#898989]">{formatDate(order.orderDate)}</span>
                         <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${getStatusBadgeClass(order.status)}`}>
-                          {order.status === 'SIAP DIAMBIL' ? 'SIAP' : order.status}
+                          {formatOrderStatus(order.status)}
                         </span>
                       </div>
                       <button
@@ -755,12 +755,12 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                         <td className="py-3 px-4 font-bold text-[#25343F]">{order.customerName}</td>
                         <td className="py-3 px-4">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadgeClass(order.status)}`}>
-                            {order.status}
+                            {formatOrderStatus(order.status)}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadgeClass(order.paymentStatus)}`}>
-                            {order.paymentStatus}
+                            {formatPaymentStatus(order.paymentStatus)}
                           </span>
                         </td>
                         <td className={`py-3 px-4 text-right font-black font-mono ${order.status === 'BATAL' ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>

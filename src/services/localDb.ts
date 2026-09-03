@@ -894,12 +894,176 @@ export const localDb = {
     return newOrder;
   },
 
-  async updateOrderStatus(id: string, status: string): Promise<Order> {
+  async updateOrderStatus(id: string, status: string, reason?: string): Promise<Order> {
     const db = getLocalData();
     const order = db.orders.find(o => o.id === id);
     if (!order) throw new Error('Pesanan tidak ditemukan');
-    order.status = status as any;
-    order.updatedAt = new Date().toISOString().split('T')[0];
+
+    const normalizedNew = status.toUpperCase().trim();
+    const normalizedPrev = (order.status || '').toUpperCase().trim();
+
+    if (normalizedNew === normalizedPrev) {
+      return order;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // CASE 1: Transitioning TO 'BATAL' / 'DIBATALKAN' from an active status
+    if (
+      (normalizedNew === 'BATAL' || normalizedNew === 'DIBATALKAN') &&
+      (normalizedPrev !== 'BATAL' && normalizedPrev !== 'DIBATALKAN')
+    ) {
+      const paidAmount = Number(order.paidAmount) || 0;
+
+      // 1. Cash Reversal: If any payment (DP/Lunas) was made, create EXPENSE entry
+      if (paidAmount > 0) {
+        db.financial_transactions.unshift({
+          id: `fin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          date: todayStr,
+          type: 'EXPENSE',
+          category: 'Refund Pembatalan Pesanan',
+          description: `Refund Pembatalan Pesanan #${order.orderNumber} - ${order.customerName}`,
+          amount: paidAmount,
+          referenceNumber: order.orderNumber,
+          referenceType: 'ORDER_REFUND' as any,
+          referenceId: order.id,
+          paymentMethod: order.payments?.[0]?.paymentMethod || 'CASH',
+          notes: `Alasan: ${reason || 'Pembatalan pesanan'} (Pengembalian pembayaran Rp${paidAmount.toLocaleString('id-ID')})`,
+          createdAt: todayStr,
+        });
+      }
+
+      // 2. Product Stock & BOM Reversal
+      if (Array.isArray(order.items)) {
+        for (const item of order.items) {
+          const qty = Number(item.quantity) || 1;
+          if (item.productId) {
+            const prod = db.products.find(p => p.id === item.productId);
+            if (prod) {
+              if (prod.trackStock) {
+                prod.currentStock = (Number(prod.currentStock) || 0) + qty;
+              }
+              if (Array.isArray(prod.components) && prod.components.length > 0) {
+                for (const comp of prod.components) {
+                  if (comp.materialId) {
+                    const mat = db.materials.find(m => m.id === comp.materialId);
+                    if (mat) {
+                      const returnQty = (Number(comp.quantity) || 1) * qty;
+                      const prevStock = mat.currentStock;
+                      mat.currentStock = prevStock + returnQty;
+
+                      db.inventory_movements.unshift({
+                        id: `mov_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+                        materialId: mat.id,
+                        materialName: mat.name,
+                        type: 'IN',
+                        quantity: returnQty,
+                        previousStock: prevStock,
+                        newStock: mat.currentStock,
+                        referenceType: 'ORDER_REFUND',
+                        referenceId: order.orderNumber,
+                        notes: `Pengembalian bahan dari pembatalan pesanan #${order.orderNumber} (${prod.name} × ${qty})`,
+                        date: todayStr,
+                        createdAt: todayStr,
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Customer Stats Reversal
+      if (order.customerId) {
+        const cust = db.customers.find(c => c.id === order.customerId);
+        if (cust) {
+          cust.totalOrders = Math.max(0, (cust.totalOrders || 0) - 1);
+          cust.totalSpent = Math.max(0, (cust.totalSpent || 0) - (order.totalAmount || 0));
+        }
+      }
+    }
+
+    // CASE 2: Reactivation from BATAL / DIBATALKAN to active status
+    else if (
+      (normalizedPrev === 'BATAL' || normalizedPrev === 'DIBATALKAN') &&
+      (normalizedNew !== 'BATAL' && normalizedNew !== 'DIBATALKAN')
+    ) {
+      const paidAmount = Number(order.paidAmount) || 0;
+
+      // Re-deduct product stock and materials
+      if (Array.isArray(order.items)) {
+        for (const item of order.items) {
+          const qty = Number(item.quantity) || 1;
+          if (item.productId) {
+            const prod = db.products.find(p => p.id === item.productId);
+            if (prod) {
+              if (prod.trackStock) {
+                prod.currentStock = Math.max(0, (Number(prod.currentStock) || 0) - qty);
+              }
+              if (Array.isArray(prod.components) && prod.components.length > 0) {
+                for (const comp of prod.components) {
+                  if (comp.materialId) {
+                    const mat = db.materials.find(m => m.id === comp.materialId);
+                    if (mat) {
+                      const deductQty = (Number(comp.quantity) || 1) * qty;
+                      const prevStock = mat.currentStock;
+                      mat.currentStock = Math.max(0, prevStock - deductQty);
+
+                      db.inventory_movements.unshift({
+                        id: `mov_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+                        materialId: mat.id,
+                        materialName: mat.name,
+                        type: 'OUT',
+                        quantity: deductQty,
+                        previousStock: prevStock,
+                        newStock: mat.currentStock,
+                        referenceType: 'ORDER',
+                        referenceId: order.orderNumber,
+                        notes: `Reaktivasi pesanan #${order.orderNumber} (${prod.name} × ${qty})`,
+                        date: todayStr,
+                        createdAt: todayStr,
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Re-insert income entry if paidAmount > 0
+      if (paidAmount > 0) {
+        db.financial_transactions.unshift({
+          id: `fin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          date: todayStr,
+          type: 'INCOME',
+          category: order.paymentStatus === 'LUNAS' ? 'Pelunasan Pesanan' : 'DP Pesanan',
+          description: `Reaktivasi Pesanan #${order.orderNumber} - ${order.customerName}`,
+          amount: paidAmount,
+          referenceNumber: order.orderNumber,
+          referenceType: 'ORDER' as any,
+          referenceId: order.id,
+          paymentMethod: order.payments?.[0]?.paymentMethod || 'CASH',
+          notes: `Reaktivasi pesanan dari status batal`,
+          createdAt: todayStr,
+        });
+      }
+
+      // Re-add Customer stats
+      if (order.customerId) {
+        const cust = db.customers.find(c => c.id === order.customerId);
+        if (cust) {
+          cust.totalOrders = (cust.totalOrders || 0) + 1;
+          cust.totalSpent = (cust.totalSpent || 0) + (order.totalAmount || 0);
+        }
+      }
+    }
+
+    order.status = normalizedNew as any;
+    order.updatedAt = todayStr;
     setLocalData(db);
     return order;
   },

@@ -94,44 +94,77 @@ export function isDeadlineToday(deadlineStr: string, status: string): boolean {
   );
 }
 
-export function getStatusBadgeClass(status: string): string {
-  switch (status) {
+export function formatPaymentStatus(status?: string): string {
+  if (!status) return 'BELUM BAYAR';
+  const clean = status.replace(/_/g, ' ').toUpperCase().trim();
+  if (clean === 'BELUM BAYAR' || clean === 'UNPAID') return 'BELUM BAYAR';
+  return clean;
+}
+
+export function formatOrderStatus(status?: string): string {
+  if (!status) return 'Menunggu';
+  const norm = status.toUpperCase().trim();
+  switch (norm) {
     case 'BARU':
-      // Primary 100 soft cream + Primary 400 border + bold orange text
-      return 'bg-[#FFF3E8] text-[#C25400] border-[#FFB27D] font-bold';
+    case 'MENUNGGU':
+      return 'Menunggu';
     case 'DIPROSES':
-      // Semantic Info (#0890FE) = sedang aktif dikerjakan
-      return 'bg-[#0890FE]/10 text-[#0890FE] border-[#0890FE]/30 font-bold';
+    case 'PROSES':
+      return 'Diproses';
     case 'SIAP DIAMBIL':
-      // Semantic Accent (#FB6B18) / Navy milestone
-      return 'bg-[#25343F] text-white border-[#25343F] font-bold';
+    case 'SIAP':
+      return 'Siap Diambil';
     case 'SELESAI':
-      // Neutral Mist / Success subtle
-      return 'bg-[#EAEFEF] text-[#25343F] border-[#BFC9D1] font-bold';
+      return 'Selesai';
     case 'BATAL':
-      // Semantic Danger (#FF4267) = dibatalkan
-      return 'bg-[#FF4267]/15 text-[#FF4267] border-[#FF4267]/30 font-bold';
+    case 'DIBATALKAN':
+      return 'Dibatalkan';
+    default:
+      return status;
+  }
+}
+
+export function getStatusBadgeClass(status: string): string {
+  const norm = (status || '').toUpperCase().trim();
+  switch (norm) {
+    case 'BARU':
+    case 'MENUNGGU':
+      // Soft Amber/Warm Yellow
+      return 'bg-amber-50 text-amber-800 border border-amber-200/80 font-bold';
+    case 'DIPROSES':
+    case 'PROSES':
+      // Soft Sky/Blue
+      return 'bg-sky-50 text-sky-800 border border-sky-200/80 font-bold';
+    case 'SIAP DIAMBIL':
+    case 'SIAP':
+      // Soft Indigo/Purple
+      return 'bg-indigo-50 text-indigo-800 border border-indigo-200/80 font-bold';
+    case 'SELESAI':
+      // Soft Emerald/Green
+      return 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold';
+    case 'BATAL':
+    case 'DIBATALKAN':
+      // Soft Rose/Red
+      return 'bg-rose-50 text-rose-700 border border-rose-200/80 font-bold';
     case 'LUNAS':
-      // Neutral Mist / Success subtle
-      return 'bg-[#EAEFEF] text-[#25343F] border-[#BFC9D1]/50 font-bold';
+      // Soft Emerald/Green
+      return 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold';
     case 'DP':
-      // Semantic Warning (#FFAF2A) = butuh pelunasan
-      return 'bg-[#FFAF2A]/15 text-[#b45309] border-[#FFAF2A]/40 font-bold';
+      // Soft Amber
+      return 'bg-amber-50 text-amber-800 border border-amber-200/80 font-bold';
     case 'BELUM_BAYAR':
-      // Primary 200 soft peach + Primary 300 border + orange text
-      return 'bg-[#FFE6D6] text-[#C25400] border-[#FFCCA8] font-bold';
+    case 'BELUM BAYAR':
+      // Soft Rose/Orange
+      return 'bg-rose-50 text-rose-700 border border-rose-200/80 font-bold';
     case 'HABIS':
-      // Semantic Danger (#FF4267) = stok habis
-      return 'bg-[#FF4267]/15 text-[#FF4267] border-[#FF4267]/30 font-bold';
+      return 'bg-rose-50 text-rose-700 border border-rose-200/80 font-bold';
     case 'MENIPIS':
     case 'STOK MENIPIS':
-      // Semantic Warning (#FFAF2A) = stok menipis
-      return 'bg-[#FFAF2A]/15 text-[#b45309] border-[#FFAF2A]/40 font-bold';
+      return 'bg-amber-50 text-amber-800 border border-amber-200/80 font-bold';
     case 'AMAN':
-      // Semantic Success (#52D5BA) = stok aman
-      return 'bg-[#52D5BA]/20 text-[#0f766e] border-[#52D5BA]/40 font-bold';
+      return 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold';
     default:
-      return 'bg-[#EAEFEF] text-[#898989] border-[#BFC9D1] font-bold';
+      return 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/50 font-bold';
   }
 }
 

@@ -19,12 +19,15 @@ import {
   isDeadlineToday,
   getStatusBadgeClass,
   getTodayDateString,
+  formatPaymentStatus,
+  formatOrderStatus,
 } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PrintInvoiceModal } from '../components/PrintInvoiceModal';
 import { BatchPrintOrdersModal } from '../components/BatchPrintOrdersModal';
 import { ProductImage } from '../components/ProductImage';
+import { CancelOrderModal } from '../components/CancelOrderModal';
 
 interface OrdersViewProps {
   settings: BusinessSettings;
@@ -66,7 +69,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   const scrollLeftCatRef = useRef(0);
 
   // Table / Kanban Filters
-  const STATUS_TABS = ['SEMUA', 'BARU', 'DIPROSES', 'SIAP DIAMBIL', 'SELESAI'];
+  const STATUS_TABS = ['SEMUA', 'BARU', 'DIPROSES', 'SIAP DIAMBIL', 'SELESAI', 'BATAL'];
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>(initialStatusFilter ?? 'SEMUA');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -121,6 +124,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   // Active Selected Order for Detail Modal
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   // New Order / POS Cart State (Persisted in localStorage)
   const [newOrderCustomerName, setNewOrderCustomerName] = useState(() => {
@@ -656,9 +661,18 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   };
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    const target = orders.find(o => o.id === orderId) || (selectedOrder?.id === orderId ? selectedOrder : null);
+    const norm = newStatus.toUpperCase().trim();
+
+    if ((norm === 'BATAL' || norm === 'DIBATALKAN') && target && target.status !== 'BATAL' && target.status !== 'DIBATALKAN') {
+      setOrderToCancel(target);
+      setIsCancelModalOpen(true);
+      return;
+    }
+
     try {
       const updated = await api.updateOrderStatus(orderId, newStatus);
-      showToast(`Status pesanan diubah ke ${newStatus}`, 'success');
+      showToast(`Status pesanan diubah ke ${formatOrderStatus(newStatus)}`, 'success');
       setOrders(prev => prev.map(o => (o.id === orderId ? updated : o)));
       if (selectedOrder?.id === orderId) {
         setSelectedOrder(updated);
@@ -666,6 +680,23 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
       if (onRefreshDashboard) onRefreshDashboard();
     } catch (err: any) {
       showToast(err.message || 'Gagal mengubah status', 'error');
+    }
+  };
+
+  const handleConfirmCancelOrder = async (reason: string) => {
+    if (!orderToCancel) return;
+    try {
+      const updated = await api.updateOrderStatus(orderToCancel.id, 'BATAL', reason);
+      showToast(`Pesanan #${orderToCancel.orderNumber} berhasil dibatalkan dan transaksi dibalik.`, 'success');
+      setOrders(prev => prev.map(o => (o.id === updated.id ? updated : o)));
+      if (selectedOrder?.id === updated.id) {
+        setSelectedOrder(updated);
+      }
+      if (onRefreshDashboard) onRefreshDashboard();
+      await loadData();
+    } catch (err: any) {
+      showToast(err.message || 'Gagal membatalkan pesanan', 'error');
+      throw err;
     }
   };
 
@@ -1555,10 +1586,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs scrollbar-none">
             {[
               { id: 'SEMUA', label: 'Semua' },
-              { id: 'BARU', label: 'Baru' },
+              { id: 'BARU', label: 'Menunggu' },
               { id: 'DIPROSES', label: 'Diproses' },
-              { id: 'SIAP DIAMBIL', label: 'Siap' },
+              { id: 'SIAP DIAMBIL', label: 'Siap Diambil' },
               { id: 'SELESAI', label: 'Selesai' },
+              { id: 'BATAL', label: 'Dibatalkan' },
             ].map(tab => {
               const tabKey = tab.id === 'SIAP' ? 'SIAP DIAMBIL' : tab.id;
               const count =
@@ -1728,7 +1760,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                               : 'bg-[#FFE6D6] text-[#C25400] border border-[#FFCCA8]'
                           }`}
                         >
-                          {order.paymentStatus}
+                          {formatPaymentStatus(order.paymentStatus)}
                         </span>
                         {/* Status Pengerjaan — tappable select for quick edit */}
                         <select
@@ -1741,11 +1773,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                           className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase border cursor-pointer appearance-none text-center ${getStatusBadgeClass(order.status)}`}
                           title="Ubah status pengerjaan"
                         >
-                          <option value="BARU">BARU</option>
-                          <option value="DIPROSES">DIPROSES</option>
-                          <option value="SIAP DIAMBIL">SIAP DIAMBIL</option>
-                          <option value="SELESAI">SELESAI</option>
-                          <option value="BATAL">BATAL</option>
+                          <option value="BARU">Menunggu</option>
+                          <option value="DIPROSES">Diproses</option>
+                          <option value="SIAP DIAMBIL">Siap Diambil</option>
+                          <option value="SELESAI">Selesai</option>
+                          <option value="BATAL">Dibatalkan</option>
                         </select>
                       </div>
                     </div>
@@ -1866,12 +1898,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                                 </div>
                               ))}
                             </div>
-                            {order.files && order.files.length > 0 && (
-                              <div className="flex items-center gap-1 text-[10px] font-bold text-[#25343F] mt-1">
-                                <PaperClipIcon className="w-3 h-3" />
-                                <span>{order.files.length} File Terlampir</span>
-                              </div>
-                            )}
+                            
                           </td>
 
                           <td className="py-3 px-4">
@@ -1906,13 +1933,13 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                             <span
                               className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                                 order.paymentStatus === 'LUNAS'
-                                  ? 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/50'
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'
                                   : order.paymentStatus === 'DP'
-                                  ? 'bg-[#FFAF2A]/15 text-[#b45309] border border-[#FFAF2A]/40'
-                                  : 'bg-[#FFE6D6] text-[#C25400] border border-[#FFCCA8]'
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200/80'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200/80'
                               }`}
                             >
-                              {order.paymentStatus}
+                              {formatPaymentStatus(order.paymentStatus)}
                             </span>
                           </td>
 
@@ -1924,11 +1951,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                                 order.status
                               )} cursor-pointer`}
                             >
-                              <option value="BARU">BARU</option>
-                              <option value="DIPROSES">DIPROSES</option>
-                              <option value="SIAP DIAMBIL">SIAP DIAMBIL</option>
-                              <option value="SELESAI">SELESAI</option>
-                              <option value="BATAL">BATAL</option>
+                              <option value="BARU">Menunggu</option>
+                              <option value="DIPROSES">Diproses</option>
+                              <option value="SIAP DIAMBIL">Siap Diambil</option>
+                              <option value="SELESAI">Selesai</option>
+                              <option value="BATAL">Dibatalkan</option>
                             </select>
                           </td>
 
@@ -1986,14 +2013,14 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           {[
             {
               status: 'BARU',
-              title: 'Pesanan Masuk',
+              title: 'Menunggu',
               subtitle: 'Antre setting & cetak',
               color: 'border-[#BFC9D1] bg-[#EAEFEF]/50 text-[#25343F]',
               badge: 'bg-[#25343F] text-white',
             },
             {
               status: 'DIPROSES',
-              title: 'Sedang Diproses',
+              title: 'Diproses',
               subtitle: 'Desain, cetak & finishing',
               color: 'border-[#FF9B51]/40 bg-[#FF9B51]/8 text-[#c45e00]',
               badge: 'bg-[#FF9B51] text-white',
@@ -2123,15 +2150,15 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                               {order.customerName}
                             </span>
                             <span
-                              className={`text-[9px] font-black px-1.5 py-0.2 rounded-md uppercase tracking-wider shrink-0 ${
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${
                                 order.paymentStatus === 'LUNAS'
-                                  ? 'bg-[#EAEFEF] text-[#25343F]'
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'
                                   : order.paymentStatus === 'DP'
-                                  ? 'bg-[#FF9B51]/15 text-[#c45e00]'
-                                  : 'bg-[#FF9B51]/15 text-[#c45e00]'
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200/80'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200/80'
                               }`}
                             >
-                              {order.paymentStatus}
+                              {formatPaymentStatus(order.paymentStatus)}
                             </span>
                           </div>
 
@@ -2162,12 +2189,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                               {isOverdue && <span className="text-[9px] font-black text-[#c45e00]">⚠ TELAT</span>}
                             </div>
 
-                            {order.files && order.files.length > 0 && (
-                              <div className="flex items-center gap-1 text-[#25343F] font-bold">
-                                <PaperClipIcon className="w-3 h-3" />
-                                <span>{order.files.length} File</span>
-                              </div>
-                            )}
+                            
                           </div>
                         </div>
                       );
@@ -2216,11 +2238,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {[
-                  { id: 'BARU', label: '1. Baru' },
-                  { id: 'DIPROSES', label: '2. Proses' },
-                  { id: 'SIAP DIAMBIL', label: '3. Diambil' },
-                  { id: 'SELESAI', label: '4. Selesai' },
-                  { id: 'BATAL', label: '5. Batal' },
+                  { id: 'BARU', label: 'Menunggu' },
+                  { id: 'DIPROSES', label: 'Diproses' },
+                  { id: 'SIAP DIAMBIL', label: 'Siap Diambil' },
+                  { id: 'SELESAI', label: 'Selesai' },
+                  { id: 'BATAL', label: 'Dibatalkan' },
                 ].map(st => (
                   <button
                     key={st.id}
@@ -2651,11 +2673,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
             className="px-2 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border border-white/20 shrink-0"
           >
             <option value="" disabled className="text-zinc-800 font-normal">Ubah Status...</option>
-            <option value="BARU" className="text-zinc-800">1. Baru</option>
-            <option value="DIPROSES" className="text-zinc-800">2. Proses</option>
-            <option value="SIAP DIAMBIL" className="text-zinc-800">3. Diambil</option>
-            <option value="SELESAI" className="text-zinc-800">4. Selesai</option>
-            <option value="BATAL" className="text-zinc-800">5. Batal</option>
+            <option value="BARU" className="text-zinc-800">Menunggu</option>
+            <option value="DIPROSES" className="text-zinc-800">Diproses</option>
+            <option value="SIAP DIAMBIL" className="text-zinc-800">Siap Diambil</option>
+            <option value="SELESAI" className="text-zinc-800">Selesai</option>
+            <option value="BATAL" className="text-zinc-800">Dibatalkan</option>
           </select>
 
           <button
@@ -2688,6 +2710,17 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           )}
         </button>
       )}
+
+      {/* Cancel Order Reversal Modal */}
+      <CancelOrderModal
+        isOpen={isCancelModalOpen}
+        order={orderToCancel}
+        onConfirm={handleConfirmCancelOrder}
+        onClose={() => {
+          setIsCancelModalOpen(false);
+          setOrderToCancel(null);
+        }}
+      />
 
       {/* Confirm Dialog: Reset / Clear Order Form */}
       <ConfirmDialog
