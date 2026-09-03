@@ -8,6 +8,7 @@ import { useToast } from '../components/Toast';
 import { PrintReceiptModal } from '../components/PrintReceiptModal';
 import { ProductImage } from '../components/ProductImage';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { startKeyboardScanner, stopKeyboardScanner, playScanSuccessFeedback, playScanErrorFeedback } from '../lib/barcodeScanner';
 import { useLicense } from '../hooks/useLicense';
 
@@ -36,6 +37,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isBarcodeLockedModalOpen, setIsBarcodeLockedModalOpen] = useState(false);
+  const [isClearCartConfirmOpen, setIsClearCartConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('SEMUA');
@@ -848,10 +850,11 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
 
           <div className="flex items-center gap-2 pt-1">
             <button
-              onClick={clearCart}
+              onClick={() => setIsClearCartConfirmOpen(true)}
               disabled={cart.length === 0}
               className="p-2.5 rounded-xl border border-[#BFC9D1]/25 text-[#898989] hover:text-[#c45e00] hover:bg-[#EAEFEF] disabled:opacity-40 transition-colors cursor-pointer"
               title="Kosongkan Keranjang"
+              aria-label="Kosongkan Keranjang"
             >
               <TrashIcon className="w-4 h-4" />
             </button>
@@ -875,12 +878,12 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
           className="lg:hidden fixed right-3 z-30 flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-auto"
           style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 8px))' }}
         >
-          {/* Compact Trash / Clear Cart Icon Button */}
+          {/* Compact Trash / Clear Cart Icon Button with confirmation */}
           <button
             type="button"
             onClick={e => {
               e.stopPropagation();
-              clearCart();
+              setIsClearCartConfirmOpen(true);
             }}
             aria-label="Kosongkan Keranjang"
             title="Kosongkan Keranjang"
@@ -1136,6 +1139,22 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
           </div>
         </div>
       )}
+
+      {/* Confirm Dialog: Clear Cart */}
+      <ConfirmDialog
+        isOpen={isClearCartConfirmOpen}
+        title="Kosongkan Keranjang?"
+        message="Semua item pesanan yang telah dipilih akan dihapus dari keranjang kasir."
+        confirmLabel="Ya, Kosongkan"
+        cancelLabel="Batal"
+        isDanger={true}
+        onConfirm={() => {
+          clearCart();
+          setIsClearCartConfirmOpen(false);
+          showToast('Keranjang berhasil dikosongkan', 'info');
+        }}
+        onCancel={() => setIsClearCartConfirmOpen(false)}
+      />
 
       {/* ── FLOATING BARCODE SCANNER BUTTON (FAB) ON MOBILE ── */}
       {mobileTab === 'catalog' && (
