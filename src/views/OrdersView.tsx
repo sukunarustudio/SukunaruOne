@@ -212,6 +212,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
     }
   });
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [isResetOrderConfirmOpen, setIsResetOrderConfirmOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -1226,7 +1227,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 {newOrderItems.length > 0 && (
                   <button
                     type="button"
-                    onClick={handleResetOrderForm}
+                    onClick={() => setIsResetOrderConfirmOpen(true)}
                     className="text-[11px] font-bold text-[#898989] hover:text-[#c45e00] transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <ArrowPathIcon className="w-3 h-3" /> Kosongkan
@@ -1507,39 +1508,38 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
             </div>
           </form>
 
-          {/* Sticky Bottom Bar on Mobile when viewing catalog and items exist */}
+          {/* ── FLOATING MINIMALIST ORDER CART SUMMARY BUTTON (BOTTOM-RIGHT) ── */}
           {mobileTab === 'catalog' && newOrderItems.length > 0 && (
             <div
-              className="lg:hidden fixed bottom-[92px] left-3 right-3 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200 flex items-center gap-2 drop-shadow-xl"
-              style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}
+              className="lg:hidden fixed right-3 z-30 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-auto"
+              style={{ bottom: 'calc(78px + env(safe-area-inset-bottom, 8px))' }}
             >
+              {/* Compact Trash / Reset Order Icon Button with confirmation */}
               <button
                 type="button"
                 onClick={e => {
                   e.stopPropagation();
-                  handleResetOrderForm();
+                  setIsResetOrderConfirmOpen(true);
                 }}
-                className="bg-[#25343F] hover:bg-[#1c2730] active:scale-95 text-white px-3.5 py-3 rounded-2xl shadow-lg flex items-center justify-center gap-1.5 font-bold text-xs cursor-pointer border border-white/10 shrink-0 transition-all"
-                title="Batal / Reset Pesanan"
+                aria-label="Batalkan / Reset Pesanan"
+                title="Batalkan / Reset Pesanan"
+                className="w-11 h-11 rounded-full bg-[#1E293B]/95 backdrop-blur-md hover:bg-[#151D2A] active:scale-90 text-rose-400 shadow-[0_8px_20px_-4px_rgba(30,41,59,0.35)] flex items-center justify-center cursor-pointer border border-white/15 transition-all shrink-0"
               >
                 <TrashIcon className="w-4 h-4 text-rose-400" />
-                <span>Batal</span>
               </button>
+
+              {/* Order Cart Summary Pill Button */}
               <button
                 type="button"
                 onClick={() => setMobileTab('order')}
-                className="flex-1 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] px-4 py-3 rounded-2xl shadow-lg flex items-center justify-between font-black text-xs cursor-pointer border border-[#FF9B51]/30 active:scale-[0.99] transition-transform min-w-0"
+                aria-label="Lihat Rincian Pesanan Kerja"
+                className="h-11 pl-2.5 pr-4 rounded-full bg-gradient-to-r from-[#FF9B51] to-[#FF8533] hover:from-[#ff8f3d] hover:to-[#ff751a] text-[#1E293B] shadow-[0_8px_20px_-4px_rgba(255,155,81,0.45)] flex items-center gap-2 font-bold text-xs cursor-pointer border border-white/30 active:scale-95 transition-all"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-5 h-5 rounded-full bg-[#25343F] text-white text-[11px] font-black flex items-center justify-center shrink-0">
-                    {newOrderItems.reduce((s, i) => s + i.quantity, 0)}
-                  </span>
-                  <span className="truncate text-xs font-black">Lihat Rincian Pesanan</span>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                  <span className="text-[#25343F] font-black font-mono text-xs">{formatRupiah(newOrderTotal)}</span>
-                  <span className="text-sm font-black">&rarr;</span>
-                </div>
+                <span className="w-6 h-6 rounded-full bg-[#1E293B] text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs">
+                  {newOrderItems.reduce((s, i) => s + i.quantity, 0)}
+                </span>
+                <span className="font-mono font-black text-xs text-[#1E293B]">{formatRupiah(newOrderTotal)}</span>
+                <span className="text-sm font-black text-[#1E293B] leading-none">&rarr;</span>
               </button>
             </div>
           )}
@@ -2688,6 +2688,22 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           )}
         </button>
       )}
+
+      {/* Confirm Dialog: Reset / Clear Order Form */}
+      <ConfirmDialog
+        isOpen={isResetOrderConfirmOpen}
+        title="Batalkan / Reset Pesanan Kerja?"
+        message="Semua item dan data pesanan yang belum disimpan akan dikosongkan."
+        confirmLabel="Ya, Batalkan"
+        cancelLabel="Kembali"
+        isDanger={true}
+        onConfirm={() => {
+          handleResetOrderForm();
+          setIsResetOrderConfirmOpen(false);
+          showToast('Form pesanan berhasil direset', 'info');
+        }}
+        onCancel={() => setIsResetOrderConfirmOpen(false)}
+      />
     </div>
   );
 };
