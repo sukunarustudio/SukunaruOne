@@ -105,6 +105,8 @@ CREATE TABLE IF NOT EXISTS products (
   is_active BOOLEAN DEFAULT TRUE,
   image_path TEXT,
   thumbnail_path TEXT,
+  barcode TEXT,
+  barcode_type TEXT,
   bom_components JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -112,6 +114,7 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
 CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
 
 -- 6. Orders (Pesanan Kerja / SPK)
 CREATE TABLE IF NOT EXISTS orders (
