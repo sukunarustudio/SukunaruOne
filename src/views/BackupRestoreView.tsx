@@ -91,7 +91,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
 
       const res = await uploadTenantFile(licenseKey, 'backups', blob, fileName);
       if (res.success) {
-        showToast('Snapshot database online berhasil dicadangkan ke Cloud!', 'success');
+        showToast('Database online berhasil dicadangkan ke Cloud!', 'success');
         await fetchCloudBackups();
       } else {
         showToast(res.error || 'Gagal mencadangkan ke cloud', 'error');
@@ -311,7 +311,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <CloudArrowUpIcon className="w-4 h-4 text-[#0284C7]" />
-              <h3 className="font-bold text-xs sm:text-sm text-[#25343F]">Riwayat Snapshot Cadangan Online (Cloud)</h3>
+              <h3 className="font-bold text-xs sm:text-sm text-[#25343F]">Riwayat Cadangan Online</h3>
             </div>
             <button
               type="button"
@@ -325,7 +325,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
 
           {cloudBackups.length === 0 ? (
             <p className="text-xs text-[#898989] py-3 text-center">
-              Belum ada file snapshot cadangan online. Klik tombol <span className="font-bold text-[#25343F]">Cadangkan Online</span> di atas untuk membuat salinan aman di Cloud.
+              Belum ada file cadangan online. Klik tombol <span className="font-bold text-[#25343F]">Cadangkan Online</span> di atas untuk membuat salinan aman di Cloud.
             </p>
           ) : (
             <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto space-y-1">
@@ -442,7 +442,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
       <ConfirmDialog
         isOpen={Boolean(selectedCloudBackupToRestore)}
         title="Pulihkan Database dari Cloud?"
-        message={`Apakah Anda yakin ingin memulihkan database dari snapshot cloud "${selectedCloudBackupToRestore?.name}"? Data saat ini di perangkat akan digantikan sesuai isi snapshot tersebut.`}
+        message={`Apakah Anda yakin ingin memulihkan database dari cadangan online "${selectedCloudBackupToRestore?.name}"? Data saat ini di perangkat akan digantikan sesuai isi cadangan tersebut.`}
         confirmLabel={isRestoringCloudBackup ? 'Memulihkan...' : 'Ya, Pulihkan Sekarang'}
         isDanger={false}
         onConfirm={() => {
