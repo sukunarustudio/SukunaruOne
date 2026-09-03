@@ -1,6 +1,6 @@
 /**
  * barcodeUtils.ts
- * Barcode generation and validation utilities for Sukunaru Studio.
+ * Barcode generation and validation utilities for Sukunaru Studio / BisnisUrang.
  * Uses JsBarcode for rendering Code128 / EAN-13 / EAN-8 barcodes.
  */
 
@@ -13,10 +13,30 @@ export const BARCODE_FORMAT_LABELS: Record<BarcodeFormat, string> = {
 };
 
 /**
- * Auto-generate a unique Code128 barcode value from a product ID.
- * Format: SKN-{8 uppercase alphanumeric}
+ * Auto-generate a valid barcode value based on format.
+ * - CODE128: Flexible alphanumeric (e.g. SKN-XXXXXXXX)
+ * - EAN13: 13 numeric digits with standard Modulo 10 check digit
+ * - EAN8: 8 numeric digits with standard Modulo 10 check digit
  */
-export function generateBarcodeValue(productId: string): string {
+export function generateBarcodeValue(productId: string, format: BarcodeFormat = 'CODE128'): string {
+  if (format === 'EAN13') {
+    const seed = Math.floor(100000000 + Math.random() * 900000000).toString();
+    const raw12 = `899${seed}`.slice(0, 12);
+    const digits = raw12.split('').map(Number);
+    const sum = digits.reduce((acc, d, i) => acc + (i % 2 === 0 ? d : d * 3), 0);
+    const checkDigit = (10 - (sum % 10)) % 10;
+    return `${raw12}${checkDigit}`;
+  }
+
+  if (format === 'EAN8') {
+    const seed = Math.floor(10000 + Math.random() * 90000).toString();
+    const raw7 = `89${seed}`.slice(0, 7);
+    const digits = raw7.split('').map(Number);
+    const sum = digits.reduce((acc, d, i) => acc + (i % 2 === 0 ? d * 3 : d), 0);
+    const checkDigit = (10 - (sum % 10)) % 10;
+    return `${raw7}${checkDigit}`;
+  }
+
   const parts = productId.split('_');
   const suffix = (parts[parts.length - 1] || Date.now().toString(36).slice(-8)).toUpperCase();
   const padded = (suffix + '00000000').slice(0, 8);
@@ -37,7 +57,6 @@ export function validateBarcodeValue(value: string, type: BarcodeFormat): { vali
     if (!/^\d{8}$/.test(v)) return { valid: false, error: 'EAN-8 harus tepat 8 digit angka.' };
     if (!validateEan8Checksum(v)) return { valid: false, error: 'Checksum EAN-8 tidak valid.' };
   } else {
-    // CODE128
     if (v.length < 4) return { valid: false, error: 'Barcode minimal 4 karakter.' };
     if (v.length > 48) return { valid: false, error: 'Barcode maksimal 48 karakter.' };
   }
@@ -59,7 +78,7 @@ function validateEan8Checksum(code: string): boolean {
 }
 
 /**
- * Render barcode onto an HTMLCanvasElement using JsBarcode (dynamic import).
+ * Render barcode onto an HTMLCanvasElement using JsBarcode.
  */
 export async function renderBarcodeToCanvas(
   canvas: HTMLCanvasElement,
@@ -115,7 +134,7 @@ export async function barcodeToPngDataUrl(
 }
 
 /**
- * Render barcode to an SVG element (best quality for printing).
+ * Render barcode to an SVG element.
  */
 export async function renderBarcodeToSvg(
   svgEl: SVGSVGElement,

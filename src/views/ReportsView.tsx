@@ -506,77 +506,46 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               </p>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              id="btn-download-report-pdf"
-              type="button"
-              disabled={isExportingPdf}
-              onClick={handleDownloadPdf}
-              className="h-8.5 px-3 rounded-xl border border-[#BFC9D1]/25 bg-white hover:bg-[#EAEFEF] text-[#25343F] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shadow-md active:scale-95"
-            >
-              {isExportingPdf ? (
-                <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-[#898989]" />
-              ) : (
-                <ArrowDownTrayIcon className="w-3.5 h-3.5 text-[#25343F]" />
-              )}
-              <span className="hidden sm:inline">{isExportingPdf ? 'Membuat PDF...' : 'Unduh PDF'}</span>
-            </button>
-
-            <button
-              id="btn-print-report"
-              type="button"
-              onClick={handlePrint}
-              className="h-8.5 px-3.5 rounded-xl bg-[#FF9B51] hover:bg-[#ff8c38] text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-[#FF9B51]/25 transition-all cursor-pointer active:scale-95"
-            >
-              <PrinterIcon className="w-3.5 h-3.5" />
-              <span>Cetak Laporan</span>
-            </button>
-          </div>
         </div>
       </div>
 
       {/* ── FILTER PERIODE & REPORT TABS BAR ─────────────────────────────────── */}
       <div className="no-print space-y-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-[#BFC9D1]/25 shadow-md">
-        {/* Row 1: Report Type Tabs */}
+        {/* Row 1: Report Type Tabs (Clean Text Only) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center p-1 bg-[#EAEFEF] rounded-xl border border-[#BFC9D1]/25 text-xs overflow-x-auto scrollbar-none w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setActiveTab('sales')}
-              className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs flex items-center justify-center gap-1.5 ${
+              className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center ${
                 activeTab === 'sales'
                   ? 'bg-white text-[#25343F] shadow-sm'
                   : 'text-[#898989] hover:text-[#25343F]'
               }`}
             >
-              <ArrowTrendingUpIcon className="w-4 h-4" />
-              <span>Penjualan</span>
+              Penjualan
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('profit')}
-              className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs flex items-center justify-center gap-1.5 ${
+              className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center ${
                 activeTab === 'profit'
                   ? 'bg-white text-[#25343F] shadow-sm'
                   : 'text-[#898989] hover:text-[#25343F]'
               }`}
             >
-              <ChartBarIcon className="w-4 h-4" />
-              <span>Laba Rugi</span>
+              Laba Rugi
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('stock')}
-              className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs flex items-center justify-center gap-1.5 ${
+              className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center ${
                 activeTab === 'stock'
                   ? 'bg-white text-[#25343F] shadow-sm'
                   : 'text-[#898989] hover:text-[#25343F]'
               }`}
             >
-              <ArchiveBoxIcon className="w-4 h-4" />
-              <span>Nilai Stok</span>
+              Nilai Stok
             </button>
           </div>
 
@@ -1147,19 +1116,44 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             </div>
           </div>
         )}
+      </div>
 
-        {/* ─── Printable Signature & Authorization Footer ──────────────────────── */}
-        <div className="mt-8 pt-6 border-t border-[#BFC9D1]/40 grid grid-cols-2 text-center text-xs text-[#898989]">
-          <div>
-            <p>Dibuat oleh,</p>
-            <div className="h-14"></div>
-            <p className="font-bold text-[#25343F] underline">( Bagian Keuangan / Kasir )</p>
-          </div>
-          <div>
-            <p>Disetujui &amp; Disahkan oleh,</p>
-            <div className="h-14"></div>
-            <p className="font-bold text-[#25343F] underline">( Pemilik / Manajemen Usaha )</p>
-          </div>
+      {/* ─── BOTTOM ACTION CONTAINER: UNDUH & CETAK LAPORAN ──────────────────── */}
+      <div className="no-print bg-white p-4 sm:p-5 rounded-2xl border border-[#BFC9D1]/25 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div>
+          <h4 className="font-extrabold text-sm text-[#25343F]">
+            Cetak atau Simpan Dokumen Laporan
+          </h4>
+          <p className="text-xs text-[#898989] mt-0.5">
+            Pastikan data dan periode laporan di atas sudah sesuai sebelum mengunduh atau mencetak.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <button
+            id="btn-download-report-pdf"
+            type="button"
+            disabled={isExportingPdf}
+            onClick={handleDownloadPdf}
+            className="flex-1 sm:flex-initial min-h-[42px] px-4 rounded-xl border border-[#BFC9D1]/30 bg-white hover:bg-[#EAEFEF] text-[#25343F] text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-sm active:scale-95"
+          >
+            {isExportingPdf ? (
+              <ArrowPathIcon className="w-4 h-4 animate-spin text-[#898989]" />
+            ) : (
+              <ArrowDownTrayIcon className="w-4 h-4 text-[#25343F]" />
+            )}
+            <span>{isExportingPdf ? 'Membuat PDF...' : 'Unduh PDF'}</span>
+          </button>
+
+          <button
+            id="btn-print-report"
+            type="button"
+            onClick={handlePrint}
+            className="flex-1 sm:flex-initial min-h-[42px] px-5 rounded-xl bg-[#FF9B51] hover:bg-[#ff8c38] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#FF9B51]/25 transition-all cursor-pointer active:scale-95"
+          >
+            <PrinterIcon className="w-4 h-4" />
+            <span>Cetak Laporan</span>
+          </button>
         </div>
       </div>
     </div>

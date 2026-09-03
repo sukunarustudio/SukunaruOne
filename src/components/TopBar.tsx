@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MagnifyingGlassIcon, ChevronDoubleLeftIcon, Bars3Icon, ArrowsPointingOutIcon, ArrowsPointingInIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ChevronDoubleLeftIcon, Bars3Icon, ArrowsPointingOutIcon, ArrowsPointingInIcon, BuildingStorefrontIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { ViewType, BusinessSettings } from '../types';
 
 interface TopBarProps {
@@ -116,6 +116,17 @@ export const TopBar: React.FC<TopBarProps> = ({
           <div className="hidden lg:block text-xs text-[#898989] font-normal truncate">
             {currentDateStr || 'Senin, 24 Agt'}
           </div>
+
+          <button
+            type="button"
+            id="btn-topbar-activation"
+            onClick={() => handleNav('activation')}
+            title="Status & Aktivasi Lisensi"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#BFC9D1]/30 bg-white hover:bg-[#EAEFEF] text-xs font-semibold text-[#25343F] transition-all cursor-pointer shadow-2xs"
+          >
+            <ShieldCheckIcon className="w-4 h-4 text-[#FF9B51]" />
+            <span className="hidden xl:inline">Lisensi</span>
+          </button>
 
           <button
             type="button"

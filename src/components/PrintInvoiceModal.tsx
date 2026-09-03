@@ -471,16 +471,16 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
                 <span className="font-bold text-[#25343F] block">Checklist Quality Control (QC) Sebelum Serah Terima:</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-medium">
                   <label className="flex items-center gap-2 text-[#25343F]">
-                    <input type="checkbox" className="rounded" readOnly /> <span>Ukuran cetak &amp; layout sesuai ACC desain</span>
+                    <input type="checkbox" className="rounded" readOnly /> <span>Kesesuaian spesifikasi &amp; instruksi pesanan</span>
                   </label>
                   <label className="flex items-center gap-2 text-[#25343F]">
-                    <input type="checkbox" className="rounded" readOnly /> <span>Hasil warna tajam &amp; tidak bergaris</span>
+                    <input type="checkbox" className="rounded" readOnly /> <span>Kualitas fisik / hasil rapi &amp; bebas cacat</span>
                   </label>
                   <label className="flex items-center gap-2 text-[#25343F]">
-                    <input type="checkbox" className="rounded" readOnly /> <span>Laminasi/Finishing merekat sempurna</span>
+                    <input type="checkbox" className="rounded" readOnly /> <span>Kelengkapan jumlah &amp; item pesanan</span>
                   </label>
                   <label className="flex items-center gap-2 text-[#25343F]">
-                    <input type="checkbox" className="rounded" readOnly /> <span>Jumlah pesanan lengkap &amp; dikemas rapi</span>
+                    <input type="checkbox" className="rounded" readOnly /> <span>Pengemasan rapi, aman &amp; siap serah terima</span>
                   </label>
                 </div>
               </div>

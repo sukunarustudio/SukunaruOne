@@ -1,5 +1,5 @@
 import React from 'react';
-import { Squares2X2Icon, BuildingStorefrontIcon, ClipboardDocumentListIcon, UsersIcon, CubeIcon, CalculatorIcon, Square3Stack3DIcon, WalletIcon, ReceiptPercentIcon, DocumentTextIcon, ArrowTrendingUpIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, BookOpenIcon, ChatBubbleLeftEllipsisIcon, HeartIcon, ChevronDoubleLeftIcon, XMarkIcon, CircleStackIcon, LockClosedIcon, CloudArrowUpIcon, SwatchIcon } from '@heroicons/react/24/outline';
+import { Squares2X2Icon, BuildingStorefrontIcon, ClipboardDocumentListIcon, UsersIcon, CubeIcon, CalculatorIcon, Square3Stack3DIcon, WalletIcon, ReceiptPercentIcon, DocumentTextIcon, ArrowTrendingUpIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, BookOpenIcon, ChatBubbleLeftEllipsisIcon, HeartIcon, ChevronDoubleLeftIcon, XMarkIcon, CircleStackIcon, LockClosedIcon, CloudArrowUpIcon, SwatchIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { ViewType, BusinessSettings } from '../types';
 import { useLicense } from '../hooks/useLicense';
 
@@ -92,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'SISTEM',
       items: [
         { id: 'settings' as ViewType, label: 'Pengaturan', icon: Cog6ToothIcon },
+        { id: 'activation' as ViewType, label: 'Aktivasi Lisensi', icon: ShieldCheckIcon },
         { id: 'appearance' as ViewType, label: 'Tampilan & Tema', icon: SwatchIcon },
         { id: 'backup' as ViewType, label: 'Cadangan Data & Sinkronisasi Cloud', icon: CloudArrowUpIcon },
         { id: 'app-info' as ViewType, label: 'Versi Aplikasi', icon: InformationCircleIcon },

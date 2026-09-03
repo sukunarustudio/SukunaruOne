@@ -253,9 +253,8 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
   const handleAutoGenerateBarcode = () => {
     setIsGeneratingBarcode(true);
     const mockId = editingProduct?.id || `prod_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const generated = generateBarcodeValue(mockId);
+    const generated = generateBarcodeValue(mockId, barcodeType);
     setBarcodeValue(generated);
-    setBarcodeType('CODE128');
     setBarcodeError('');
     setTimeout(() => setIsGeneratingBarcode(false), 200);
   };
@@ -502,51 +501,24 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
               <MagnifyingGlassIcon className="w-4 h-4" />
             </button>
 
-            {/* Desktop Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as SortOption)}
-              className="hidden md:block h-9 px-2.5 bg-white border border-[#BFC9D1]/25 rounded-xl text-xs font-semibold text-[#25343F] focus:outline-hidden focus:border-[#25343F] cursor-pointer shadow-sm"
-            >
-              <option value="name-asc">Nama (A - Z)</option>
-              <option value="name-desc">Nama (Z - A)</option>
-              <option value="price-asc">Harga Terendah</option>
-              <option value="price-desc">Harga Tertinggi</option>
-              <option value="margin-desc">Margin Tertinggi</option>
-              <option value="cost-asc">HPP Terendah</option>
-            </select>
-
-            {/* Mobile Filter Icon Button */}
+            {/* Unified Filter & Urutkan Button */}
             <button
               type="button"
-              id="btn-mobile-filter"
+              id="btn-filter-sort-products"
               onClick={() => setIsFilterDrawerOpen(true)}
-              aria-label="Filter Produk"
-              title="Filter Produk"
-              className={`md:hidden h-9 w-9 rounded-xl border flex items-center justify-center relative transition-all cursor-pointer active:scale-95 shrink-0 ${
-                activeFiltersCount > 0
-                  ? 'bg-[#25343F] border-slate-900 text-white shadow-sm'
-                  : 'bg-white border-[#BFC9D1]/25 text-[#898989] shadow-sm hover:bg-[#EAEFEF]'
+              aria-label="Filter & Urutkan Produk"
+              title="Filter & Urutkan Produk"
+              className={`h-9 px-3 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 shrink-0 text-xs font-bold ${
+                activeFiltersCount > 0 || sortBy !== 'name-asc'
+                  ? 'bg-[#25343F] border-[#25343F] text-white shadow-sm'
+                  : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
               }`}
             >
-              <AdjustmentsHorizontalIcon className="w-4 h-4" />
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#FF9B51] text-white text-[8px] flex items-center justify-center font-black">
-                  {activeFiltersCount}
-                </span>
+              <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#FF9B51]" />
+              <span>Filter &amp; Urutkan</span>
+              {(activeFiltersCount > 0 || sortBy !== 'name-asc') && (
+                <span className="w-2 h-2 rounded-full bg-[#FF9B51]" />
               )}
-            </button>
-
-            {/* Mobile Sort Icon Button */}
-            <button
-              type="button"
-              id="btn-mobile-sort"
-              onClick={() => setIsSortDrawerOpen(true)}
-              aria-label="Urutkan Produk"
-              title="Urutkan Produk"
-              className="md:hidden h-9 w-9 rounded-xl bg-white border border-[#BFC9D1]/25 text-[#898989] hover:bg-[#EAEFEF] flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0 shadow-sm"
-            >
-              <ArrowsUpDownIcon className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -1052,41 +1024,101 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
       )}
 
       {/* ========================================================================= */}
-      {/* MOBILE BOTTOM SHEET: FILTER DRAWER (< 768px)                              */}
+      {/* UNIFIED MODAL / BOTTOM SHEET: FILTER & URUTKAN PRODUK                    */}
       {/* ========================================================================= */}
       {isFilterDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#25343F]/60 backdrop-blur-xs">
-          <div className="bg-white rounded-t-3xl w-full max-w-lg p-5 max-h-[85vh] flex flex-col animate-slide-up shadow-2xl safe-area-bottom">
-            {/* Header */}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#25343F]/60 backdrop-blur-xs p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-lg p-4 sm:p-6 max-h-[85vh] flex flex-col animate-slide-up sm:animate-fade-in shadow-2xl safe-area-bottom border border-[#BFC9D1]/25">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#25343F]" />
-                <h3 className="font-extrabold text-sm text-[#25343F]">Filter Produk</h3>
+                <AdjustmentsHorizontalIcon className="w-5 h-5 text-[#FF9B51]" />
+                <h3 className="font-extrabold text-sm sm:text-base text-[#25343F]">Filter &amp; Urutkan Produk</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsFilterDrawerOpen(false)}
-                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] hover:text-[#25343F] cursor-pointer"
               >
                 <XMarkIcon className="w-4 h-4" />
               </button>
             </div>
 
             {/* Filter Content */}
-            <div className="overflow-y-auto py-4 space-y-3.5 flex-1 text-xs">
-              {/* Category Filter */}
+            <div className="overflow-y-auto py-4 space-y-4 flex-1 text-xs">
+              {/* 1. Urutkan Produk */}
+              <div>
+                <label className="block font-bold text-[#25343F] mb-2">Urutan Produk</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'name-asc', label: 'Nama (A - Z)' },
+                    { id: 'name-desc', label: 'Nama (Z - A)' },
+                    { id: 'price-asc', label: 'Harga Terendah' },
+                    { id: 'price-desc', label: 'Harga Tertinggi' },
+                    { id: 'margin-desc', label: 'Margin Tertinggi' },
+                    { id: 'cost-asc', label: 'HPP Terendah' },
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setSortBy(opt.id as SortOption)}
+                      className={`py-2 px-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer text-left flex items-center justify-between border ${
+                        sortBy === opt.id
+                          ? 'bg-[#25343F] text-white border-[#25343F] shadow-sm'
+                          : 'bg-[#EAEFEF] text-[#898989] border-[#BFC9D1]/25 hover:bg-[#EAEFEF]'
+                      }`}
+                    >
+                      <span className="truncate">{opt.label}</span>
+                      {sortBy === opt.id && <CheckIcon className="w-3.5 h-3.5 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Tipe Produk */}
+              <div>
+                <label className="block font-bold text-[#25343F] mb-2">Tipe Produk</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'SEMUA', label: 'Semua' },
+                    { id: 'PHYSICAL', label: 'Produk' },
+                    { id: 'SERVICE', label: 'Jasa' },
+                  ].map(t => {
+                    const isSelected =
+                      selectedType === t.id ||
+                      (t.id === 'PHYSICAL' && (selectedType === 'CETAK' || selectedType === 'MERCHANDISE')) ||
+                      (t.id === 'SERVICE' && selectedType === 'JASA');
+
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setSelectedType(t.id)}
+                        className={`py-2 rounded-xl font-bold transition-all cursor-pointer text-center border ${
+                          isSelected
+                            ? 'bg-[#25343F] text-white border-[#25343F] shadow-sm'
+                            : 'bg-[#EAEFEF] text-[#898989] border-[#BFC9D1]/25 hover:bg-[#EAEFEF]'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Category Filter */}
               <div>
                 <label className="block font-bold text-[#25343F] mb-2">Kategori Produk</label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 bg-[#EAEFEF]/50 rounded-xl border border-[#BFC9D1]/25">
                   {categories.map(cat => (
                     <button
                       key={cat}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-2 rounded-xl font-bold transition-all cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
                         selectedCategory === cat
                           ? 'bg-[#25343F] text-white shadow-sm'
-                          : 'bg-[#EAEFEF] text-[#898989] hover:bg-[#EAEFEF]'
+                          : 'bg-white text-[#898989] hover:bg-[#EAEFEF] border border-[#BFC9D1]/25'
                       }`}
                     >
                       {cat}
@@ -1095,28 +1127,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
                 </div>
               </div>
 
-              {/* Type Filter */}
-              <div>
-                <label className="block font-bold text-[#25343F] mb-2">Tipe Item</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['SEMUA', 'CETAK', 'JASA'].map(t => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setSelectedType(t)}
-                      className={`py-2 rounded-xl font-bold transition-all cursor-pointer text-center ${
-                        selectedType === t
-                          ? 'bg-[#25343F] text-white shadow-sm'
-                          : 'bg-[#EAEFEF] text-[#898989] hover:bg-[#EAEFEF]'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Minimum Margin Preset */}
+              {/* 4. Minimum Margin Preset */}
               <div>
                 <label className="block font-bold text-[#25343F] mb-2">Minimal Margin Laba</label>
                 <div className="grid grid-cols-4 gap-2">
@@ -1130,10 +1141,10 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
                       key={m.label}
                       type="button"
                       onClick={() => setMinMarginFilter(m.val as any)}
-                      className={`py-2 rounded-xl font-bold transition-all cursor-pointer text-center ${
+                      className={`py-2 rounded-xl font-bold transition-all cursor-pointer text-center border ${
                         minMarginFilter === m.val
-                          ? 'bg-[#25343F] text-white shadow-sm'
-                          : 'bg-[#EAEFEF] text-[#898989] hover:bg-[#EAEFEF]'
+                          ? 'bg-[#25343F] text-white border-[#25343F] shadow-sm'
+                          : 'bg-[#EAEFEF] text-[#898989] border-[#BFC9D1]/25 hover:bg-[#EAEFEF]'
                       }`}
                     >
                       {m.label}
@@ -1144,70 +1155,21 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
             </div>
 
             {/* Bottom Actions */}
-            <div className="pt-3 border-t border-slate-100 flex items-center gap-3">
+            <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5">
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="flex-1 min-h-[44px] py-2.5 rounded-xl border border-[#BFC9D1]/25 font-bold text-[#898989] hover:bg-[#EAEFEF] cursor-pointer"
+                className="flex-1 min-h-[42px] py-2 rounded-xl border border-[#BFC9D1]/25 font-bold text-[#898989] hover:bg-[#EAEFEF] cursor-pointer text-xs"
               >
                 Reset
               </button>
               <button
                 type="button"
                 onClick={() => setIsFilterDrawerOpen(false)}
-                className="flex-2 min-h-[44px] py-2.5 bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] font-bold rounded-xl shadow-sm cursor-pointer"
+                className="flex-2 min-h-[42px] py-2 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-black rounded-xl shadow-sm cursor-pointer text-xs"
               >
-                Terapkan Filter
+                Terapkan
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MOBILE BOTTOM SHEET: SORT DRAWER (< 768px)                                */}
-      {/* ========================================================================= */}
-      {isSortDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#25343F]/60 backdrop-blur-xs">
-          <div className="bg-white rounded-t-3xl w-full max-w-lg p-5 max-h-[85vh] flex flex-col animate-slide-up shadow-2xl safe-area-bottom">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <ArrowsUpDownIcon className="w-4 h-4 text-[#25343F]" />
-                <h3 className="font-extrabold text-sm text-[#25343F]">Urutkan Produk</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsSortDrawerOpen(false)}
-                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] cursor-pointer"
-              >
-                <XMarkIcon className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="py-3 divide-y divide-slate-100 text-xs">
-              {[
-                { id: 'name-asc', label: 'Nama Produk (A - Z)' },
-                { id: 'name-desc', label: 'Nama Produk (Z - A)' },
-                { id: 'price-asc', label: 'Harga Jual Terendah' },
-                { id: 'price-desc', label: 'Harga Jual Tertinggi' },
-                { id: 'margin-desc', label: 'Margin Laba Tertinggi' },
-                { id: 'cost-asc', label: 'Biaya Pokok (HPP) Terendah' },
-              ].map(opt => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => {
-                    setSortBy(opt.id as SortOption);
-                    setIsSortDrawerOpen(false);
-                  }}
-                  className="w-full min-h-[44px] py-3 px-2 flex items-center justify-between text-left text-[#25343F] hover:bg-[#EAEFEF] cursor-pointer"
-                >
-                  <span className={`text-sm ${sortBy === opt.id ? 'font-black text-[#25343F]' : 'font-medium'}`}>
-                    {opt.label}
-                  </span>
-                  {sortBy === opt.id && <CheckIcon className="w-4 h-4 text-[#25343F]" />}
-                </button>
-              ))}
             </div>
           </div>
         </div>
@@ -1303,31 +1265,31 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
                   />
                 </div>
 
-                {/* Tipe: Clean Segmented Pill Buttons (No native Android popup) */}
+                {/* Tipe: Clean Segmented Pill Buttons */}
                 <div>
                   <label className="block font-bold text-[#25343F] mb-1">Tipe Produk</label>
                   <div className="grid grid-cols-2 p-1 bg-[#EAEFEF] rounded-xl border border-[#BFC9D1]/25">
                     <button
                       type="button"
-                      onClick={() => setType('CETAK')}
+                      onClick={() => setType('PHYSICAL')}
                       className={`py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer text-center ${
-                        type === 'CETAK'
+                        type === 'PHYSICAL' || type === 'CETAK' || type === 'MERCHANDISE'
                           ? 'bg-[#25343F] text-white shadow-md'
-                          : 'text-[#898989] hover:text-white'
+                          : 'text-[#898989] hover:text-[#25343F]'
                       }`}
                     >
-                      Produk Fisik
+                      Produk
                     </button>
                     <button
                       type="button"
-                      onClick={() => setType('JASA')}
+                      onClick={() => setType('SERVICE')}
                       className={`py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer text-center ${
-                        type === 'JASA'
+                        type === 'SERVICE' || type === 'JASA' || type === 'DESAIN'
                           ? 'bg-[#25343F] text-white shadow-md'
-                          : 'text-[#898989] hover:text-white'
+                          : 'text-[#898989] hover:text-[#25343F]'
                       }`}
                     >
-                      Jasa / Desain
+                      Jasa
                     </button>
                   </div>
                 </div>

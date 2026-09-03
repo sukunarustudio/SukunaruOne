@@ -1599,6 +1599,32 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           {/* ------------------------------------------------------------------- */}
           {/* MOBILE COMPACT ORDER LIST (< md) WITH SWIPE GESTURE                 */}
           {/* ------------------------------------------------------------------- */}
+          {filteredOrders.length > 0 && (
+            <div className="md:hidden flex items-center justify-between px-3 py-2 bg-white rounded-xl border border-[#BFC9D1]/25 text-xs font-semibold">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isAllFilteredSelected}
+                  onChange={handleToggleSelectAllFiltered}
+                  className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer"
+                />
+                <span className="text-xs font-bold text-[#25343F]">
+                  {isAllFilteredSelected ? 'Batalkan Pilih Semua' : 'Pilih Semua Pesanan'}
+                </span>
+              </label>
+              {selectedOrderIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenBatchPrint()}
+                  className="px-2.5 py-1 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-lg text-[11px] font-black flex items-center gap-1 cursor-pointer"
+                >
+                  <PrinterIcon className="w-3.5 h-3.5" />
+                  <span>Cetak ({selectedOrderIds.length})</span>
+                </button>
+              )}
+            </div>
+          )}
+
           <div
             className="md:hidden space-y-2 select-none touch-pan-y"
             onTouchStart={handleTouchStart}
@@ -1655,18 +1681,14 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                     {/* Line 1: Checkbox + Order Number (Left) | Total Price (Right) */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <button
-                          type="button"
-                          onClick={e => handleToggleSelectOrder(order.id, e)}
-                          className="p-1 -m-1 text-[#898989] hover:text-[#25343F] cursor-pointer shrink-0"
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={e => handleToggleSelectOrder(order.id, e)}
+                          onClick={e => e.stopPropagation()}
+                          className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer shrink-0"
                           aria-label="Pilih pesanan"
-                        >
-                          {isSelected ? (
-                            <CheckCircleIcon className="w-4 h-4 text-[#25343F]" />
-                          ) : (
-                            <StopIcon className="w-4 h-4 text-[#898989]" />
-                          )}
-                        </button>
+                        />
                         <span className="font-black text-xs text-[#25343F] font-mono truncate">
                           {order.orderNumber}
                         </span>
@@ -2187,6 +2209,38 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
               </span>
             </div>
 
+            {/* Status Pengerjaan Quick Selector */}
+            <div className="p-3 bg-[#EAEFEF]/80 rounded-xl border border-[#BFC9D1]/30 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-bold text-[#25343F]">
+                Status Pengerjaan:
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { id: 'BARU', label: '1. Baru' },
+                  { id: 'DIPROSES', label: '2. Proses' },
+                  { id: 'SIAP DIAMBIL', label: '3. Diambil' },
+                  { id: 'SELESAI', label: '4. Selesai' },
+                  { id: 'BATAL', label: '5. Batal' },
+                ].map(st => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={async () => {
+                      await handleUpdateStatus(selectedOrder.id, st.id);
+                      setSelectedOrder(prev => prev ? { ...prev, status: st.id as any } : null);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                      selectedOrder.status === st.id
+                        ? 'bg-[#25343F] text-white border-[#25343F] shadow-sm'
+                        : 'bg-white text-[#898989] border-[#BFC9D1]/30 hover:bg-[#EAEFEF]'
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Modal Content Scroll */}
             <div className="overflow-y-auto flex-1 py-4 space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3.5 p-3.5 bg-[#EAEFEF] rounded-xl border border-[#BFC9D1]/25">
@@ -2594,8 +2648,58 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         </div>
       )}
 
+      {/* ── Floating Batch Actions Bar (When items selected) ── */}
+      {selectedOrderIds.length > 0 && (
+        <div
+          className="fixed bottom-[92px] sm:bottom-8 left-1/2 -translate-x-1/2 z-40 bg-[#25343F] text-white px-4 py-2.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2.5 sm:gap-3 animate-fade-in max-w-[95vw]"
+          style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}
+        >
+          <div className="text-xs font-black whitespace-nowrap">
+            <span className="text-[#FF9B51]">{selectedOrderIds.length}</span> Dipilih
+          </div>
+
+          <div className="h-4 w-px bg-white/20 shrink-0" />
+
+          <button
+            type="button"
+            onClick={() => handleOpenBatchPrint()}
+            className="px-3 py-1.5 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm shrink-0"
+          >
+            <PrinterIcon className="w-3.5 h-3.5" />
+            <span className="whitespace-nowrap">Cetak Massal</span>
+          </button>
+
+          <select
+            onChange={e => {
+              if (e.target.value) {
+                handleBatchUpdateStatus(selectedOrderIds, e.target.value);
+                e.target.value = '';
+              }
+            }}
+            defaultValue=""
+            className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border border-white/20 shrink-0"
+          >
+            <option value="" disabled className="text-zinc-800 font-normal">Ubah Status...</option>
+            <option value="BARU" className="text-zinc-800">1. Baru</option>
+            <option value="DIPROSES" className="text-zinc-800">2. Proses</option>
+            <option value="SIAP DIAMBIL" className="text-zinc-800">3. Diambil</option>
+            <option value="SELESAI" className="text-zinc-800">4. Selesai</option>
+            <option value="BATAL" className="text-zinc-800">5. Batal</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={handleDeselectAll}
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            title="Batal Pilihan"
+          >
+            <XMarkIcon className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* ── Floating Action Button (FAB) Buat Pesanan Kerja ── */}
-      {viewMode !== 'pos' && (
+      {viewMode !== 'pos' && selectedOrderIds.length === 0 && (
         <button
           id="btn-add-order-fab"
           type="button"

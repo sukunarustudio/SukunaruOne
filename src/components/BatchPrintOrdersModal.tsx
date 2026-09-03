@@ -293,7 +293,7 @@ export const BatchPrintOrdersModal: React.FC<BatchPrintOrdersModalProps> = ({
                         <div className="p-3 bg-[#EAEFEF] rounded-lg border border-[#BFC9D1]/25 space-y-1">
                           <h5 className="font-bold text-[#25343F] uppercase text-[9px]">Catatan Khusus:</h5>
                           <p className="text-[#25343F] text-[11px] leading-relaxed">
-                            {order.notes || 'Resolusi minimal 300 DPI, mode warna CMYK, pastikan bleeding aman.'}
+                            {order.notes || 'Periksa detail instruksi khusus sebelum serah terima.'}
                           </p>
                         </div>
 
@@ -301,16 +301,16 @@ export const BatchPrintOrdersModal: React.FC<BatchPrintOrdersModalProps> = ({
                           <h5 className="font-bold text-[#25343F] uppercase text-[9px]">Quality Control:</h5>
                           <div className="grid grid-cols-2 gap-1 text-[10px] text-[#25343F]">
                             <label className="flex items-center gap-1.5">
-                              <input type="checkbox" className="rounded" readOnly /> <span>Warna akurat</span>
+                              <input type="checkbox" className="rounded" readOnly /> <span>Sesuai spesifikasi</span>
                             </label>
                             <label className="flex items-center gap-1.5">
-                              <input type="checkbox" className="rounded" readOnly /> <span>Ukuran presisi</span>
+                              <input type="checkbox" className="rounded" readOnly /> <span>Kualitas rapi</span>
                             </label>
                             <label className="flex items-center gap-1.5">
-                              <input type="checkbox" className="rounded" readOnly /> <span>Finishing rapi</span>
+                              <input type="checkbox" className="rounded" readOnly /> <span>Jumlah lengkap</span>
                             </label>
                             <label className="flex items-center gap-1.5">
-                              <input type="checkbox" className="rounded" readOnly /> <span>Jumlah komplit</span>
+                              <input type="checkbox" className="rounded" readOnly /> <span>Kemasan aman</span>
                             </label>
                           </div>
                         </div>

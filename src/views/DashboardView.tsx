@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRightIcon, CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, CubeIcon, PlusIcon, UsersIcon, ShoppingBagIcon, DocumentTextIcon, ArrowTrendingUpIcon, WalletIcon, ArrowUpRightIcon, ClipboardDocumentListIcon, PrinterIcon, ArrowPathIcon, MagnifyingGlassIcon, BuildingStorefrontIcon, ShoppingCartIcon, CalculatorIcon, Square3Stack3DIcon, ReceiptPercentIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ArrowDownRightIcon, LockClosedIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { useLicense } from '../hooks/useLicense';
-import { BuildingStorefrontIcon as BuildingStorefrontSolid, ClipboardDocumentListIcon as ClipboardDocumentListSolid, UsersIcon as UsersSolid, CubeIcon as CubeSolid, CalculatorIcon as CalculatorSolid, Square3Stack3DIcon as Square3StackSolid, WalletIcon as WalletSolid, ArrowTrendingUpIcon as ArrowTrendingUpSolid, Cog6ToothIcon as CogSolid } from '@heroicons/react/24/solid';
+import { BuildingStorefrontIcon as BuildingStorefrontSolid, ClipboardDocumentListIcon as ClipboardDocumentListSolid, UsersIcon as UsersSolid, CubeIcon as CubeSolid, CalculatorIcon as CalculatorSolid, Square3Stack3DIcon as Square3StackSolid, WalletIcon as WalletSolid, ArrowTrendingUpIcon as ArrowTrendingUpSolid, Cog6ToothIcon as CogSolid, CloudArrowUpIcon as CloudArrowUpSolid } from '@heroicons/react/24/solid';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -648,6 +648,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
               label: 'Laporan',
               bgClass: 'bg-[#FFE4E6] hover:bg-[#FECDD3] shadow-[0_2px_8px_rgba(244,63,94,0.22)]',
               onClick: () => goTo('sales-report'),
+            },
+            {
+              icon: <CloudArrowUpSolid className="w-5 h-5 text-[#3B82F6]" />,
+              label: 'Cadangkan Data',
+              bgClass: 'bg-[#EFF6FF] hover:bg-[#DBEAFE] shadow-[0_2px_8px_rgba(59,130,246,0.22)]',
+              onClick: () => goTo('backup'),
             },
           ].map(action => (
             <button

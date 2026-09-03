@@ -106,8 +106,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
     setMatForm({
       sku: `MAT-${Math.floor(100 + Math.random() * 900)}`,
       name: '',
-      category: 'Kertas',
-      unit: 'lembar',
+      category: 'Bahan',
+      unit: 'pcs',
       currentStock: 50,
       minStock: 20,
       unitCost: 1000,
@@ -665,18 +665,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
                     }}
                     className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl font-medium cursor-pointer text-xs sm:text-sm"
                   >
-                    <option value="Kertas">Kertas</option>
-                    <option value="Tinta">Tinta</option>
-                    <option value="Stiker & Vinyl">Stiker &amp; Vinyl</option>
-                    <option value="MDF & Kayu">MDF &amp; Kayu</option>
-                    <option value="Akrilik">Akrilik</option>
-                    <option value="Kain & Tekstil">Kain &amp; Tekstil</option>
-                    <option value="Laminasi & Finishing">Laminasi &amp; Finishing</option>
-                    <option value="Kemasan & Box">Kemasan &amp; Box</option>
-                    <option value="Aksesoris & Perlengkapan">Aksesoris &amp; Perlengkapan</option>
+                    <option value="Bahan">Bahan</option>
+                    <option value="Kemasan">Kemasan</option>
+                    <option value="Perlengkapan">Perlengkapan</option>
+                    <option value="Operasional">Operasional</option>
+                    <option value="Produksi">Produksi</option>
+                    <option value="Lainnya">Lainnya</option>
                     <option value="custom">+ Ketik Kategori Lainnya...</option>
                   </select>
-                  {!['Kertas', 'Tinta', 'Stiker & Vinyl', 'MDF & Kayu', 'Akrilik', 'Kain & Tekstil', 'Laminasi & Finishing', 'Kemasan & Box', 'Aksesoris & Perlengkapan'].includes(matForm.category) && (
+                  {!['Bahan', 'Kemasan', 'Perlengkapan', 'Operasional', 'Produksi', 'Lainnya'].includes(matForm.category) && (
                     <input
                       type="text"
                       autoFocus

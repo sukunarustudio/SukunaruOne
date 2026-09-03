@@ -501,7 +501,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               </button>
             )}
 
-            {/* Barcode Scan Camera Button */}
+            {/* Barcode Scan Camera Button (Desktop Only) */}
             <button
               type="button"
               onClick={() => {
@@ -512,8 +512,8 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                 setIsScannerOpen(true);
               }}
               aria-label={isPro ? "Scan Barcode Produk" : "Scan Barcode Produk (Terkunci)"}
-              title={isPro ? "Scan Barcode Produk" : "Scan Barcode Produk (Perlu Aktivasi)"}
-              className={`h-8 rounded-lg border flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${
+              title={isPro ? "Scan Barcode Produk (Kamera / USB)" : "Scan Barcode Produk (Perlu Aktivasi)"}
+              className={`hidden lg:flex h-8 rounded-lg border items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${
                 !isPro
                   ? 'px-2 gap-1 border-[#FF9B51]/40 bg-[#FFF6F0] text-[#FF9B51]'
                   : 'w-8 border-[#BFC9D1]/25 bg-white hover:bg-[#FF9B51]/10 hover:border-[#FF9B51]/50 text-[#898989] hover:text-[#FF9B51]'
@@ -1133,6 +1133,36 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── FLOATING BARCODE SCANNER BUTTON (FAB) ON MOBILE ── */}
+      {mobileTab === 'catalog' && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 lg:hidden pointer-events-auto animate-fade-in">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isPro) {
+                setIsBarcodeLockedModalOpen(true);
+                return;
+              }
+              setIsScannerOpen(true);
+            }}
+            aria-label={isPro ? "Scan Barcode Produk" : "Scan Barcode Produk (Terkunci)"}
+            className={`h-11 px-5 rounded-full flex items-center justify-center gap-2 font-black text-xs shadow-xl active:scale-95 transition-all cursor-pointer border ${
+              !isPro
+                ? 'bg-[#25343F] text-white border-[#FF9B51]/50 shadow-[#25343F]/35'
+                : 'bg-[#25343F] text-white border-white/25 hover:bg-[#1b2730] shadow-lg shadow-[#25343F]/40'
+            }`}
+          >
+            <QrCodeIcon className="w-4 h-4 text-[#FF9B51]" />
+            <span>Scan Barcode</span>
+            {!isPro && (
+              <span className="px-1.5 py-0.5 text-[9px] font-black rounded bg-[#FF9B51] text-[#25343F]">
+                PRO
+              </span>
+            )}
+          </button>
         </div>
       )}
     </div>

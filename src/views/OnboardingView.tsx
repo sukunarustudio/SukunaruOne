@@ -766,6 +766,27 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                 />
               </div>
 
+              {/* Jenis Usaha */}
+              <div>
+                <label className="block font-bold text-[#25343F] mb-1">
+                  Jenis Usaha
+                </label>
+                <select
+                  value={profileForm.businessType || 'Percetakan & Digital Print'}
+                  onChange={e => setProfileForm(prev => ({ ...prev, businessType: e.target.value }))}
+                  className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#BFC9D1]/30 rounded-xl text-xs font-semibold text-[#25343F] focus:bg-white focus:border-[#FF9B51] outline-none cursor-pointer"
+                >
+                  <option value="Percetakan & Digital Print">Percetakan &amp; Digital Printing</option>
+                  <option value="Fotografi & Studio">Fotografi &amp; Studio Foto</option>
+                  <option value="Retail & Toko">Retail, Minimarket &amp; Toko Kelontong</option>
+                  <option value="Jasa & Layanan Kreatif">Jasa &amp; Layanan Kreatif / Desain</option>
+                  <option value="Kuliner & F&B">Kuliner, Kafe &amp; F&amp;B</option>
+                  <option value="Fashion & Pakaian">Fashion, Butik &amp; Konveksi</option>
+                  <option value="Bengkel & Servis">Bengkel &amp; Jasa Servis</option>
+                  <option value="UMKM Umum">UMKM Umum &amp; Lainnya</option>
+                </select>
+              </div>
+
               {/* Slogan */}
               <div>
                 <label className="block font-bold text-[#25343F] mb-1">
