@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRightIcon, CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, CubeIcon, PlusIcon, UsersIcon, ShoppingBagIcon, DocumentTextIcon, ArrowTrendingUpIcon, WalletIcon, ArrowUpRightIcon, ClipboardDocumentListIcon, PrinterIcon, ArrowPathIcon, MagnifyingGlassIcon, BuildingStorefrontIcon, ShoppingCartIcon, CalculatorIcon, Square3Stack3DIcon, ReceiptPercentIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ArrowDownRightIcon, LockClosedIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon, CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, CubeIcon, PlusIcon, UsersIcon, ShoppingBagIcon, DocumentTextIcon, ArrowTrendingUpIcon, WalletIcon, ArrowUpRightIcon, ClipboardDocumentListIcon, PrinterIcon, ArrowPathIcon, MagnifyingGlassIcon, BuildingStorefrontIcon, ShoppingCartIcon, CalculatorIcon, Square3Stack3DIcon, ReceiptPercentIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ArrowDownRightIcon, LockClosedIcon, SparklesIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useLicense } from '../hooks/useLicense';
 import { BuildingStorefrontIcon as BuildingStorefrontSolid, ClipboardDocumentListIcon as ClipboardDocumentListSolid, UsersIcon as UsersSolid, CubeIcon as CubeSolid, CalculatorIcon as CalculatorSolid, Square3Stack3DIcon as Square3StackSolid, WalletIcon as WalletSolid, ArrowTrendingUpIcon as ArrowTrendingUpSolid, Cog6ToothIcon as CogSolid, CloudArrowUpIcon as CloudArrowUpSolid } from '@heroicons/react/24/solid';
 import {
@@ -366,23 +366,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   return (
     <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
 
-      {/* ── LIGHT NON-BLOCKING BUSINESS PROFILE PROMPT ────────────────── */}
+      {/* ── FLOATING LOW-OPACITY BUSINESS PROFILE PROMPT (COMPACT) ── */}
       {!isProfileBannerDismissed && isProfileIncomplete && (
-        <div className="bg-white dark:bg-[#151D2A] p-4 rounded-2xl border border-[#BFC9D1]/30 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 transition-all">
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[#FF9B51]/15 text-[#FF6A00] dark:bg-[#FF9B51]/20 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
-              <BuildingStorefrontIcon className="w-5 h-5 stroke-[2]" />
+        <div
+          className="fixed top-18 right-3 sm:right-6 z-40 max-w-xs sm:max-w-sm bg-white/80 dark:bg-[#151D2A]/80 backdrop-blur-md border border-[#BFC9D1]/40 dark:border-slate-800 shadow-lg shadow-black/5 p-2 sm:p-2.5 rounded-2xl flex items-center justify-between gap-2.5 transition-all animate-in fade-in slide-in-from-top-2 duration-300"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-[#FF9B51]/20 text-[#FF6A00] flex items-center justify-center shrink-0">
+              <BuildingStorefrontIcon className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-xs sm:text-sm font-bold text-[#25343F] dark:text-white">
+              <h4 className="text-[11px] sm:text-xs font-bold text-[#25343F] dark:text-white truncate">
                 Lengkapi profil bisnis
-              </h3>
-              <p className="text-[11px] sm:text-xs text-[#898989] dark:text-slate-400 mt-0.5 leading-relaxed">
-                Tambahkan informasi bisnis agar invoice, struk, SPK, dan dokumen lainnya tampil lebih profesional.
+              </h4>
+              <p className="text-[10px] text-[#898989] dark:text-slate-400 truncate hidden sm:block">
+                Agar invoice &amp; SPK tampil profesional
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => goTo('business-profile')}
+              className="px-2.5 py-1 bg-[#FF6A00]/90 hover:bg-[#FF6A00] active:scale-95 text-white text-[10.5px] font-bold rounded-lg shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            >
+              Lengkapi →
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -391,46 +400,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                 } catch {}
                 setIsProfileBannerDismissed(true);
               }}
-              className="text-xs text-[#898989] dark:text-slate-400 hover:text-[#25343F] dark:hover:text-white px-3 py-2 rounded-xl transition cursor-pointer"
+              className="p-1 text-[#898989] hover:text-[#25343F] dark:hover:text-white transition-colors cursor-pointer rounded-lg hover:bg-black/5"
+              title="Tutup"
+              aria-label="Tutup"
             >
-              Nanti
-            </button>
-            <button
-              type="button"
-              onClick={() => goTo('business-profile')}
-              className="flex-1 sm:flex-initial px-4 py-2 bg-[#FF6A00] hover:bg-[#e65c00] active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer text-center"
-            >
-              Lengkapi Profil →
+              <XMarkIcon className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
-      )}
-
-      {/* ── UNLICENSED / TRIAL NOTICE BANNER ─────────────────────────── */}
-      {!isPro && (
-        <div className="bg-gradient-to-r from-[#25343F] to-[#1E293B] text-white p-4 rounded-2xl border border-[#FF9B51]/30 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FF9B51]/20 border border-[#FF9B51]/40 flex items-center justify-center shrink-0">
-              <LockClosedIcon className="w-5 h-5 text-[#FF9B51]" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-white flex items-center gap-1.5">
-                {isTrialExpired ? 'Masa Percobaan Trial Berakhir' : 'Mode Terbatas (Belum Aktivasi)'}
-              </h3>
-              <p className="text-xs text-slate-300 mt-0.5">
-                {isTrialExpired
-                  ? 'Aktivasi lisensi Pro untuk melanjutkan akses penuh ke seluruh fitur studio.'
-                  : 'Aktifkan Serial Key untuk membuka Pesanan, Kalkulator HPP, Arus Kas, Pengaturan Profil, Cloud Sync & Laporan.'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => goTo('activation')}
-            className="w-full sm:w-auto px-4 py-2 bg-[#FF9B51] hover:bg-[#e8894a] text-white text-xs font-black rounded-xl shadow transition-all cursor-pointer shrink-0 text-center active:scale-95"
-          >
-            Aktivasi Sekarang →
-          </button>
         </div>
       )}
 
