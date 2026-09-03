@@ -875,8 +875,8 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
       {/* ── FLOATING MINIMALIST CART SUMMARY BUTTON (BOTTOM-RIGHT) ── */}
       {mobileTab === 'catalog' && cart.length > 0 && (
         <div
-          className="lg:hidden fixed right-3 z-30 flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-auto"
-          style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 8px))' }}
+          className="lg:hidden fixed right-3 z-30 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-auto"
+          style={{ bottom: 'calc(78px + env(safe-area-inset-bottom, 8px))' }}
         >
           {/* Compact Trash / Clear Cart Icon Button with confirmation */}
           <button
@@ -887,7 +887,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
             }}
             aria-label="Kosongkan Keranjang"
             title="Kosongkan Keranjang"
-            className="w-11 h-11 rounded-full bg-[#25343F] hover:bg-[#1c2730] active:scale-95 text-rose-400 shadow-lg shadow-[#25343F]/30 flex items-center justify-center cursor-pointer border border-white/10 transition-all shrink-0"
+            className="w-11 h-11 rounded-full bg-[#1E293B]/95 backdrop-blur-md hover:bg-[#151D2A] active:scale-90 text-rose-400 shadow-[0_8px_20px_-4px_rgba(30,41,59,0.35)] flex items-center justify-center cursor-pointer border border-white/15 transition-all shrink-0"
           >
             <TrashIcon className="w-4 h-4 text-rose-400" />
           </button>
@@ -897,13 +897,13 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
             type="button"
             onClick={() => setMobileTab('cart')}
             aria-label="Lihat Rincian Pesanan / Keranjang"
-            className="h-11 pl-3 pr-3.5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] shadow-xl shadow-[#FF9B51]/30 flex items-center gap-2 font-black text-xs cursor-pointer border border-[#FF9B51]/40 active:scale-95 transition-all"
+            className="h-11 pl-2.5 pr-4 rounded-full bg-gradient-to-r from-[#FF9B51] to-[#FF8533] hover:from-[#ff8f3d] hover:to-[#ff751a] text-[#1E293B] shadow-[0_8px_20px_-4px_rgba(255,155,81,0.45)] flex items-center gap-2 font-bold text-xs cursor-pointer border border-white/30 active:scale-95 transition-all"
           >
-            <span className="w-5 h-5 rounded-full bg-[#25343F] text-white text-[10.5px] font-black flex items-center justify-center shrink-0">
+            <span className="w-6 h-6 rounded-full bg-[#1E293B] text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs">
               {cart.reduce((s, i) => s + i.quantity, 0)}
             </span>
-            <span className="font-mono font-black text-xs">{formatRupiah(finalTotal)}</span>
-            <span className="text-sm font-black leading-none">&rarr;</span>
+            <span className="font-mono font-black text-xs text-[#1E293B]">{formatRupiah(finalTotal)}</span>
+            <span className="text-sm font-black text-[#1E293B] leading-none">&rarr;</span>
           </button>
         </div>
       )}
@@ -1164,7 +1164,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               ? 'left-3'
               : 'left-1/2 -translate-x-1/2'
           }`}
-          style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 8px))' }}
+          style={{ bottom: 'calc(78px + env(safe-area-inset-bottom, 8px))' }}
         >
           <button
             type="button"
@@ -1176,16 +1176,18 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               setIsScannerOpen(true);
             }}
             aria-label={isPro ? "Scan Barcode Produk" : "Scan Barcode Produk (Terkunci)"}
-            className={`h-11 px-4 rounded-full flex items-center justify-center gap-1.5 font-black text-xs shadow-xl active:scale-95 transition-all cursor-pointer border ${
+            className={`h-11 pl-2.5 pr-4 rounded-full flex items-center justify-center gap-2 font-bold text-xs shadow-[0_8px_20px_-4px_rgba(30,41,59,0.35)] active:scale-95 hover:scale-[1.02] transition-all cursor-pointer border ${
               !isPro
-                ? 'bg-[#25343F] text-white border-[#FF9B51]/50 shadow-[#25343F]/35'
-                : 'bg-[#25343F] text-white border-white/25 hover:bg-[#1b2730] shadow-lg shadow-[#25343F]/40'
+                ? 'bg-[#1E293B]/95 backdrop-blur-md text-white border-[#FF9B51]/40'
+                : 'bg-[#1E293B]/95 backdrop-blur-md text-white border-white/15 hover:bg-[#151D2A]'
             }`}
           >
-            <QrCodeIcon className="w-4 h-4 text-[#FF9B51]" />
-            <span>Scan Barcode</span>
+            <div className="w-6 h-6 rounded-full bg-[#FF9B51]/20 border border-[#FF9B51]/30 flex items-center justify-center shrink-0">
+              <QrCodeIcon className="w-3.5 h-3.5 text-[#FF9B51] stroke-[2.2]" />
+            </div>
+            <span className="tracking-tight font-bold">Scan Barcode</span>
             {!isPro && (
-              <span className="px-1.5 py-0.5 text-[9px] font-black rounded bg-[#FF9B51] text-[#25343F]">
+              <span className="px-1.5 py-0.5 text-[8.5px] font-black rounded bg-gradient-to-r from-[#FF9B51] to-[#FF8533] text-[#1E293B] uppercase tracking-wider">
                 PRO
               </span>
             )}
