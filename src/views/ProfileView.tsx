@@ -202,41 +202,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
-      {/* Auth Account Card (show if logged in) */}
-      {authEmail && (
-        <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md overflow-hidden">
-          <div className="text-[10.5px] font-extrabold text-[#898989] uppercase tracking-wider px-4 pt-3 pb-1">
-            AKUN CLOUD
-          </div>
-          <div className="px-4 py-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center shrink-0">
-              <UserCircleIcon className="w-5 h-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold text-[#25343F] truncate">
-                {authDisplayName || 'Pengguna BisnisUrang'}
-              </div>
-              <div className="text-[10px] text-[#898989] truncate">{authEmail}</div>
-            </div>
-            <button
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-rose-500 text-xs font-semibold hover:bg-rose-50 transition-colors shrink-0 disabled:opacity-60"
-            >
-              {isSigningOut ? (
-                <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <ArrowRightOnRectangleIcon className="w-3.5 h-3.5" />
-              )}
-              Keluar
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Menu Sections List */}
       <div className="space-y-3.5">
         {sections.map(section => (
@@ -245,6 +210,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               {section.title}
             </div>
             <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 dark:border-slate-800/80 shadow-md divide-y divide-slate-100 dark:divide-slate-800/60 overflow-hidden">
+              {/* If section is AKUN & LISENSI and user is logged in, show cloud account row here */}
+              {section.title === 'AKUN & LISENSI' && authEmail && (
+                <div className="px-4 py-3 bg-[#EAEFEF]/30 dark:bg-slate-800/30 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center shrink-0">
+                    <UserCircleIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-[#25343F] dark:text-white truncate">
+                      {authDisplayName || 'Pengguna BisnisUrang'}
+                    </div>
+                    <div className="text-[10px] text-[#898989] dark:text-slate-400 truncate">{authEmail}</div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    Terhubung
+                  </span>
+                </div>
+              )}
+
               {section.items.map(item => {
                 const IconComp = item.icon;
                 return (
@@ -275,6 +258,28 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Logout / Sign Out Button at Bottom of Profile View */}
+      {authEmail && (
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="w-full py-3.5 px-4 bg-white dark:bg-[#151D2A] border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50/70 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold text-xs sm:text-sm rounded-2xl shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] disabled:opacity-60"
+          >
+            {isSigningOut ? (
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <ArrowRightOnRectangleIcon className="w-4 h-4 stroke-[2]" />
+            )}
+            <span>Keluar dari Akun</span>
+          </button>
+        </div>
+      )}
 
       {/* App Version Footer */}
       <div className="pt-4 text-center text-xs text-[#898989] font-medium">
