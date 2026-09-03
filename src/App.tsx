@@ -549,7 +549,7 @@ function MainAppContent() {
 
       {/* Animated App Splash Screen */}
       {showSplash && (
-        <div className="fixed inset-0 z-[9999] bg-[#25343F] transition-opacity duration-700 ease-in-out pointer-events-none flex items-center justify-center">
+        <div className="fixed inset-0 z-[9999] bg-white transition-opacity duration-700 ease-in-out pointer-events-none flex items-center justify-center">
           <img
             src="/splash.png"
             alt="BisnisUrang"
