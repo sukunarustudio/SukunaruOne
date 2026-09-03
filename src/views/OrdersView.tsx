@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeftIcon, PlusIcon, MinusIcon, MagnifyingGlassIcon, CalendarIcon, ClockIcon, ExclamationTriangleIcon, DocumentTextIcon, ArrowUpTrayIcon, TrashIcon, ArrowTopRightOnSquareIcon, CurrencyDollarIcon, UserIcon, ChevronRightIcon, ChevronLeftIcon, EyeIcon, CreditCardIcon, PrinterIcon, PaperClipIcon, Squares2X2Icon, ListBulletIcon, SparklesIcon, CheckCircleIcon, StopIcon, ShoppingBagIcon, ArrowPathIcon, WrenchScrewdriverIcon, FunnelIcon, XMarkIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, EllipsisVerticalIcon, QueueListIcon, PlusIcon, MinusIcon, MagnifyingGlassIcon, CalendarIcon, ClockIcon, ExclamationTriangleIcon, DocumentTextIcon, ArrowUpTrayIcon, TrashIcon, ArrowTopRightOnSquareIcon, CurrencyDollarIcon, UserIcon, ChevronRightIcon, ChevronLeftIcon, EyeIcon, CreditCardIcon, PrinterIcon, PaperClipIcon, Squares2X2Icon, ListBulletIcon, SparklesIcon, CheckCircleIcon, StopIcon, ShoppingBagIcon, ArrowPathIcon, WrenchScrewdriverIcon, FunnelIcon, XMarkIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import {
   Order,
@@ -126,6 +126,20 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+
+  // Top Menu Popover State (⋮) & Selection Mode
+  const [isTopMenuOpen, setIsTopMenuOpen] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isTopMenuOpen && !(e.target as Element)?.closest('#orders-top-menu-container')) {
+        setIsTopMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isTopMenuOpen]);
 
   // New Order / POS Cart State (Persisted in localStorage)
   const [newOrderCustomerName, setNewOrderCustomerName] = useState(() => {
@@ -637,13 +651,16 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
 
   const handleDeselectAll = () => {
     setSelectedOrderIds([]);
+    setIsSelectionMode(false);
   };
 
   const handleOpenBatchPrint = (presetIds?: string[]) => {
     if (presetIds && presetIds.length > 0) {
       setSelectedOrderIds(presetIds);
-    } else if (selectedOrderIds.length === 0 && filteredOrders.length > 0) {
-      setSelectedOrderIds(filteredOrders.map(o => o.id));
+    } else if (selectedOrderIds.length === 0) {
+      showToast('Silakan pilih pesanan terlebih dahulu.', 'info');
+      setIsSelectionMode(true);
+      return;
     }
     setIsBatchPrintModalOpen(true);
   };
@@ -859,10 +876,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 <span>Lihat Daftar</span>
               </button>
             ) : (
-              <>
+              <div className="flex items-center gap-2 relative">
                 {/* Search Toggle Icon Button */}
                 <button
                   type="button"
+                  id="btn-toggle-search-orders"
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
                   className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
                     isSearchOpen || searchQuery
@@ -870,23 +888,107 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                       : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
                   }`}
                   title="Cari Pesanan"
+                  aria-label="Cari Pesanan"
                 >
                   <MagnifyingGlassIcon className="w-4 h-4" />
                 </button>
 
-                {/* Batch Print Button */}
-                {filteredOrders.length > 0 && (
+                {/* Ellipsis Menu Button (⋮) */}
+                <div className="relative" id="orders-top-menu-container">
                   <button
                     type="button"
-                    onClick={() => handleOpenBatchPrint()}
-                    className="h-9 px-3 bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer whitespace-nowrap active:scale-95 shrink-0"
-                    title="Cetak Massal SPK"
+                    id="btn-orders-top-menu"
+                    onClick={() => setIsTopMenuOpen(!isTopMenuOpen)}
+                    className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
+                      isTopMenuOpen || isSelectionMode || selectedOrderIds.length > 0
+                        ? 'bg-[#25343F] text-white border-slate-900'
+                        : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
+                    }`}
+                    title="Menu Lainnya"
+                    aria-label="Menu Lainnya"
                   >
-                    <PrinterIcon className="w-4 h-4" />
-                    <span className="hidden sm:inline">Cetak Massal</span>
+                    <EllipsisVerticalIcon className="w-5 h-5 stroke-[2]" />
                   </button>
-                )}
-              </>
+
+                  {/* Dropdown Menu Popover */}
+                  {isTopMenuOpen && (
+                    <div className="absolute right-0 top-full mt-1.5 w-52 sm:w-56 bg-white rounded-2xl shadow-xl border border-[#BFC9D1]/30 py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-150">
+                      {/* Item 1: Cetak Pesanan */}
+                      <button
+                        type="button"
+                        id="menu-item-print-orders"
+                        onClick={() => {
+                          setIsTopMenuOpen(false);
+                          if (selectedOrderIds.length > 0) {
+                            handleOpenBatchPrint();
+                          } else {
+                            showToast('Silakan pilih pesanan terlebih dahulu.', 'info');
+                            setIsSelectionMode(true);
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 hover:bg-[#EAEFEF] text-[#25343F] text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer"
+                      >
+                        <PrinterIcon className="w-4 h-4 text-[#25343F] shrink-0" />
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="leading-tight">Cetak Pesanan</div>
+                          {selectedOrderIds.length > 0 && (
+                            <div className="text-[10px] text-[#898989] font-normal font-mono mt-0.5">
+                              {selectedOrderIds.length} pesanan terpilih
+                            </div>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Item 2: Pilih Pesanan / Checklist Mode */}
+                      <button
+                        type="button"
+                        id="menu-item-select-orders"
+                        onClick={() => {
+                          setIsTopMenuOpen(false);
+                          if (isSelectionMode && selectedOrderIds.length === 0) {
+                            setIsSelectionMode(false);
+                            showToast('Mode pilih dinonaktifkan', 'info');
+                          } else if (isSelectionMode && selectedOrderIds.length > 0) {
+                            setIsSelectionMode(false);
+                            setSelectedOrderIds([]);
+                            showToast('Pilihan pesanan dibatalkan', 'info');
+                          } else {
+                            setIsSelectionMode(true);
+                            showToast('Mode pilih pesanan aktif. Centang pesanan yang diinginkan.', 'info');
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 hover:bg-[#EAEFEF] text-[#25343F] text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer border-t border-slate-100"
+                      >
+                        <CheckCircleIcon className={`w-4 h-4 shrink-0 ${isSelectionMode ? 'text-emerald-600' : 'text-[#25343F]'}`} />
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="leading-tight">
+                            {isSelectionMode ? (selectedOrderIds.length > 0 ? 'Batalkan Pilihan' : 'Selesai Memilih') : 'Pilih Pesanan'}
+                          </div>
+                          <div className="text-[10px] text-[#898989] font-normal mt-0.5">
+                            {isSelectionMode ? 'Tutup mode checklist' : 'Aktifkan checklist banyak pesanan'}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Item 3: Pilih Semua / Batal Pilih Semua (when selection mode active) */}
+                      {isSelectionMode && filteredOrders.length > 0 && (
+                        <button
+                          type="button"
+                          id="menu-item-toggle-all-orders"
+                          onClick={() => {
+                            setIsTopMenuOpen(false);
+                            handleToggleSelectAllFiltered();
+                          }}
+                          className="w-full px-3.5 py-2 hover:bg-[#EAEFEF] text-[#25343F] text-xs font-medium flex items-center gap-2.5 transition-colors cursor-pointer border-t border-slate-100"
+                        >
+                          <QueueListIcon className="w-4 h-4 text-[#898989] shrink-0" />
+                          <span>{isAllFilteredSelected ? 'Batalkan Pilih Semua' : 'Pilih Semua (' + filteredOrders.length + ' Pesanan)'}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -1631,31 +1733,6 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           {/* ------------------------------------------------------------------- */}
           {/* MOBILE COMPACT ORDER LIST (< md) WITH SWIPE GESTURE                 */}
           {/* ------------------------------------------------------------------- */}
-          {filteredOrders.length > 0 && (
-            <div className="md:hidden flex items-center justify-between px-3 py-2 bg-white rounded-xl border border-[#BFC9D1]/25 text-xs font-semibold">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isAllFilteredSelected}
-                  onChange={handleToggleSelectAllFiltered}
-                  className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer"
-                />
-                <span className="text-xs font-bold text-[#25343F]">
-                  {isAllFilteredSelected ? 'Batalkan Pilih Semua' : 'Pilih Semua Pesanan'}
-                </span>
-              </label>
-              {selectedOrderIds.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenBatchPrint()}
-                  className="px-2.5 py-1 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-lg text-[11px] font-black flex items-center gap-1 cursor-pointer"
-                >
-                  <PrinterIcon className="w-3.5 h-3.5" />
-                  <span>Cetak ({selectedOrderIds.length})</span>
-                </button>
-              )}
-            </div>
-          )}
 
           <div
             className="md:hidden space-y-2 select-none touch-pan-y"
@@ -1699,8 +1776,12 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   <div
                     key={order.id}
                     onClick={() => {
-                      setSelectedOrder(order);
-                      setIsDetailModalOpen(true);
+                      if (isSelectionMode) {
+                        handleToggleSelectOrder(order.id);
+                      } else {
+                        setSelectedOrder(order);
+                        setIsDetailModalOpen(true);
+                      }
                     }}
                     className={`bg-white p-3 rounded-2xl border transition-all cursor-pointer active:scale-[0.99] space-y-1.5 shadow-md relative ${
                       isSelected
@@ -1713,14 +1794,16 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                     {/* Line 1: Checkbox + Order Number (Left) | Total Price (Right) */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={e => handleToggleSelectOrder(order.id, e)}
-                          onClick={e => e.stopPropagation()}
-                          className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer shrink-0"
-                          aria-label="Pilih pesanan"
-                        />
+                        {(isSelectionMode || selectedOrderIds.length > 0) && (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={e => handleToggleSelectOrder(order.id, e)}
+                            onClick={e => e.stopPropagation()}
+                            className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer shrink-0"
+                            aria-label="Pilih pesanan"
+                          />
+                        )}
                         <span className="font-black text-xs text-[#25343F] font-mono truncate">
                           {order.orderNumber}
                         </span>
@@ -1836,18 +1919,20 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-[#BFC9D1]/40 bg-[#EAEFEF]/80 text-[#898989] font-bold uppercase tracking-wider">
-                      <th className="py-3.5 px-3 w-10 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isAllFilteredSelected}
-                          ref={el => {
-                            if (el) el.indeterminate = isSomeFilteredSelected;
-                          }}
-                          onChange={handleToggleSelectAllFiltered}
-                          className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer"
-                          title="Pilih Semua Pesanan"
-                        />
-                      </th>
+                      {(isSelectionMode || selectedOrderIds.length > 0) && (
+                        <th className="py-3.5 px-3 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isAllFilteredSelected}
+                            ref={el => {
+                              if (el) el.indeterminate = isSomeFilteredSelected;
+                            }}
+                            onChange={handleToggleSelectAllFiltered}
+                            className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer"
+                            title="Pilih Semua Pesanan"
+                          />
+                        </th>
+                      )}
                       <th className="py-3.5 px-4">No. Order &amp; Pelanggan</th>
                       <th className="py-3.5 px-4">Item &amp; Detail</th>
                       <th className="py-3.5 px-4">Tanggal &amp; Deadline</th>
@@ -1866,18 +1951,28 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                       return (
                         <tr
                           key={order.id}
-                          className={`hover:bg-[#EAEFEF]/60 transition-colors ${
+                          onClick={() => {
+                            if (isSelectionMode) {
+                              handleToggleSelectOrder(order.id);
+                            } else {
+                              setSelectedOrder(order);
+                              setIsDetailModalOpen(true);
+                            }
+                          }}
+                          className={`hover:bg-[#EAEFEF]/60 transition-colors cursor-pointer ${
                             isSelected ? 'bg-[#EAEFEF]/40' : ''
                           }`}
                         >
-                          <td className="py-3 px-3 text-center" onClick={e => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={e => handleToggleSelectOrder(order.id, e)}
-                              className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer"
-                            />
-                          </td>
+                          {(isSelectionMode || selectedOrderIds.length > 0) && (
+                            <td className="py-3 px-3 text-center" onClick={e => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={e => handleToggleSelectOrder(order.id, e)}
+                                className="w-4 h-4 rounded text-[#25343F] focus:ring-[#25343F] border-[#BFC9D1] cursor-pointer"
+                              />
+                            </td>
+                          )}
 
                           <td className="py-3 px-4">
                             <div className="font-extrabold text-[#25343F] font-mono">{order.orderNumber}</div>
