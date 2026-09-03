@@ -11,11 +11,13 @@ import {
   TrashIcon,
   ShieldCheckIcon,
   SparklesIcon,
+  LockClosedIcon,
 } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import { useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ViewType, BusinessSettings } from '../types';
+import { useLicense } from '../hooks/useLicense';
 import { downloadJsonFile } from '../lib/fileDownloader';
 import { isSupabaseConfigured, uploadTenantFile, listTenantBackups, downloadTenantBackup, deleteTenantFile } from '../services/supabaseClient';
 import {
@@ -43,6 +45,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
   previousView = 'profile',
 }) => {
   const { showToast } = useToast();
+  const { isPro } = useLicense();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- LOCAL BACKUP STATE ---
@@ -286,21 +289,49 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            disabled={isCreatingCloudBackup || !configured}
-            onClick={handleCreateCloudBackup}
+            disabled={isCreatingCloudBackup || (isPro && !configured)}
+            onClick={() => {
+              if (!isPro) {
+                showToast('Cadangkan Online adalah fitur Pro. Silakan aktivasi lisensi.', 'info');
+                onNavigate?.('activation');
+                return;
+              }
+              handleCreateCloudBackup();
+            }}
             className="flex-1 sm:flex-initial px-3.5 py-2 bg-[#25343F] hover:bg-[#1b262f] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
           >
-            <CloudArrowUpIcon className={`w-3.5 h-3.5 ${isCreatingCloudBackup ? 'animate-bounce' : ''}`} />
+            {!isPro ? (
+              <LockClosedIcon className="w-3.5 h-3.5 text-[#FF9B51]" />
+            ) : (
+              <CloudArrowUpIcon className={`w-3.5 h-3.5 ${isCreatingCloudBackup ? 'animate-bounce' : ''}`} />
+            )}
             <span>{isCreatingCloudBackup ? 'Mencadangkan...' : 'Cadangkan Online'}</span>
+            {!isPro && (
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#FF9B51] text-[#25343F]">PRO</span>
+            )}
           </button>
           <button
             type="button"
-            disabled={isSyncing || !configured}
-            onClick={handleTriggerSync}
+            disabled={isSyncing || (isPro && !configured)}
+            onClick={() => {
+              if (!isPro) {
+                showToast('Sinkronisasi Online adalah fitur Pro. Silakan aktivasi lisensi.', 'info');
+                onNavigate?.('activation');
+                return;
+              }
+              handleTriggerSync();
+            }}
             className="flex-1 sm:flex-initial px-3.5 py-2 bg-[#FF9B51] hover:bg-[#ff8c38] disabled:opacity-50 text-[#25343F] font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
           >
-            <ArrowPathIcon className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            {!isPro ? (
+              <LockClosedIcon className="w-3.5 h-3.5 text-[#25343F]" />
+            ) : (
+              <ArrowPathIcon className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            )}
             <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronkan'}</span>
+            {!isPro && (
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#25343F] text-white">PRO</span>
+            )}
           </button>
         </div>
       </div>

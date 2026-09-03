@@ -27,7 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
 }) => {
   const { isPro } = useLicense();
-  const proViews: ViewType[] = ['orders', 'hpp', 'finance', 'sales-report', 'profit-report', 'stock-report'];
+  const proViews: ViewType[] = ['orders', 'finance', 'sales-report', 'profit-report', 'stock-report'];
 
   const handleNav = (v: ViewType) => {
     if (typeof onNavigate === 'function') {

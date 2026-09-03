@@ -649,12 +649,10 @@ function MainAppContent() {
           )}
 
           {currentView === 'hpp' && (
-            <ProGate onNavigate={handleNavigate} featureName="Kalkulator HPP & Biaya Produksi">
-              <HppCalculatorView
-                onSavedToProducts={() => handleNavigate('products')}
-                onNavigate={handleNavigate}
-              />
-            </ProGate>
+            <HppCalculatorView
+              onSavedToProducts={() => handleNavigate('products')}
+              onNavigate={handleNavigate}
+            />
           )}
 
           {currentView === 'inventory' && (
