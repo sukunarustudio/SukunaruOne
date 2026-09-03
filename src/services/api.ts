@@ -10,9 +10,17 @@ import {
   BusinessSettings,
   DashboardStats,
 } from '../types';
-import { localDb } from './localDb';
+import { localDb, emitDataMutation } from './localDb';
 import { uploadTenantFile, deleteTenantFile, isSupabaseConfigured, getSupabaseClient } from './supabaseClient';
-import { getActiveLicenseKey, enqueueSyncMutation, pauseRealtime, resumeRealtime } from './syncManager';
+import {
+  getActiveLicenseKey,
+  enqueueSyncMutation,
+  pauseRealtime,
+  resumeRealtime,
+  clearSyncQueueForHistory,
+  broadcastClearHistory,
+  emitSyncCompleted,
+} from './syncManager';
 
 export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
@@ -425,16 +433,14 @@ export const api = {
       financialTransactions: number;
     };
   }> {
-    // 1. Clear in Supabase Cloud schema if configured
-    if (isSupabaseConfigured()) {
+    const licenseKey = getActiveLicenseKey();
+    const nowIso = new Date().toISOString();
+
+    // 1. Clear in Supabase Cloud schema if configured and online
+    if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
-        const licenseKey = getActiveLicenseKey();
         const client = getSupabaseClient();
         if (client) {
-          // ── Pause realtime BEFORE bulk delete ──────────────────────────────
-          // Supabase sends a DELETE event for every row we delete. Without this
-          // guard, `handleIncomingRealtimeChange` would propagate those events
-          // and wipe local master data.
           pauseRealtime();
           try {
             await client.from('transactions').delete().eq('license_key', licenseKey);
@@ -443,34 +449,47 @@ export const api = {
             if (options.resetExpenses) {
               await client.from('expenses').delete().eq('license_key', licenseKey);
             }
-            if (options.resetMovements) {
-              await client.from('inventory_movements').delete().eq('license_key', licenseKey);
-            }
+
+            // Record history_cleared_at in business_settings in Supabase
+            await client.from('business_settings').update({
+              history_cleared_at: nowIso,
+              updated_at: nowIso,
+            }).eq('license_key', licenseKey);
+
+            // Broadcast clear event to other connected devices
+            await broadcastClearHistory();
           } finally {
-            // ── Resume realtime AFTER all deletes complete ─────────────────
-            // Allow a brief window (2 s) so any in-flight DELETE events from
-            // Supabase are drained before we start listening again.
             setTimeout(() => resumeRealtime(500), 2000);
           }
         }
       } catch (err) {
-        resumeRealtime(0); // safety: always re-enable on error
+        resumeRealtime(0);
         console.warn('[Clear All Trx Cloud Error]:', err);
       }
     }
 
-    if (isStandaloneOffline()) return localDb.clearAllTransactions(options);
-    try {
-      const res = await requestApi('/api/transactions/clear-all', {
+    // 2. Clear any pending transactions/orders from sync queue
+    clearSyncQueueForHistory();
+
+    // 3. Clear local DB
+    const res = await localDb.clearAllTransactions(options);
+
+    // Update local settings with historyClearedAt
+    await localDb.updateSettings({ historyClearedAt: nowIso });
+
+    if (!isStandaloneOffline()) {
+      requestApi('/api/transactions/clear-all', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(options),
-      });
-      await localDb.clearAllTransactions(options);
-      return res;
-    } catch {
-      return localDb.clearAllTransactions(options);
+      }).catch(() => {});
     }
+
+    // 4. Trigger UI refresh across all views
+    emitDataMutation();
+    emitSyncCompleted();
+
+    return res;
   },
 
   // Orders

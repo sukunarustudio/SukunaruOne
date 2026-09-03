@@ -674,10 +674,23 @@ export const localDb = {
     if (options.resetExpenses) db.expenses = [];
     if (options.resetMovements) db.inventory_movements = [];
 
+    // Reset customer transaction statistics
+    if (Array.isArray(db.customers)) {
+      db.customers.forEach(c => {
+        c.totalOrders = 0;
+        c.totalSpent = 0;
+        c.lastTransactionDate = undefined;
+      });
+    }
+
+    if (db.settings) {
+      db.settings.historyClearedAt = new Date().toISOString();
+    }
+
     setLocalData(db);
     return {
       success: true,
-      message: 'Semua transaksi berhasil direset.',
+      message: 'Semua riwayat transaksi berhasil dihapus.',
       deletedCounts: {
         transactions: trxCount,
         orders: ordCount,

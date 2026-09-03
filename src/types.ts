@@ -31,6 +31,7 @@ export interface BusinessSettings {
   defaultTaxPercent?: number;
   defaultDiscountPercent?: number;
   footerNotes?: string;
+  historyClearedAt?: string;
 }
 
 export interface Customer {

@@ -67,6 +67,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     loadData();
     const handleRefresh = () => {
       api.getCustomers().then(c => setCustomers(c)).catch(() => {});
+      api.getOrders().then(o => setOrders(o)).catch(() => {});
     };
     window.addEventListener('sukunaru:sync_completed', handleRefresh);
     window.addEventListener('sukunaru:data_mutation', handleRefresh);

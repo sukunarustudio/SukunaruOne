@@ -122,6 +122,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
   useEffect(() => {
     loadData();
+    const handleRefresh = () => {
+      api.getTransactions().then(t => setTransactions(t)).catch(() => {});
+      api.getOrders().then(o => setOrders(o)).catch(() => {});
+      api.getMaterials().then(m => setMaterials(m)).catch(() => {});
+      api.getExpenses().then(e => setExpenses(e)).catch(() => {});
+    };
+    window.addEventListener('sukunaru:sync_completed', handleRefresh);
+    window.addEventListener('sukunaru:data_mutation', handleRefresh);
+    return () => {
+      window.removeEventListener('sukunaru:sync_completed', handleRefresh);
+      window.removeEventListener('sukunaru:data_mutation', handleRefresh);
+    };
   }, []);
 
   // ─── Calculate Start and End Date Boundaries ────────────────────────────────

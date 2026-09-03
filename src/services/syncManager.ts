@@ -357,6 +357,7 @@ function settingsToSupabase(s: BusinessSettings, licenseKey: string) {
     default_tax_percent: s.defaultTaxPercent || 0,
     default_discount_percent: s.defaultDiscountPercent || 0,
     footer_notes: s.footerNotes || null,
+    history_cleared_at: s.historyClearedAt || null,
     updated_at: new Date().toISOString(),
   };
 }
@@ -379,6 +380,7 @@ function settingsFromSupabase(row: any): BusinessSettings {
     defaultTaxPercent: Number(row.default_tax_percent) || 0,
     defaultDiscountPercent: Number(row.default_discount_percent) || 0,
     footerNotes: row.footer_notes || '',
+    historyClearedAt: row.history_cleared_at || undefined,
   };
 }
 
@@ -424,6 +426,13 @@ function saveSyncQueue(queue: SyncQueueItem[]): void {
     currentSyncState.pendingCount = queue.length;
     notifyListeners();
   } catch {}
+}
+
+export function clearSyncQueueForHistory(): void {
+  const queue = getSyncQueue();
+  const historyTables = new Set(['transactions', 'orders', 'expenses', 'financial_transactions', 'inventory_movements']);
+  const filtered = queue.filter(item => !historyTables.has(item.table));
+  saveSyncQueue(filtered);
 }
 
 export function enqueueSyncMutation(table: string, action: 'UPSERT' | 'DELETE', recordId: string, payload?: any): void {
@@ -839,7 +848,26 @@ export async function syncWithSupabase(): Promise<{
       .limit(1);
 
     if (remoteSettings && remoteSettings.length > 0) {
-      await localDb.updateSettings(settingsFromSupabase(remoteSettings[0]));
+      const rSet = remoteSettings[0];
+      const remoteClearedAt = rSet.history_cleared_at ? new Date(rSet.history_cleared_at).getTime() : 0;
+      const localClearedAt = rawLocal.settings?.historyClearedAt ? new Date(rawLocal.settings.historyClearedAt).getTime() : 0;
+
+      if (remoteClearedAt > localClearedAt) {
+        console.log(`[SYNC] Remote history was cleared at ${rSet.history_cleared_at}. Clearing local history...`);
+        await localDb.clearAllTransactions({ resetExpenses: true, resetMovements: true });
+        clearSyncQueueForHistory();
+        emitDataMutation();
+        emitSyncCompleted();
+
+        // Refresh rawLocal in memory so subsequent push logic in this function doesn't push deleted transactions!
+        rawLocal.transactions = [];
+        rawLocal.orders = [];
+        rawLocal.financial_transactions = [];
+        rawLocal.expenses = [];
+        rawLocal.inventory_movements = [];
+      }
+
+      await localDb.updateSettings(settingsFromSupabase(rSet));
       pulled++;
     }
 
@@ -1120,7 +1148,7 @@ export function subscribeToRealtimeChanges(force = false): void {
   }
 
   try {
-    const channelName = `bisnisurang-sync-${licenseKey.toLowerCase().replace(/[^a-z0-9]/g, '_')}-${Date.now().toString().slice(-4)}`;
+    const channelName = `bisnisurang-sync-${licenseKey.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     activeSubscriptionSchema = licenseKey;
 
     console.log(`[REALTIME] CHANNEL CREATED`);
@@ -1130,6 +1158,13 @@ export function subscribeToRealtimeChanges(force = false): void {
       .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public' }, payload => {
         handleIncomingRealtimeChange(payload);
+      })
+      .on('broadcast', { event: 'clear_history' }, () => {
+        console.log('[REALTIME] BROADCAST: clear_history received');
+        localDb.clearAllTransactions({ resetExpenses: true, resetMovements: true });
+        clearSyncQueueForHistory();
+        emitDataMutation();
+        emitSyncCompleted();
       })
       .subscribe((status, err) => {
         isSubscribing = false;
@@ -1172,6 +1207,21 @@ export function unsubscribeRealtime(): void {
     } catch {}
     activeRealtimeChannel = null;
     activeSubscriptionSchema = '';
+  }
+}
+
+export async function broadcastClearHistory(): Promise<void> {
+  if (activeRealtimeChannel) {
+    try {
+      await activeRealtimeChannel.send({
+        type: 'broadcast',
+        event: 'clear_history',
+        payload: { timestamp: new Date().toISOString() },
+      });
+      console.log('[REALTIME] Broadcast clear_history sent');
+    } catch (err) {
+      console.warn('[REALTIME] Failed to send broadcast clear_history:', err);
+    }
   }
 }
 
