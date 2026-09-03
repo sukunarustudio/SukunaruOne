@@ -869,37 +869,23 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
         </div>
       </div>
 
-      {/* Floating Mobile Cart summary bar when in catalog view and items in cart */}
+      {/* ── FLOATING MINIMALIST CART SUMMARY BUTTON (BOTTOM-RIGHT) ── */}
       {mobileTab === 'catalog' && cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-[92px] left-3 right-3 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200 flex items-center gap-2 drop-shadow-xl"
-             style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}>
-          <button
-            type="button"
-            onClick={e => {
-              e.stopPropagation();
-              clearCart();
-            }}
-            className="bg-[#25343F] hover:bg-[#1c2730] active:scale-95 text-white px-3.5 py-3 rounded-2xl shadow-lg flex items-center justify-center gap-1.5 font-bold text-xs cursor-pointer border border-white/10 shrink-0 transition-all"
-            title="Batal / Kosongkan Keranjang"
-          >
-            <TrashIcon className="w-4 h-4 text-rose-400" />
-            <span>Batal</span>
-          </button>
+        <div
+          className="lg:hidden fixed right-3 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-auto"
+          style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 8px))' }}
+        >
           <button
             type="button"
             onClick={() => setMobileTab('cart')}
-            className="flex-1 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] px-4 py-3 rounded-2xl shadow-lg flex items-center justify-between font-black text-xs cursor-pointer border border-[#FF9B51]/30 active:scale-[0.99] transition-transform min-w-0"
+            aria-label="Lihat Rincian Pesanan / Keranjang"
+            className="h-11 pl-3 pr-3.5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] shadow-xl shadow-[#FF9B51]/30 flex items-center gap-2 font-black text-xs cursor-pointer border border-[#FF9B51]/40 active:scale-95 transition-all"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-5 h-5 rounded-full bg-[#25343F] text-white text-[11px] font-black flex items-center justify-center shrink-0">
-                {cart.reduce((s, i) => s + i.quantity, 0)}
-              </span>
-              <span className="truncate text-xs font-black">Lihat Keranjang</span>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0 ml-2">
-              <span className="text-[#25343F] font-black font-mono text-xs">{formatRupiah(finalTotal)}</span>
-              <span className="text-sm font-black">&rarr;</span>
-            </div>
+            <span className="w-5 h-5 rounded-full bg-[#25343F] text-white text-[10.5px] font-black flex items-center justify-center shrink-0">
+              {cart.reduce((s, i) => s + i.quantity, 0)}
+            </span>
+            <span className="font-mono font-black text-xs">{formatRupiah(finalTotal)}</span>
+            <span className="text-sm font-black leading-none">&rarr;</span>
           </button>
         </div>
       )}
@@ -1138,7 +1124,14 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
 
       {/* ── FLOATING BARCODE SCANNER BUTTON (FAB) ON MOBILE ── */}
       {mobileTab === 'catalog' && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 lg:hidden pointer-events-auto animate-fade-in">
+        <div
+          className={`fixed z-30 lg:hidden pointer-events-auto transition-all duration-300 ${
+            cart.length > 0
+              ? 'left-3'
+              : 'left-1/2 -translate-x-1/2'
+          }`}
+          style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 8px))' }}
+        >
           <button
             type="button"
             onClick={() => {
@@ -1149,7 +1142,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               setIsScannerOpen(true);
             }}
             aria-label={isPro ? "Scan Barcode Produk" : "Scan Barcode Produk (Terkunci)"}
-            className={`h-11 px-5 rounded-full flex items-center justify-center gap-2 font-black text-xs shadow-xl active:scale-95 transition-all cursor-pointer border ${
+            className={`h-11 px-4 rounded-full flex items-center justify-center gap-1.5 font-black text-xs shadow-xl active:scale-95 transition-all cursor-pointer border ${
               !isPro
                 ? 'bg-[#25343F] text-white border-[#FF9B51]/50 shadow-[#25343F]/35'
                 : 'bg-[#25343F] text-white border-white/25 hover:bg-[#1b2730] shadow-lg shadow-[#25343F]/40'
