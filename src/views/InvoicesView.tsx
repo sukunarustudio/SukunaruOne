@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { DocumentTextIcon, MagnifyingGlassIcon, PrinterIcon, CalendarIcon, ArrowDownTrayIcon, EyeIcon, CheckCircleIcon, FunnelIcon, XMarkIcon, CheckIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import {
+  DocumentTextIcon,
+  MagnifyingGlassIcon,
+  PrinterIcon,
+  CalendarIcon,
+  ArrowDownTrayIcon,
+  EyeIcon,
+  CheckCircleIcon,
+  FunnelIcon,
+  XMarkIcon,
+  CheckIcon,
+  ArrowLeftIcon,
+  ReceiptRefundIcon,
+  NoSymbolIcon,
+} from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import { Transaction, Order, BusinessSettings } from '../types';
 import { formatRupiah, formatDate, formatDateTime, getStatusBadgeClass } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { PrintReceiptModal } from '../components/PrintReceiptModal';
 import { PrintInvoiceModal } from '../components/PrintInvoiceModal';
+import { RefundConfirmationModal } from '../components/RefundConfirmationModal';
 
 interface InvoicesViewProps {
   settings: BusinessSettings;
@@ -29,6 +44,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+
+  // Refund Modal
+  const [selectedRefundTrx, setSelectedRefundTrx] = useState<Transaction | null>(null);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
 
   const loadData = async () => {
     try {
@@ -57,6 +76,18 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
     };
   }, []);
 
+  const handleRefundConfirm = async (reason: string) => {
+    if (!selectedRefundTrx) return;
+    try {
+      const res = await api.refundTransaction(selectedRefundTrx.id, reason);
+      showToast(res.message || 'Transaksi berhasil dibatalkan dan stok dikembalikan.', 'success');
+      await loadData();
+    } catch (err: any) {
+      showToast(err.message || 'Gagal membatalkan transaksi.', 'error');
+      throw err;
+    }
+  };
+
   const filteredTransactions = transactions.filter(
     t =>
       t.receiptNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,6 +113,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
       amount: t.totalAmount,
       profit: t.profit,
       paymentMethod: t.paymentMethod,
+      isRefunded: t.status === 'REFUNDED' || t.status === 'CANCELLED',
       items: t.items.map(i => `${i.productName}(${i.quantity})`).join(' · '),
       rawTransaction: t,
     })),
@@ -96,6 +128,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
       profit: o.totalAmount - (o.totalCost || 0),
       paymentMethod: o.paymentStatus,
       status: o.status,
+      isRefunded: o.status === 'BATAL',
       items: o.items.map(i => `${i.productName}(${i.quantity})`).join(' · '),
       rawOrder: o,
     })),
@@ -109,6 +142,11 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
   const handlePrintInvoice = (order: Order) => {
     setSelectedOrder(order);
     setIsInvoiceModalOpen(true);
+  };
+
+  const handleOpenRefund = (trx: Transaction) => {
+    setSelectedRefundTrx(trx);
+    setIsRefundModalOpen(true);
   };
 
   return (
@@ -133,7 +171,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                 Riwayat Transaksi
               </h1>
               <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-                Arsip cetak ulang nota kasir POS &amp; invoice pesanan
+                Arsip cetak ulang nota kasir POS, pembatalan/refund &amp; invoice pesanan
               </p>
             </div>
           </div>
@@ -185,83 +223,83 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                       Pilih Tipe Transaksi
                     </div>
 
-                  {/* Option: Semua Transaksi */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('all');
-                      setIsFilterOpen(false);
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                      activeTab === 'all'
-                        ? 'bg-[#25343F] text-white'
-                        : 'text-[#25343F] hover:bg-[#EAEFEF]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <DocumentTextIcon className="w-3.5 h-3.5" />
-                      <span>Semua Transaksi</span>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-extrabold ${
-                      activeTab === 'all' ? 'bg-[#FF9B51] text-[#25343F]' : 'bg-[#EAEFEF] text-[#898989]'
-                    }`}>
-                      {transactions.length + orders.length}
-                    </span>
-                  </button>
+                    {/* Option: Semua Transaksi */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('all');
+                        setIsFilterOpen(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                        activeTab === 'all'
+                          ? 'bg-[#25343F] text-white'
+                          : 'text-[#25343F] hover:bg-[#EAEFEF]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <DocumentTextIcon className="w-3.5 h-3.5" />
+                        <span>Semua Transaksi</span>
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-extrabold ${
+                        activeTab === 'all' ? 'bg-[#FF9B51] text-[#25343F]' : 'bg-[#EAEFEF] text-[#898989]'
+                      }`}>
+                        {transactions.length + orders.length}
+                      </span>
+                    </button>
 
-                  {/* Option: Struk POS */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('receipts');
-                      setIsFilterOpen(false);
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                      activeTab === 'receipts'
-                        ? 'bg-[#25343F] text-white'
-                        : 'text-[#25343F] hover:bg-[#EAEFEF]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <DocumentTextIcon className="w-3.5 h-3.5" />
-                      <span>Struk Kasir (POS)</span>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-extrabold ${
-                      activeTab === 'receipts' ? 'bg-[#FF9B51] text-[#25343F]' : 'bg-[#EAEFEF] text-[#898989]'
-                    }`}>
-                      {transactions.length}
-                    </span>
-                  </button>
+                    {/* Option: Struk POS */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('receipts');
+                        setIsFilterOpen(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                        activeTab === 'receipts'
+                          ? 'bg-[#25343F] text-white'
+                          : 'text-[#25343F] hover:bg-[#EAEFEF]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <DocumentTextIcon className="w-3.5 h-3.5" />
+                        <span>Struk Kasir (POS)</span>
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-extrabold ${
+                        activeTab === 'receipts' ? 'bg-[#FF9B51] text-[#25343F]' : 'bg-[#EAEFEF] text-[#898989]'
+                      }`}>
+                        {transactions.length}
+                      </span>
+                    </button>
 
-                  {/* Option: Invoice Pesanan */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('invoices');
-                      setIsFilterOpen(false);
-                    }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-                      activeTab === 'invoices'
-                        ? 'bg-[#25343F] text-white'
-                        : 'text-[#25343F] hover:bg-[#EAEFEF]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <DocumentTextIcon className="w-3.5 h-3.5" />
-                      <span>Invoice Pesanan</span>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-extrabold ${
-                      activeTab === 'invoices' ? 'bg-[#FF9B51] text-[#25343F]' : 'bg-[#EAEFEF] text-[#898989]'
-                    }`}>
-                      {orders.length}
-                    </span>
-                  </button>
-                </div>
-              </>
-            )}
+                    {/* Option: Invoice Pesanan */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('invoices');
+                        setIsFilterOpen(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                        activeTab === 'invoices'
+                          ? 'bg-[#25343F] text-white'
+                          : 'text-[#25343F] hover:bg-[#EAEFEF]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <DocumentTextIcon className="w-3.5 h-3.5" />
+                        <span>Invoice Pesanan</span>
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-extrabold ${
+                        activeTab === 'invoices' ? 'bg-[#FF9B51] text-[#25343F]' : 'bg-[#EAEFEF] text-[#898989]'
+                      }`}>
+                        {orders.length}
+                      </span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
         {/* Collapsible Search Input */}
         {(isSearchOpen || searchQuery) && (
@@ -316,23 +354,30 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
               {/* MOBILE: Combined List */}
               <div className="md:hidden divide-y divide-slate-100">
                 {combinedHistory.map(item => (
-                  <div key={item.id} className="px-4 py-3.5 space-y-1.5">
+                  <div key={item.id} className={`px-4 py-3.5 space-y-1.5 ${item.isRefunded ? 'bg-rose-50/40 opacity-80' : ''}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-[9px] font-black px-1.5 py-0.2 rounded ${
-                            item.kind === 'receipt' ? 'bg-[#EAEFEF] text-[#25343F]' : 'bg-[#EAEFEF] text-[#25343F]'
-                          }`}>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-[#EAEFEF] text-[#25343F]">
                             {item.kind === 'receipt' ? 'KASIR' : 'PESANAN'}
                           </span>
                           <span className="font-black text-[13px] text-[#25343F] font-mono">{item.code}</span>
+                          {item.isRefunded && (
+                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 border border-rose-200">
+                              Dibatalkan
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-[#898989] font-medium mt-0.5">{item.customerName}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-black text-sm text-[#25343F] font-mono">{formatRupiah(item.amount)}</div>
+                        <div className={`font-black text-sm font-mono ${item.isRefunded ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
+                          {formatRupiah(item.amount)}
+                        </div>
                         {item.kind === 'receipt' ? (
-                          <div className="text-[10px] text-[#25343F] font-bold">+{formatRupiah(item.profit)} profit</div>
+                          !item.isRefunded && (
+                            <div className="text-[10px] text-emerald-700 font-bold">+{formatRupiah(item.profit)} profit</div>
+                          )
                         ) : (
                           <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${getStatusBadgeClass(item.paymentMethod || '')}`}>
                             {item.paymentMethod}
@@ -349,23 +394,37 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
 
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-[10px] text-[#898989]">{formatDate(item.date)}</span>
-                      {item.kind === 'receipt' ? (
-                        <button
-                          onClick={() => handlePrintReceipt(item.rawTransaction)}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
-                        >
-                          <PrinterIcon className="w-3 h-3" />
-                          Struk
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handlePrintInvoice(item.rawOrder)}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
-                        >
-                          <PrinterIcon className="w-3 h-3" />
-                          Invoice
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {item.kind === 'receipt' ? (
+                          <>
+                            {!item.isRefunded && (
+                              <button
+                                onClick={() => handleOpenRefund(item.rawTransaction)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[11px] transition-colors cursor-pointer"
+                                title="Batalkan / Refund Transaksi"
+                              >
+                                <ReceiptRefundIcon className="w-3 h-3 stroke-[2]" />
+                                Refund
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handlePrintReceipt(item.rawTransaction)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
+                            >
+                              <PrinterIcon className="w-3 h-3" />
+                              Struk
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handlePrintInvoice(item.rawOrder)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
+                          >
+                            <PrinterIcon className="w-3 h-3" />
+                            Invoice
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -381,18 +440,17 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                       <th className="py-3.5 px-4">Tanggal</th>
                       <th className="py-3.5 px-4">Pelanggan</th>
                       <th className="py-3.5 px-4">Item / Keterangan</th>
+                      <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4 text-right">Nilai Transaksi</th>
-                      <th className="py-3.5 px-4 text-center">Aksi Cetak</th>
+                      <th className="py-3.5 px-4 text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {combinedHistory.map(item => (
-                      <tr key={item.id} className="hover:bg-[#EAEFEF]/60 transition-colors">
+                      <tr key={item.id} className={`hover:bg-[#EAEFEF]/60 transition-colors ${item.isRefunded ? 'bg-rose-50/20 text-[#898989]' : ''}`}>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            item.kind === 'receipt' ? 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25' : 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25'
-                          }`}>
-                            {item.kind === 'receipt' ? <DocumentTextIcon className="w-3 h-3" /> : <DocumentTextIcon className="w-3 h-3" />}
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25">
+                            <DocumentTextIcon className="w-3 h-3" />
                             {item.kind === 'receipt' ? 'Struk POS' : 'Invoice'}
                           </span>
                         </td>
@@ -400,23 +458,50 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                         <td className="py-3 px-4 text-[#898989] whitespace-nowrap">{formatDate(item.date)}</td>
                         <td className="py-3 px-4 font-bold text-[#25343F]">{item.customerName}</td>
                         <td className="py-3 px-4 max-w-xs text-[#898989] truncate">{item.items}</td>
-                        <td className="py-3 px-4 text-right font-black text-[#25343F] font-mono">{formatRupiah(item.amount)}</td>
-                        <td className="py-3 px-4 text-center">
-                          {item.kind === 'receipt' ? (
-                            <button
-                              onClick={() => handlePrintReceipt(item.rawTransaction)}
-                              className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                            >
-                              <PrinterIcon className="w-3.5 h-3.5" /><span>Struk</span>
-                            </button>
+                        <td className="py-3 px-4">
+                          {item.isRefunded ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200">
+                              Dibatalkan
+                            </span>
                           ) : (
-                            <button
-                              onClick={() => handlePrintInvoice(item.rawOrder)}
-                              className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                            >
-                              <PrinterIcon className="w-3.5 h-3.5" /><span>Invoice</span>
-                            </button>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Sukses
+                            </span>
                           )}
+                        </td>
+                        <td className={`py-3 px-4 text-right font-black font-mono ${item.isRefunded ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
+                          {formatRupiah(item.amount)}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {item.kind === 'receipt' ? (
+                              <>
+                                {!item.isRefunded && (
+                                  <button
+                                    onClick={() => handleOpenRefund(item.rawTransaction)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                    title="Batalkan / Refund Transaksi"
+                                  >
+                                    <ReceiptRefundIcon className="w-3.5 h-3.5 stroke-[2]" />
+                                    <span>Refund</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handlePrintReceipt(item.rawTransaction)}
+                                  className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                                >
+                                  <PrinterIcon className="w-3.5 h-3.5" /><span>Struk</span>
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => handlePrintInvoice(item.rawOrder)}
+                                className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <PrinterIcon className="w-3.5 h-3.5" /><span>Invoice</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -449,39 +534,65 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
             <>
               {/* ── MOBILE: Compact DocumentTextIcon List ── */}
               <div className="md:hidden divide-y divide-slate-100">
-                {filteredTransactions.map(trx => (
-                  <div key={trx.id} className="px-4 py-3.5">
-                    {/* Row 1: DocumentTextIcon No + Amount */}
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <div>
-                        <div className="font-black text-[13px] text-[#25343F] font-mono">{trx.receiptNumber}</div>
-                        <div className="text-[11px] text-[#898989] font-medium">{trx.customerName}</div>
+                {filteredTransactions.map(trx => {
+                  const isRefunded = trx.status === 'REFUNDED' || trx.status === 'CANCELLED';
+                  return (
+                    <div key={trx.id} className={`px-4 py-3.5 ${isRefunded ? 'bg-rose-50/40 opacity-80' : ''}`}>
+                      {/* Row 1: DocumentTextIcon No + Amount */}
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-black text-[13px] text-[#25343F] font-mono">{trx.receiptNumber}</span>
+                            {isRefunded && (
+                              <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 border border-rose-200">
+                                Dibatalkan
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-[#898989] font-medium">{trx.customerName}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-black text-sm font-mono ${isRefunded ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
+                            {formatRupiah(trx.totalAmount)}
+                          </div>
+                          {!isRefunded && (
+                            <div className="text-[10px] text-emerald-700 font-bold">+{formatRupiah(trx.profit)} profit</div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-black text-sm text-[#25343F] font-mono">{formatRupiah(trx.totalAmount)}</div>
-                        <div className="text-[10px] text-[#25343F] font-bold">+{formatRupiah(trx.profit)} profit</div>
+                      {/* Row 2: Items + meta */}
+                      <div className="text-[10px] text-[#898989] truncate mb-2">
+                        {trx.items.map(i => `${i.productName}(${i.quantity})`).join(' · ')}
+                      </div>
+                      {/* Row 3: Date + payment + actions */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-[#898989]">{formatDate(trx.date)}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#EAEFEF] text-[#898989] font-medium">{trx.paymentMethod}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {!isRefunded && (
+                            <button
+                              onClick={() => handleOpenRefund(trx)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[11px] transition-colors cursor-pointer"
+                              title="Batalkan / Refund Transaksi"
+                            >
+                              <ReceiptRefundIcon className="w-3 h-3 stroke-[2]" />
+                              Refund
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handlePrintReceipt(trx)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
+                          >
+                            <PrinterIcon className="w-3 h-3" />
+                            Struk
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    {/* Row 2: Items + meta */}
-                    <div className="text-[10px] text-[#898989] truncate mb-2">
-                      {trx.items.map(i => `${i.productName}(${i.quantity})`).join(' · ')}
-                    </div>
-                    {/* Row 3: Date + payment + print */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-[#898989]">{formatDate(trx.date)}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#EAEFEF] text-[#898989] font-medium">{trx.paymentMethod}</span>
-                      </div>
-                      <button
-                        onClick={() => handlePrintReceipt(trx)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
-                      >
-                        <PrinterIcon className="w-3 h-3" />
-                        Struk
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* ── DESKTOP: Full Table ── */}
@@ -494,28 +605,62 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                       <th className="py-3.5 px-4">Pelanggan</th>
                       <th className="py-3.5 px-4">Item Terjual</th>
                       <th className="py-3.5 px-4">Metode Bayar</th>
+                      <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4 text-right">Total Transaksi</th>
                       <th className="py-3.5 px-4 text-right">Profit Bersih</th>
-                      <th className="py-3.5 px-4 text-center">Cetak Ulang</th>
+                      <th className="py-3.5 px-4 text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredTransactions.map(trx => (
-                      <tr key={trx.id} className="hover:bg-[#EAEFEF]/60 transition-colors">
-                        <td className="py-3 px-4 font-mono font-extrabold text-[#25343F]">{trx.receiptNumber}</td>
-                        <td className="py-3 px-4 text-[#898989] whitespace-nowrap">{formatDateTime(trx.createdAt || trx.date)}</td>
-                        <td className="py-3 px-4 font-bold text-[#25343F]">{trx.customerName}</td>
-                        <td className="py-3 px-4 max-w-xs text-[#898989] truncate">{trx.items.map(i => `${i.productName} (${i.quantity})`).join(', ')}</td>
-                        <td className="py-3 px-4 font-mono font-semibold text-[#898989]">{trx.paymentMethod}</td>
-                        <td className="py-3 px-4 text-right font-black text-[#25343F] font-mono">{formatRupiah(trx.totalAmount)}</td>
-                        <td className="py-3 px-4 text-right font-bold text-[#25343F]">+{formatRupiah(trx.profit)}</td>
-                        <td className="py-3 px-4 text-center">
-                          <button onClick={() => handlePrintReceipt(trx)} className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer">
-                            <PrinterIcon className="w-3.5 h-3.5" /><span>Struk</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredTransactions.map(trx => {
+                      const isRefunded = trx.status === 'REFUNDED' || trx.status === 'CANCELLED';
+                      return (
+                        <tr key={trx.id} className={`hover:bg-[#EAEFEF]/60 transition-colors ${isRefunded ? 'bg-rose-50/20 text-[#898989]' : ''}`}>
+                          <td className="py-3 px-4 font-mono font-extrabold text-[#25343F]">{trx.receiptNumber}</td>
+                          <td className="py-3 px-4 text-[#898989] whitespace-nowrap">{formatDateTime(trx.createdAt || trx.date)}</td>
+                          <td className="py-3 px-4 font-bold text-[#25343F]">{trx.customerName}</td>
+                          <td className="py-3 px-4 max-w-xs text-[#898989] truncate">{trx.items.map(i => `${i.productName} (${i.quantity})`).join(', ')}</td>
+                          <td className="py-3 px-4 font-mono font-semibold text-[#898989]">{trx.paymentMethod}</td>
+                          <td className="py-3 px-4">
+                            {isRefunded ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200">
+                                Dibatalkan
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Sukses
+                              </span>
+                            )}
+                          </td>
+                          <td className={`py-3 px-4 text-right font-black font-mono ${isRefunded ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
+                            {formatRupiah(trx.totalAmount)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-[#25343F]">
+                            {isRefunded ? '-' : `+${formatRupiah(trx.profit)}`}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {!isRefunded && (
+                                <button
+                                  onClick={() => handleOpenRefund(trx)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Batalkan / Refund Transaksi"
+                                >
+                                  <ReceiptRefundIcon className="w-3.5 h-3.5 stroke-[2]" />
+                                  <span>Refund</span>
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handlePrintReceipt(trx)}
+                                className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <PrinterIcon className="w-3.5 h-3.5" /><span>Struk</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -545,15 +690,24 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
               {/* ── MOBILE: Compact Invoice Card List ── */}
               <div className="md:hidden divide-y divide-slate-100">
                 {filteredOrders.map(order => (
-                  <div key={order.id} className="px-4 py-3.5">
+                  <div key={order.id} className={`px-4 py-3.5 ${order.status === 'BATAL' ? 'bg-rose-50/40 opacity-80' : ''}`}>
                     {/* Row 1: Order No + Amount */}
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div>
-                        <div className="font-black text-[13px] text-[#25343F] font-mono">{order.orderNumber}</div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-black text-[13px] text-[#25343F] font-mono">{order.orderNumber}</span>
+                          {order.status === 'BATAL' && (
+                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 border border-rose-200">
+                              Dibatalkan
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[11px] text-[#898989] font-medium">{order.customerName}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-black text-sm text-[#25343F] font-mono">{formatRupiah(order.totalAmount)}</div>
+                        <div className={`font-black text-sm font-mono ${order.status === 'BATAL' ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
+                          {formatRupiah(order.totalAmount)}
+                        </div>
                         <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${getStatusBadgeClass(order.paymentStatus)}`}>
                           {order.paymentStatus}
                         </span>
@@ -595,7 +749,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredOrders.map(order => (
-                      <tr key={order.id} className="hover:bg-[#EAEFEF]/60 transition-colors">
+                      <tr key={order.id} className={`hover:bg-[#EAEFEF]/60 transition-colors ${order.status === 'BATAL' ? 'bg-rose-50/20 text-[#898989]' : ''}`}>
                         <td className="py-3 px-4 font-mono font-extrabold text-[#25343F]">{order.orderNumber}</td>
                         <td className="py-3 px-4 text-[#898989] whitespace-nowrap">{formatDate(order.orderDate)}</td>
                         <td className="py-3 px-4 font-bold text-[#25343F]">{order.customerName}</td>
@@ -609,7 +763,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                             {order.paymentStatus}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right font-black text-[#25343F] font-mono">{formatRupiah(order.totalAmount)}</td>
+                        <td className={`py-3 px-4 text-right font-black font-mono ${order.status === 'BATAL' ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
+                          {formatRupiah(order.totalAmount)}
+                        </td>
                         <td className="py-3 px-4 text-center">
                           <button onClick={() => handlePrintInvoice(order)} className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer">
                             <PrinterIcon className="w-3.5 h-3.5" /><span>Invoice / SPK</span>
@@ -638,6 +794,17 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
         order={selectedOrder}
         settings={settings}
         onClose={() => setIsInvoiceModalOpen(false)}
+      />
+
+      {/* Refund Confirmation Modal */}
+      <RefundConfirmationModal
+        isOpen={isRefundModalOpen}
+        transaction={selectedRefundTrx}
+        onConfirm={handleRefundConfirm}
+        onClose={() => {
+          setIsRefundModalOpen(false);
+          setSelectedRefundTrx(null);
+        }}
       />
     </div>
   );

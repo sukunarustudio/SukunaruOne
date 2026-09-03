@@ -212,11 +212,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   };
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => isDateInRange(t.date || t.createdAt));
+    return transactions.filter(
+      t => isDateInRange(t.date || t.createdAt) && t.status !== 'REFUNDED' && t.status !== 'CANCELLED'
+    );
   }, [transactions, startDateStr, endDateStr]);
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(o => isDateInRange(o.createdAt || (o as any).date));
+    return orders.filter(
+      o => isDateInRange(o.createdAt || (o as any).date) && o.status !== 'BATAL'
+    );
   }, [orders, startDateStr, endDateStr]);
 
   const filteredExpenses = useMemo(() => {

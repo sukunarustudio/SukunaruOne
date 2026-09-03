@@ -423,6 +423,36 @@ export const api = {
     return localDb.deleteTransaction(id);
   },
 
+  async refundTransaction(id: string, reason?: string): Promise<{ success: boolean; message: string; transaction: Transaction }> {
+    let result: { success: boolean; message: string; transaction: Transaction };
+    
+    if (!isStandaloneOffline()) {
+      try {
+        result = await requestApi<{ success: boolean; message: string; transaction: Transaction }>(`/api/transactions/${id}/refund`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+        });
+        // Also update localDb with latest refunded transaction
+        await localDb.refundTransaction(id, reason).catch(() => {});
+      } catch (err) {
+        result = await localDb.refundTransaction(id, reason);
+      }
+    } else {
+      result = await localDb.refundTransaction(id, reason);
+    }
+
+    // Sync updated transaction & financial reversal to cloud
+    enqueueSyncMutation('transactions', 'UPSERT', result.transaction.id, result.transaction);
+    
+    // Notify all UI listeners to refresh their state
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sukunaru:data_mutation', { detail: { table: 'transactions', type: 'REFUND', id } }));
+    }
+
+    return result;
+  },
+
   async clearAllTransactions(options: { resetExpenses?: boolean; resetMovements?: boolean } = {}): Promise<{
     success: boolean;
     message: string;

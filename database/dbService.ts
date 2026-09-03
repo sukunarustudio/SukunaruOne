@@ -3,6 +3,12 @@ import { initializeDatabaseSchema } from './schema';
 import fs from 'fs';
 import path from 'path';
 
+try {
+  initializeDatabaseSchema();
+} catch (e) {
+  console.warn('[dbService Schema Init Warning]:', e);
+}
+
 export interface BusinessSettings {
   businessName: string;
   tagline?: string;
@@ -924,7 +930,12 @@ export const DatabaseService = {
       paymentMethod: data.paymentMethod || 'CASH',
       cashierName: data.cashierName || 'Owner',
       notes: data.notes || '',
+      status: 'COMPLETED',
+      refundedAt: null,
+      refundReason: null,
+      refundedBy: null,
       createdAt: todayStr,
+      updatedAt: todayStr,
     };
 
     const trxOperation = db.transaction(() => {
@@ -933,8 +944,8 @@ export const DatabaseService = {
         INSERT INTO transactions (
           id, receiptNumber, type, orderId, customerId, customerName, customerPhone,
           date, subtotal, discount, totalAmount, totalCost, profit, paidAmount, changeAmount,
-          paymentMethod, cashierName, notes, createdAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          paymentMethod, cashierName, notes, status, refundedAt, refundReason, refundedBy, createdAt, updatedAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         newTrx.id,
         newTrx.receiptNumber,
@@ -954,7 +965,12 @@ export const DatabaseService = {
         newTrx.paymentMethod,
         newTrx.cashierName,
         newTrx.notes,
-        newTrx.createdAt
+        newTrx.status,
+        newTrx.refundedAt,
+        newTrx.refundReason,
+        newTrx.refundedBy,
+        newTrx.createdAt,
+        newTrx.updatedAt
       );
 
       // 2. Insert Transaction Items & Deduct Stocks
@@ -965,27 +981,30 @@ export const DatabaseService = {
       `);
 
       for (const item of items) {
+        const itemQty = Number(item.quantity) || 1;
         itemStmt.run(
           item.id || 't_item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
           newTrx.id,
           item.productId || null,
           item.productName,
-          Number(item.quantity) || 1,
+          itemQty,
           Number(item.unitPrice) || 0,
           Number(item.costPrice) || 0,
           Number(item.subtotal) || 0
         );
 
         if (item.productId) {
-          this._deductMaterialStock(db, item.productId, Number(item.quantity) || 1, 'POS', receiptNumber, newTrx.customerName);
+          // Deduct product stock if tracked
+          db.prepare('UPDATE products SET currentStock = MAX(0, currentStock - ?), updatedAt = ? WHERE id = ? AND trackStock = 1').run(itemQty, todayStr, item.productId);
+          this._deductMaterialStock(db, item.productId, itemQty, 'POS', receiptNumber, newTrx.customerName);
         }
       }
 
       // 3. Auto-record income in financial transactions
       db.prepare(`
         INSERT INTO financial_transactions (
-          id, date, type, category, description, amount, referenceType, referenceId, paymentMethod, notes, createdAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, date, type, category, description, amount, referenceNumber, referenceType, referenceId, paymentMethod, notes, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         'fin_' + Date.now(),
         todayStr,
@@ -993,6 +1012,7 @@ export const DatabaseService = {
         'Penjualan Kasir',
         `Transaksi Kasir #${receiptNumber} - ${newTrx.customerName}`,
         totAmount,
+        receiptNumber,
         'POS',
         newTrx.id,
         newTrx.paymentMethod,
@@ -1015,6 +1035,163 @@ export const DatabaseService = {
 
     trxOperation();
     return newTrx;
+  },
+
+  refundTransaction(id: string, reason?: string, refundedBy?: string): { success: boolean; message: string; transaction: any } {
+    const db = getDb();
+    const trx = db.prepare('SELECT * FROM transactions WHERE id = ?').get(id) as any;
+    if (!trx) {
+      throw new Error('Transaksi tidak ditemukan');
+    }
+
+    if (trx.status === 'REFUNDED' || trx.status === 'CANCELLED') {
+      throw new Error('Transaksi ini sudah dibatalkan sebelumnya.');
+    }
+
+    const items = db.prepare('SELECT * FROM transaction_items WHERE transactionId = ?').all(id) as any[];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const nowIso = new Date().toISOString();
+    const refundReason = reason?.trim() || 'Pembatalan transaksi kasir';
+    const cashier = refundedBy || 'Owner';
+
+    const refundTx = db.transaction(() => {
+      // 1. Update transaction status
+      db.prepare(`
+        UPDATE transactions SET
+          status = 'REFUNDED',
+          refundedAt = ?,
+          refundReason = ?,
+          refundedBy = ?,
+          updatedAt = ?
+        WHERE id = ?
+      `).run(nowIso, refundReason, cashier, todayStr, id);
+
+      // 2. Revert product stock & material consumption
+      for (const item of items) {
+        const qty = Number(item.quantity) || 1;
+        if (item.productId) {
+          // 2a. Revert product stock if trackStock is true
+          const product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId) as any;
+          if (product && product.trackStock) {
+            db.prepare('UPDATE products SET currentStock = currentStock + ?, updatedAt = ? WHERE id = ?').run(qty, todayStr, item.productId);
+          }
+
+          // 2b. Revert material components (BOM)
+          const components = db.prepare('SELECT * FROM product_components WHERE productId = ?').all(item.productId) as any[];
+          if (components && components.length > 0) {
+            for (const comp of components) {
+              if (comp.materialId) {
+                const material = db.prepare('SELECT * FROM materials WHERE id = ?').get(comp.materialId) as any;
+                if (material) {
+                  const returnQty = (Number(comp.quantity) || 1) * qty;
+                  const prev = Number(material.currentStock) || 0;
+                  const newStock = prev + returnQty;
+
+                  db.prepare('UPDATE materials SET currentStock = ?, updatedAt = ? WHERE id = ?').run(newStock, todayStr, material.id);
+
+                  db.prepare(`
+                    INSERT INTO inventory_movements (
+                      id, materialId, materialName, type, quantity, previousStock, newStock, referenceType, referenceId, notes, date, createdAt
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  `).run(
+                    'mov_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    material.id,
+                    material.name,
+                    'IN',
+                    returnQty,
+                    prev,
+                    newStock,
+                    'POS_REFUND',
+                    trx.receiptNumber,
+                    `Pengembalian stok dari refund #${trx.receiptNumber} (${product ? product.name : item.productName} × ${qty})`,
+                    todayStr,
+                    todayStr
+                  );
+                }
+              }
+            }
+          } else if (product && product.trackStock) {
+            const material = db.prepare('SELECT * FROM materials WHERE sku = ? OR LOWER(name) = LOWER(?)').get(product.sku, product.name) as any;
+            if (material) {
+              const prev = Number(material.currentStock) || 0;
+              const newStock = prev + qty;
+              db.prepare('UPDATE materials SET currentStock = ?, updatedAt = ? WHERE id = ?').run(newStock, todayStr, material.id);
+
+              db.prepare(`
+                INSERT INTO inventory_movements (
+                  id, materialId, materialName, type, quantity, previousStock, newStock, referenceType, referenceId, notes, date, createdAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `).run(
+                'mov_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                material.id,
+                material.name,
+                'IN',
+                qty,
+                prev,
+                newStock,
+                'POS_REFUND',
+                trx.receiptNumber,
+                `Pengembalian stok dari refund #${trx.receiptNumber} (${product.name} × ${qty})`,
+                todayStr,
+                todayStr
+              );
+            }
+          }
+        }
+      }
+
+      // 3. Insert Reversal Entry in financial_transactions
+      const refundAmount = Number(trx.totalAmount) || 0;
+      if (refundAmount > 0) {
+        db.prepare(`
+          INSERT INTO financial_transactions (
+            id, date, type, category, description, amount, referenceNumber, referenceType, referenceId, paymentMethod, notes, createdAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          'fin_' + Date.now(),
+          todayStr,
+          'EXPENSE',
+          'Refund Penjualan',
+          `Refund Transaksi Kasir #${trx.receiptNumber} - ${trx.customerName}`,
+          refundAmount,
+          trx.receiptNumber,
+          'POS_REFUND',
+          trx.id,
+          trx.paymentMethod || 'CASH',
+          `Alasan: ${refundReason}`,
+          todayStr
+        );
+      }
+
+      // 4. Update Customer stats
+      if (trx.customerId) {
+        db.prepare(`
+          UPDATE customers SET
+            totalOrders = MAX(0, totalOrders - 1),
+            totalSpent = MAX(0, totalSpent - ?),
+            updatedAt = ?
+          WHERE id = ?
+        `).run(refundAmount, todayStr, trx.customerId);
+      }
+    });
+
+    refundTx();
+
+    const updatedTrx = {
+      ...trx,
+      status: 'REFUNDED',
+      refundedAt: nowIso,
+      refundReason,
+      refundedBy: cashier,
+      updatedAt: todayStr,
+      items,
+    };
+
+    return {
+      success: true,
+      message: `Transaksi #${trx.receiptNumber} berhasil dibatalkan dan seluruh stok serta laporan dikembalikan.`,
+      transaction: updatedTrx,
+    };
   },
 
   deleteTransaction(id: string): void {
@@ -1759,8 +1936,8 @@ export const DatabaseService = {
     const todayExpRow = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date = ?').get(todayStr) as { total: number };
     const todayExpense = todayExpRow ? todayExpRow.total : 0;
 
-    // 3. Today POS transactions count & profit
-    const todayTrxRows = db.prepare('SELECT profit, totalAmount, totalCost FROM transactions WHERE date = ?').all(todayStr) as any[];
+    // 3. Today POS transactions count & profit (excluding refunded)
+    const todayTrxRows = db.prepare("SELECT profit, totalAmount, totalCost FROM transactions WHERE date = ? AND (status IS NULL OR status != 'REFUNDED')").all(todayStr) as any[];
     const todayPosProfit = todayTrxRows.reduce((sum, t) => sum + (t.profit || (t.totalAmount - (t.totalCost || 0))), 0);
 
     // Count order payments (DP & Pelunasan) for today

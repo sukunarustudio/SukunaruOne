@@ -216,6 +216,10 @@ export interface Transaction {
   paymentMethod: PaymentMethod;
   cashierName: string;
   notes?: string;
+  status?: 'COMPLETED' | 'REFUNDED' | 'CANCELLED';
+  refundedAt?: string;
+  refundReason?: string;
+  refundedBy?: string;
   createdAt: string;
   updatedAt?: string;
 }

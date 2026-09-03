@@ -480,6 +480,17 @@ app.delete('/api/transactions/:id', (req, res) => {
   }
 });
 
+// Refund / Revert Transaction Route
+app.post('/api/transactions/:id/refund', (req, res) => {
+  try {
+    const { reason, refundedBy } = req.body || {};
+    const result = DatabaseService.refundTransaction(req.params.id, reason, refundedBy);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'Gagal membatalkan transaksi' });
+  }
+});
+
 // Clear / Reset All Transactions Route
 app.post('/api/transactions/clear-all', (req, res) => {
   try {

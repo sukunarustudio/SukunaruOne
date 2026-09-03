@@ -225,7 +225,12 @@ export function initializeDatabaseSchema(): void {
       paymentMethod TEXT DEFAULT 'CASH',
       cashierName TEXT DEFAULT 'Owner',
       notes TEXT,
+      status TEXT DEFAULT 'COMPLETED',
+      refundedAt TEXT,
+      refundReason TEXT,
+      refundedBy TEXT,
       createdAt TEXT,
+      updatedAt TEXT,
       FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE SET NULL
     );
     CREATE INDEX IF NOT EXISTS idx_transactions_receiptNumber ON transactions(receiptNumber);
@@ -306,6 +311,26 @@ export function initializeDatabaseSchema(): void {
   if (!trxItemCols.includes('thumbnailPath')) {
     db.prepare('ALTER TABLE transaction_items ADD COLUMN thumbnailPath TEXT').run();
   }
+
+  const trxCols = (db.prepare("PRAGMA table_info(transactions)").all() as any[]).map(c => c.name);
+  if (!trxCols.includes('status')) {
+    db.prepare("ALTER TABLE transactions ADD COLUMN status TEXT DEFAULT 'COMPLETED'").run();
+  }
+  if (!trxCols.includes('refundedAt')) {
+    db.prepare('ALTER TABLE transactions ADD COLUMN refundedAt TEXT').run();
+  }
+  if (!trxCols.includes('refundReason')) {
+    db.prepare('ALTER TABLE transactions ADD COLUMN refundReason TEXT').run();
+  }
+  if (!trxCols.includes('refundedBy')) {
+    db.prepare('ALTER TABLE transactions ADD COLUMN refundedBy TEXT').run();
+  }
+  if (!trxCols.includes('updatedAt')) {
+    db.prepare('ALTER TABLE transactions ADD COLUMN updatedAt TEXT').run();
+  }
+  try {
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status)').run();
+  } catch {}
 
   // Ensure schema version is saved in _meta
   const row = db.prepare('SELECT value FROM _meta WHERE key = ?').get('schema_version') as { value: string } | undefined;

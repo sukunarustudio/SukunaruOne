@@ -213,8 +213,8 @@ export const localDb = {
     const todayIncomeTotal = todayFinIncomes.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
     const todayExpenseTotal = todayFinExpenses.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
 
-    const todayPos = (db.transactions || []).filter(t => (t.date ? t.date.split('T')[0] : '') === today);
-    const todayOrders = (db.orders || []).filter(o => (o.orderDate ? o.orderDate.split('T')[0] : '') === today);
+    const todayPos = (db.transactions || []).filter(t => (t.date ? t.date.split('T')[0] : '') === today && t.status !== 'REFUNDED' && t.status !== 'CANCELLED');
+    const todayOrders = (db.orders || []).filter(o => (o.orderDate ? o.orderDate.split('T')[0] : '') === today && o.status !== 'BATAL');
     const todayPosSales = todayPos.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
     const todayOrderPaid = todayOrders.reduce((sum, o) => sum + (Number(o.paidAmount) || 0), 0);
     const todayRevenue = todayIncomeTotal > 0 ? todayIncomeTotal : (todayPosSales + todayOrderPaid);
@@ -233,8 +233,8 @@ export const localDb = {
     const monthIncomeTotal = monthFinIncomes.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
     const monthExpenseTotal = monthFinExpenses.reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
 
-    const monthPos = (db.transactions || []).filter(t => (t.date ? t.date.split('T')[0] : '').startsWith(thisMonth));
-    const monthOrders = (db.orders || []).filter(o => (o.orderDate ? o.orderDate.split('T')[0] : '').startsWith(thisMonth));
+    const monthPos = (db.transactions || []).filter(t => (t.date ? t.date.split('T')[0] : '').startsWith(thisMonth) && t.status !== 'REFUNDED' && t.status !== 'CANCELLED');
+    const monthOrders = (db.orders || []).filter(o => (o.orderDate ? o.orderDate.split('T')[0] : '').startsWith(thisMonth) && o.status !== 'BATAL');
     const monthPosSales = monthPos.reduce((sum, t) => sum + (Number(t.totalAmount) || 0), 0);
     const monthOrderPaid = monthOrders.reduce((sum, o) => sum + (Number(o.paidAmount) || 0), 0);
 
@@ -587,7 +587,9 @@ export const localDb = {
       paymentMethod: data.paymentMethod || 'CASH',
       cashierName: data.cashierName || 'Owner',
       notes: data.notes || '',
+      status: 'COMPLETED',
       createdAt: dateStr,
+      updatedAt: dateStr,
     };
 
     db.transactions.unshift(newTrx);
@@ -596,28 +598,33 @@ export const localDb = {
     if (Array.isArray(data.items)) {
       for (const item of data.items) {
         const prod = db.products.find(p => p.id === item.productId);
-        if (prod && Array.isArray(prod.components)) {
-          for (const comp of prod.components) {
-            if (comp.materialId) {
-              const mat = db.materials.find(m => m.id === comp.materialId);
-              if (mat) {
-                const qtyUsed = comp.quantity * item.quantity;
-                const prev = mat.currentStock;
-                mat.currentStock = Math.max(0, mat.currentStock - qtyUsed);
-                db.inventory_movements.unshift({
-                  id: `mov_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
-                  materialId: mat.id,
-                  materialName: mat.name,
-                  type: 'OUT',
-                  quantity: qtyUsed,
-                  previousStock: prev,
-                  newStock: mat.currentStock,
-                  referenceType: 'POS',
-                  referenceId: receiptNum,
-                  notes: `Digunakan untuk ${prod.name} × ${item.quantity} (POS #${receiptNum})`,
-                  date: dateStr,
-                  createdAt: dateStr,
-                });
+        if (prod) {
+          if (prod.trackStock) {
+            prod.currentStock = Math.max(0, (Number(prod.currentStock) || 0) - (Number(item.quantity) || 1));
+          }
+          if (Array.isArray(prod.components)) {
+            for (const comp of prod.components) {
+              if (comp.materialId) {
+                const mat = db.materials.find(m => m.id === comp.materialId);
+                if (mat) {
+                  const qtyUsed = comp.quantity * item.quantity;
+                  const prev = mat.currentStock;
+                  mat.currentStock = Math.max(0, mat.currentStock - qtyUsed);
+                  db.inventory_movements.unshift({
+                    id: `mov_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+                    materialId: mat.id,
+                    materialName: mat.name,
+                    type: 'OUT',
+                    quantity: qtyUsed,
+                    previousStock: prev,
+                    newStock: mat.currentStock,
+                    referenceType: 'POS',
+                    referenceId: receiptNum,
+                    notes: `Digunakan untuk ${prod.name} × ${item.quantity} (POS #${receiptNum})`,
+                    date: dateStr,
+                    createdAt: dateStr,
+                  });
+                }
               }
             }
           }
@@ -633,6 +640,7 @@ export const localDb = {
       category: 'Penjualan Kasir',
       description: `Transaksi Kasir #${receiptNum} - ${newTrx.customerName}`,
       amount: newTrx.totalAmount,
+      referenceNumber: receiptNum,
       referenceType: 'POS',
       referenceId: newTrx.id,
       paymentMethod: newTrx.paymentMethod,
@@ -643,6 +651,102 @@ export const localDb = {
 
     setLocalData(db);
     return newTrx;
+  },
+
+  async refundTransaction(id: string, reason?: string, refundedBy?: string): Promise<{ success: boolean; message: string; transaction: Transaction }> {
+    const db = getLocalData();
+    const trx = db.transactions.find(t => t.id === id);
+    if (!trx) throw new Error('Transaksi tidak ditemukan');
+    if (trx.status === 'REFUNDED' || trx.status === 'CANCELLED') {
+      throw new Error('Transaksi ini sudah dibatalkan sebelumnya.');
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const nowIso = new Date().toISOString();
+    const refundReason = reason?.trim() || 'Pembatalan transaksi kasir';
+    const cashier = refundedBy || 'Owner';
+
+    // 1. Update transaction
+    trx.status = 'REFUNDED';
+    trx.refundedAt = nowIso;
+    trx.refundReason = refundReason;
+    trx.refundedBy = cashier;
+    trx.updatedAt = todayStr;
+
+    // 2. Return product stock & raw materials
+    if (Array.isArray(trx.items)) {
+      for (const item of trx.items) {
+        const qty = Number(item.quantity) || 1;
+        const prod = db.products.find(p => p.id === item.productId);
+        if (prod) {
+          if (prod.trackStock) {
+            prod.currentStock = (Number(prod.currentStock) || 0) + qty;
+          }
+          if (Array.isArray(prod.components) && prod.components.length > 0) {
+            for (const comp of prod.components) {
+              if (comp.materialId) {
+                const mat = db.materials.find(m => m.id === comp.materialId);
+                if (mat) {
+                  const returnQty = (Number(comp.quantity) || 1) * qty;
+                  const prev = mat.currentStock;
+                  mat.currentStock = prev + returnQty;
+                  db.inventory_movements.unshift({
+                    id: `mov_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+                    materialId: mat.id,
+                    materialName: mat.name,
+                    type: 'IN',
+                    quantity: returnQty,
+                    previousStock: prev,
+                    newStock: mat.currentStock,
+                    referenceType: 'POS_REFUND',
+                    referenceId: trx.receiptNumber,
+                    notes: `Pengembalian stok dari refund #${trx.receiptNumber} (${prod.name} × ${qty})`,
+                    date: todayStr,
+                    createdAt: todayStr,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Insert Reversal Entry in financial_transactions
+    const refundAmount = Number(trx.totalAmount) || 0;
+    if (refundAmount > 0) {
+      db.financial_transactions.unshift({
+        id: `fin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        date: todayStr,
+        type: 'EXPENSE',
+        category: 'Refund Penjualan',
+        description: `Refund Transaksi Kasir #${trx.receiptNumber} - ${trx.customerName}`,
+        amount: refundAmount,
+        referenceNumber: trx.receiptNumber,
+        referenceType: 'POS_REFUND' as any,
+        referenceId: trx.id,
+        paymentMethod: trx.paymentMethod,
+        notes: `Alasan: ${refundReason}`,
+        createdAt: todayStr,
+      });
+    }
+
+    // 4. Update Customer stats
+    if (trx.customerId) {
+      const cust = db.customers.find(c => c.id === trx.customerId);
+      if (cust) {
+        cust.totalOrders = Math.max(0, (cust.totalOrders || 0) - 1);
+        cust.totalSpent = Math.max(0, (cust.totalSpent || 0) - refundAmount);
+      }
+    }
+
+    setLocalData(db);
+
+    return {
+      success: true,
+      message: `Transaksi #${trx.receiptNumber} berhasil dibatalkan dan seluruh stok serta laporan dikembalikan.`,
+      transaction: { ...trx },
+    };
   },
 
   async deleteTransaction(id: string): Promise<void> {
