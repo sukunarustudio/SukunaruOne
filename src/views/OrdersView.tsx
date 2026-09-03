@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeftIcon, EllipsisVerticalIcon, QueueListIcon, PlusIcon, MinusIcon, MagnifyingGlassIcon, CalendarIcon, ClockIcon, ExclamationTriangleIcon, DocumentTextIcon, ArrowUpTrayIcon, TrashIcon, ArrowTopRightOnSquareIcon, CurrencyDollarIcon, UserIcon, ChevronRightIcon, ChevronLeftIcon, EyeIcon, CreditCardIcon, PrinterIcon, PaperClipIcon, Squares2X2Icon, ListBulletIcon, SparklesIcon, CheckCircleIcon, StopIcon, ShoppingBagIcon, ArrowPathIcon, WrenchScrewdriverIcon, FunnelIcon, XMarkIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, EllipsisVerticalIcon, QueueListIcon, PlusIcon, MinusIcon, MagnifyingGlassIcon, CalendarIcon, ClockIcon, ExclamationTriangleIcon, DocumentTextIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, TrashIcon, ArrowTopRightOnSquareIcon, CurrencyDollarIcon, UserIcon, ChevronRightIcon, ChevronLeftIcon, EyeIcon, CreditCardIcon, PrinterIcon, PaperClipIcon, Squares2X2Icon, ListBulletIcon, SparklesIcon, CheckCircleIcon, StopIcon, ShoppingBagIcon, ArrowPathIcon, WrenchScrewdriverIcon, FunnelIcon, XMarkIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import {
   Order,
@@ -2313,17 +2313,63 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   Detail Pesanan
                 </h3>
               </div>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
-                  selectedOrder.paymentStatus === 'LUNAS'
-                    ? 'bg-[#EAEFEF] text-[#25343F]'
-                    : selectedOrder.paymentStatus === 'DP'
-                    ? 'bg-[#FF9B51]/15 text-[#c45e00]'
-                    : 'bg-[#FF9B51]/15 text-[#c45e00]'
-                }`}
-              >
-                {selectedOrder.paymentStatus}
-              </span>
+
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Shortcut Unduh Dokumen */}
+                <button
+                  type="button"
+                  id="btn-detail-download-shortcut"
+                  onClick={() => {
+                    setInvoiceOrder(selectedOrder);
+                    setIsInvoiceModalOpen(true);
+                  }}
+                  className="h-8 px-2.5 rounded-xl bg-[#EAEFEF] hover:bg-[#BFC9D1]/50 border border-[#BFC9D1]/30 text-[#25343F] flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Unduh PDF / JPG Faktur atau SPK"
+                  aria-label="Unduh Dokumen"
+                >
+                  <ArrowDownTrayIcon className="w-4 h-4 text-[#25343F]" />
+                  <span className="hidden sm:inline">Unduh</span>
+                </button>
+
+                {/* Shortcut Print Dokumen */}
+                <button
+                  type="button"
+                  id="btn-detail-print-shortcut"
+                  onClick={() => {
+                    setInvoiceOrder(selectedOrder);
+                    setIsInvoiceModalOpen(true);
+                  }}
+                  className="h-8 px-2.5 rounded-xl bg-[#25343F] hover:bg-slate-800 text-white flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Cetak Faktur atau SPK"
+                  aria-label="Cetak Dokumen"
+                >
+                  <PrinterIcon className="w-4 h-4 text-[#FF9B51]" />
+                  <span className="hidden sm:inline">Cetak</span>
+                </button>
+
+                {/* Badge Status Pembayaran */}
+                <span
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                    selectedOrder.paymentStatus === 'LUNAS'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'
+                      : selectedOrder.paymentStatus === 'DP'
+                      ? 'bg-amber-50 text-amber-800 border border-amber-200/80'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200/80'
+                  }`}
+                >
+                  {formatPaymentStatus(selectedOrder.paymentStatus)}
+                </span>
+
+                {/* Tombol Tutup X */}
+                <button
+                  type="button"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-[#EAEFEF] hover:bg-slate-200 text-[#898989] hover:text-[#25343F] flex items-center justify-center transition-colors cursor-pointer ml-0.5"
+                  title="Tutup Modal"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Status Pengerjaan Quick Selector */}
@@ -2478,13 +2524,28 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 <TrashIcon className="w-3.5 h-3.5" /> Hapus Pesanan
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Tutup
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-detail-footer-print"
+                  onClick={() => {
+                    setInvoiceOrder(selectedOrder);
+                    setIsInvoiceModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-[#25343F] hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all"
+                >
+                  <PrinterIcon className="w-3.5 h-3.5 text-[#FF9B51]" />
+                  <span>Cetak / Unduh Dokumen</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="px-4 py-2 bg-[#EAEFEF] hover:bg-slate-200 text-[#25343F] rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>
