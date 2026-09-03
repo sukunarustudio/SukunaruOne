@@ -2310,7 +2310,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   #{selectedOrder.orderNumber}
                 </span>
                 <h3 className="font-extrabold text-sm text-[#25343F] mt-0.5">
-                  Detail Pesanan &amp; File Produksi
+                  Detail Pesanan
                 </h3>
               </div>
               <span
@@ -2464,79 +2464,6 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   </div>
                 ) : (
                   <p className="text-[#898989] text-xs">Belum ada pembayaran yang dicatat.</p>
-                )}
-              </div>
-
-              {/* File Management */}
-              <div className="p-4 bg-white rounded-xl border border-[#BFC9D1]/25 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <PaperClipIcon className="w-4 h-4 text-[#25343F]" />
-                    <h4 className="font-bold text-[#25343F]">File Desain &amp; Cetak Terlampir</h4>
-                  </div>
-
-                  <div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="upload-order-file-input"
-                    />
-                    <button
-                      type="button"
-                      disabled={isUploadingFile}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-1.5 rounded-lg bg-[#FF9B51] hover:bg-[#FF9B51] disabled:bg-slate-300 text-[#25343F] font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
-                    >
-                      <ArrowUpTrayIcon className="w-3.5 h-3.5" />
-                      {isUploadingFile ? 'Mengunggah...' : 'Unggah File Desain'}
-                    </button>
-                  </div>
-                </div>
-
-                {selectedOrder.files && selectedOrder.files.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {selectedOrder.files.map(file => (
-                      <div
-                        key={file.id}
-                        className="p-3 bg-[#EAEFEF] rounded-xl border border-[#BFC9D1]/25 flex items-center justify-between gap-2"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="font-bold text-[#25343F] text-xs truncate">
-                            {file.originalName}
-                          </div>
-                          <div className="text-[10px] text-[#898989] mt-0.5">
-                            {(file.size / 1024).toFixed(0)} KB • {formatDate(file.createdAt)}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <a
-                            href={file.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg text-[#25343F] hover:bg-[#EAEFEF] border border-[#BFC9D1]/25"
-                            title="Buka / Unduh"
-                          >
-                            <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteFile(file.id)}
-                            className="p-1.5 rounded-lg text-[#c45e00] hover:bg-[#FF9B51]/8 border border-[#FF9B51]/40"
-                            title="Hapus File"
-                          >
-                            <TrashIcon className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[#898989] text-xs">
-                    Belum ada file desain terlampir pada pesanan ini.
-                  </p>
                 )}
               </div>
             </div>
