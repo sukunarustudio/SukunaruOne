@@ -11,7 +11,7 @@ import {
   DashboardStats,
 } from '../types';
 import { localDb } from './localDb';
-import { uploadTenantFile, deleteTenantFile, isSupabaseConfigured, getSupabaseClientForSchema } from './supabaseClient';
+import { uploadTenantFile, deleteTenantFile, isSupabaseConfigured, getSupabaseClient } from './supabaseClient';
 import { getActiveLicenseKey, enqueueSyncMutation, pauseRealtime, resumeRealtime } from './syncManager';
 
 export const getApiBaseUrl = (): string => {
@@ -429,23 +429,22 @@ export const api = {
     if (isSupabaseConfigured()) {
       try {
         const licenseKey = getActiveLicenseKey();
-        const schemaName = licenseKey.trim().toLowerCase().replace(/-/g, '_');
-        const targetDb = getSupabaseClientForSchema(schemaName);
-        if (targetDb) {
+        const client = getSupabaseClient();
+        if (client) {
           // ── Pause realtime BEFORE bulk delete ──────────────────────────────
           // Supabase sends a DELETE event for every row we delete. Without this
           // guard, `handleIncomingRealtimeChange` would propagate those events
-          // and wipe local master data (customers, materials, products).
+          // and wipe local master data.
           pauseRealtime();
           try {
-            await targetDb.from('transactions').delete().neq('id', '___NEVER_MATCH___');
-            await targetDb.from('orders').delete().neq('id', '___NEVER_MATCH___');
-            await targetDb.from('financial_transactions').delete().neq('id', '___NEVER_MATCH___');
+            await client.from('transactions').delete().eq('license_key', licenseKey);
+            await client.from('orders').delete().eq('license_key', licenseKey);
+            await client.from('financial_transactions').delete().eq('license_key', licenseKey);
             if (options.resetExpenses) {
-              await targetDb.from('expenses').delete().neq('id', '___NEVER_MATCH___');
+              await client.from('expenses').delete().eq('license_key', licenseKey);
             }
             if (options.resetMovements) {
-              await targetDb.from('inventory_movements').delete().neq('id', '___NEVER_MATCH___');
+              await client.from('inventory_movements').delete().eq('license_key', licenseKey);
             }
           } finally {
             // ── Resume realtime AFTER all deletes complete ─────────────────

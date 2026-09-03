@@ -1,4 +1,4 @@
-import { getSupabaseClient, getSupabaseClientForSchema, isSupabaseConfigured } from './supabaseClient';
+import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 import { localDb } from './localDb';
 import {
   Customer,
@@ -550,10 +550,9 @@ export async function flushSyncQueue(): Promise<void> {
   notifyListeners();
 
   const licenseKey = getActiveLicenseKey();
-  const schemaName = licenseKey.trim().toLowerCase().replace(/-/g, '_');
-  const targetDb = getSupabaseClientForSchema(schemaName);
+  const client = getSupabaseClient();
 
-  if (!targetDb) {
+  if (!client) {
     isFlushingQueue = false;
     currentSyncState.status = 'ERROR';
     notifyListeners();
@@ -566,7 +565,7 @@ export async function flushSyncQueue(): Promise<void> {
     try {
       if (item.action === 'UPSERT') {
         const payload = toSupabasePayload(item.table, item.payload, licenseKey);
-        const { error } = await targetDb.from(item.table).upsert(payload);
+        const { error } = await client.from(item.table).upsert(payload);
         if (error) {
           console.warn(`[Queue Upsert ${item.table} Error]:`, error);
           // If fatal error (e.g. column mismatch or not critical), don't trap the queue forever
@@ -580,10 +579,10 @@ export async function flushSyncQueue(): Promise<void> {
       } else if (item.action === 'DELETE') {
         if (item.table === 'transactions' || item.table === 'orders' || item.table === 'expenses') {
           try {
-            await targetDb.from('financial_transactions').delete().eq('reference_id', item.recordId);
+            await client.from('financial_transactions').delete().eq('reference_id', item.recordId).eq('license_key', licenseKey);
           } catch (_) {}
         }
-        const { error } = await targetDb.from(item.table).delete().eq('id', item.recordId);
+        const { error } = await client.from(item.table).delete().eq('id', item.recordId).eq('license_key', licenseKey);
         if (error) {
           console.warn(`[Queue Delete ${item.table} Error]:`, error);
           if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('Failed')) {
@@ -642,15 +641,14 @@ export async function syncWithSupabase(): Promise<{
   }
 
   const licenseKey = getActiveLicenseKey();
-  const schemaName = licenseKey.trim().toLowerCase().replace(/-/g, '_');
-  const targetDb = getSupabaseClientForSchema(schemaName);
+  const client = getSupabaseClient();
 
-  if (!targetDb) {
+  if (!client) {
     currentSyncState.status = 'ERROR';
     notifyListeners();
     return {
       success: false,
-      message: 'Gagal membuat koneksi schema Supabase.',
+      message: 'Gagal membuat koneksi Supabase.',
       pushedCount: 0,
       pulledCount: 0,
     };
@@ -672,13 +670,14 @@ export async function syncWithSupabase(): Promise<{
     // ── 1. SYNC SETTINGS ──────────────────────────────────────
     if (rawLocal.settings) {
       const setPayload = settingsToSupabase(rawLocal.settings, licenseKey);
-      await targetDb.from('business_settings').upsert(setPayload);
+      await client.from('business_settings').upsert(setPayload);
       pushed++;
     }
     
-    const { data: remoteSettings } = await targetDb
+    const { data: remoteSettings } = await client
       .from('business_settings')
       .select('*')
+      .eq('license_key', licenseKey)
       .limit(1);
 
     if (remoteSettings && remoteSettings.length > 0) {
@@ -689,13 +688,14 @@ export async function syncWithSupabase(): Promise<{
     // ── 2. SYNC CUSTOMERS ────────────────────────────────────
     if (rawLocal.customers.length > 0) {
       const payload = rawLocal.customers.map(c => customerToSupabase(c, licenseKey));
-      await targetDb.from('customers').upsert(payload);
+      await client.from('customers').upsert(payload);
       pushed += rawLocal.customers.length;
     }
 
-    const { data: remoteCustomers } = await targetDb
+    const { data: remoteCustomers } = await client
       .from('customers')
       .select('*')
+      .eq('license_key', licenseKey)
       .order('updated_at', { ascending: false });
 
     if (remoteCustomers && remoteCustomers.length > 0) {
@@ -706,13 +706,14 @@ export async function syncWithSupabase(): Promise<{
     // ── 3. SYNC MATERIALS ────────────────────────────────────
     if (rawLocal.materials.length > 0) {
       const payload = rawLocal.materials.map(m => materialToSupabase(m, licenseKey));
-      await targetDb.from('materials').upsert(payload);
+      await client.from('materials').upsert(payload);
       pushed += rawLocal.materials.length;
     }
 
-    const { data: remoteMaterials } = await targetDb
+    const { data: remoteMaterials } = await client
       .from('materials')
       .select('*')
+      .eq('license_key', licenseKey)
       .order('updated_at', { ascending: false });
 
     if (remoteMaterials && remoteMaterials.length > 0) {
@@ -723,13 +724,14 @@ export async function syncWithSupabase(): Promise<{
     // ── 4. SYNC PRODUCTS ─────────────────────────────────────
     if (rawLocal.products.length > 0) {
       const payload = rawLocal.products.map(p => productToSupabase(p, licenseKey));
-      await targetDb.from('products').upsert(payload);
+      await client.from('products').upsert(payload);
       pushed += rawLocal.products.length;
     }
 
-    const { data: remoteProducts } = await targetDb
+    const { data: remoteProducts } = await client
       .from('products')
       .select('*')
+      .eq('license_key', licenseKey)
       .order('updated_at', { ascending: false });
 
     if (remoteProducts && remoteProducts.length > 0) {
@@ -740,13 +742,14 @@ export async function syncWithSupabase(): Promise<{
     // ── 5. SYNC ORDERS ───────────────────────────────────────
     if (rawLocal.orders.length > 0) {
       const payload = rawLocal.orders.map(o => orderToSupabase(o, licenseKey));
-      await targetDb.from('orders').upsert(payload);
+      await client.from('orders').upsert(payload);
       pushed += rawLocal.orders.length;
     }
 
-    const { data: remoteOrders } = await targetDb
+    const { data: remoteOrders } = await client
       .from('orders')
       .select('*')
+      .eq('license_key', licenseKey)
       .order('updated_at', { ascending: false });
 
     if (remoteOrders) {
@@ -757,13 +760,14 @@ export async function syncWithSupabase(): Promise<{
     // ── 6. SYNC TRANSACTIONS ─────────────────────────────────
     if (rawLocal.transactions.length > 0) {
       const payload = rawLocal.transactions.map(t => transactionToSupabase(t, licenseKey));
-      await targetDb.from('transactions').upsert(payload);
+      await client.from('transactions').upsert(payload);
       pushed += rawLocal.transactions.length;
     }
 
-    const { data: remoteTransactions } = await targetDb
+    const { data: remoteTransactions } = await client
       .from('transactions')
       .select('*')
+      .eq('license_key', licenseKey)
       .order('updated_at', { ascending: false });
 
     if (remoteTransactions) {
@@ -774,13 +778,14 @@ export async function syncWithSupabase(): Promise<{
     // ── 7. SYNC EXPENSES ─────────────────────────────────────
     if (rawLocal.expenses.length > 0) {
       const payload = rawLocal.expenses.map(e => expenseToSupabase(e, licenseKey));
-      await targetDb.from('expenses').upsert(payload);
+      await client.from('expenses').upsert(payload);
       pushed += rawLocal.expenses.length;
     }
 
-    const { data: remoteExpenses } = await targetDb
+    const { data: remoteExpenses } = await client
       .from('expenses')
       .select('*')
+      .eq('license_key', licenseKey)
       .order('created_at', { ascending: false });
 
     if (remoteExpenses) {
@@ -791,13 +796,14 @@ export async function syncWithSupabase(): Promise<{
     // ── 8. SYNC FINANCIAL TRANSACTIONS ───────────────────────
     if (rawLocal.financial_transactions.length > 0) {
       const payload = rawLocal.financial_transactions.map(f => finTransactionToSupabase(f, licenseKey));
-      await targetDb.from('financial_transactions').upsert(payload);
+      await client.from('financial_transactions').upsert(payload);
       pushed += rawLocal.financial_transactions.length;
     }
 
-    const { data: remoteFinTrx } = await targetDb
+    const { data: remoteFinTrx } = await client
       .from('financial_transactions')
       .select('*')
+      .eq('license_key', licenseKey)
       .order('created_at', { ascending: false });
 
     if (remoteFinTrx) {
@@ -857,10 +863,6 @@ export function resumeRealtime(resyncDelay = 1500): void {
   }
 }
 
-// Tables that should NEVER be mass-deleted by an incoming realtime DELETE
-// event (i.e. they are "master data" and must only be deleted row-by-row).
-const PROTECTED_MASTER_TABLES = new Set(['customers', 'materials', 'products']);
-
 export function scheduleAutoSync(delayMs = 2000): void {
   if (typeof window === 'undefined') return;
   if (!isSupabaseConfigured() || !navigator.onLine) return;
@@ -876,35 +878,52 @@ export function scheduleAutoSync(delayMs = 2000): void {
 }
 
 function handleIncomingRealtimeChange(payload: any) {
-  // If a bulk operation (e.g. clearAllTransactions) is in progress, ignore all
-  // incoming realtime changes to prevent cascading deletes on master data.
+  // If a bulk operation (e.g. clearAllTransactions) is in progress, ignore incoming events
   if (realtimePaused) return;
 
   try {
     const table = payload.table;
     const eventType = payload.eventType; // 'INSERT' | 'UPDATE' | 'DELETE'
+    const activeLicenseKey = getActiveLicenseKey();
+
+    // Verify tenant license_key matches active license
+    const recordLicenseKey = (payload.new?.license_key || payload.old?.license_key || '').trim().toUpperCase();
+    if (recordLicenseKey && recordLicenseKey !== activeLicenseKey) {
+      // Event belongs to another tenant license, ignore
+      return;
+    }
+
+    const recordId = payload.new?.id || payload.old?.id || payload.new?.license_key || payload.old?.license_key || 'unknown';
+
+    console.log(`[REALTIME] EVENT RECEIVED\ntable: ${table}\nevent: ${eventType}\nrecord_id: ${recordId}`);
+    console.log(`[SYNC] PROCESSING EVENT`);
 
     if (eventType === 'DELETE') {
-      const oldRecordId = payload.old?.id;
+      const oldRecordId = payload.old?.id || payload.old?.license_key;
       if (oldRecordId) {
-        // Guard: skip DELETE for master data tables entirely — they must only
-        // be deleted via explicit single-record delete actions in the UI.
-        if (PROTECTED_MASTER_TABLES.has(table)) return;
-
+        console.log(`[SQLITE] APPLYING CHANGE`);
         const deleted = localDb.applyRemoteDelete(table, oldRecordId);
-        if (deleted) emitSyncCompleted();
+        if (deleted) {
+          console.log(`[SQLITE] CHANGE SUCCESS`);
+          console.log(`[UI] REFRESH`);
+          emitSyncCompleted();
+        }
       }
     } else if (eventType === 'INSERT' || eventType === 'UPDATE') {
       const newRecord = payload.new;
-      if (newRecord && newRecord.id) {
+      if (newRecord) {
         const mapped = fromSupabasePayload(table, newRecord);
+        console.log(`[SQLITE] APPLYING CHANGE`);
         const updated = localDb.applyRemoteUpsert(table, mapped);
-        if (updated) emitSyncCompleted();
+        if (updated) {
+          console.log(`[SQLITE] CHANGE SUCCESS`);
+          console.log(`[UI] REFRESH`);
+          emitSyncCompleted();
+        }
       }
     }
   } catch (err) {
     console.warn('[Realtime Process Warning]:', err);
-    // If granular processing failed, schedule fallback background sync
     scheduleAutoSync(1000);
   }
 }
@@ -915,17 +934,19 @@ export function subscribeToRealtimeChanges(force = false): void {
   if (isSubscribing && !force) return;
 
   const licenseKey = getActiveLicenseKey();
-  const schemaName = licenseKey.trim().toLowerCase().replace(/-/g, '_');
+  if (!licenseKey) return;
 
-  // If already subscribed to the same schema and channel is alive, avoid duplicates
-  if (!force && activeRealtimeChannel && activeSubscriptionSchema === schemaName) {
+  // If already subscribed to the same license and channel is alive, avoid duplicates
+  if (!force && activeRealtimeChannel && activeSubscriptionSchema === licenseKey) {
     return;
   }
 
+  console.log('[REALTIME] INITIALIZING');
   isSubscribing = true;
   const client = getSupabaseClient();
   if (!client) {
     isSubscribing = false;
+    console.log('[REALTIME] STATUS: CHANNEL_ERROR');
     return;
   }
 
@@ -938,47 +959,47 @@ export function subscribeToRealtimeChanges(force = false): void {
   }
 
   try {
-    const channelName = `tenant-sync-${schemaName}-${Date.now().toString().slice(-4)}`;
-    activeSubscriptionSchema = schemaName;
+    const channelName = `bisnisurang-sync-${licenseKey.toLowerCase().replace(/[^a-z0-9]/g, '_')}-${Date.now().toString().slice(-4)}`;
+    activeSubscriptionSchema = licenseKey;
+
+    console.log(`[REALTIME] CHANNEL CREATED`);
+    console.log(`[REALTIME] SUBSCRIBING`);
 
     activeRealtimeChannel = client
       .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: schemaName }, payload => {
-        handleIncomingRealtimeChange(payload);
-      })
       .on('postgres_changes', { event: '*', schema: 'public' }, payload => {
-        if (payload.table === 'licenses') {
-          // If license updated in public
-          scheduleAutoSync(500);
-        } else {
-          handleIncomingRealtimeChange(payload);
-        }
+        handleIncomingRealtimeChange(payload);
       })
       .subscribe((status, err) => {
         isSubscribing = false;
         if (status === 'SUBSCRIBED') {
+          console.log('[REALTIME] STATUS: SUBSCRIBED');
           currentSyncState.status = 'CONNECTED';
           currentSyncState.isOnline = true;
           notifyListeners();
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          if (err) console.warn(`[Supabase Realtime Channel ${status}]:`, err);
-          // Auto retry connection once after short delay
-          setTimeout(() => {
-            if (navigator.onLine && isSupabaseConfigured()) {
-              subscribeToRealtimeChanges(true);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.log(`[REALTIME] STATUS: ${status}`);
+          if (err) console.warn('[REALTIME] Details:', err);
+          // Auto retry connection once after short delay if not intentionally closed
+          if (status !== 'CLOSED') {
+            setTimeout(() => {
+              if (typeof navigator !== 'undefined' && navigator.onLine && isSupabaseConfigured()) {
+                subscribeToRealtimeChanges(true);
+              }
+            }, 3000);
+          } else {
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+              currentSyncState.status = 'OFFLINE';
+              notifyListeners();
             }
-          }, 3000);
-        } else if (status === 'CLOSED') {
-          // If intentionally closed or offline
-          if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            currentSyncState.status = 'OFFLINE';
-            notifyListeners();
           }
+        } else {
+          console.log(`[REALTIME] STATUS: ${status}`);
         }
       });
   } catch (err) {
     isSubscribing = false;
-    console.error('[Subscribe Realtime Exception]:', err);
+    console.error('[REALTIME] STATUS: CHANNEL_ERROR', err);
   }
 }
 

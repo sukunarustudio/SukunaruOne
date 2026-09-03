@@ -3,7 +3,7 @@ import { ShieldCheckIcon, ArrowLeftIcon, DocumentDuplicateIcon, CheckIcon, Spark
 import { ViewType, BusinessSettings } from '../types';
 import { useToast } from '../components/Toast';
 import { verifyLicenseInCloud, releaseLicenseInCloud, isSupabaseConfigured } from '../services/supabaseClient';
-import { syncWithSupabase } from '../services/syncManager';
+import { syncWithSupabase, subscribeToRealtimeChanges } from '../services/syncManager';
 
 interface ActivationViewProps {
   onNavigate: (view: ViewType) => void;
@@ -216,8 +216,9 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
           showToast('Selamat! Aplikasi Sukunaru Studio berhasil diaktivasi permanen.', 'success');
         }
 
-        // Automatically trigger sync if cloud is configured
+        // Automatically trigger sync and realtime subscription if cloud is configured
         if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+          subscribeToRealtimeChanges(true);
           syncWithSupabase().catch(() => {});
         }
       } else {
@@ -257,6 +258,9 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
       setLicenseType('TRIAL');
       setActiveKeyMasked('');
       setActivatedAt('');
+      if (isSupabaseConfigured()) {
+        subscribeToRealtimeChanges(true);
+      }
       showToast('Lisensi berhasil dilepaskan dari perangkat ini dan siap digunakan di perangkat lain.', 'success');
     }
   };
