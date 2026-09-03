@@ -401,13 +401,13 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
       {/* 2 Items: Unduh & Pulihkan */}
       <div className="space-y-3">
         {/* Row Unduh */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#BFC9D1]/25 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#BFC9D1]/25 shadow-md flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0">
               <ArrowDownTrayIcon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-extrabold text-xs sm:text-sm text-[#25343F]">Unduh Cadangan</h3>
+              <h3 className="font-extrabold text-xs sm:text-sm text-[#25343F] truncate">Unduh Cadangan</h3>
               <p className="text-[#898989] text-[11px] sm:text-xs mt-0.5 truncate">
                 Ekspor data bisnis ke file .json offline
               </p>
@@ -417,7 +417,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
             type="button"
             disabled={isDownloadingBackup}
             onClick={handleDownloadFullBackup}
-            className="w-full sm:w-auto px-3.5 py-2 bg-[#FF9B51] hover:bg-[#ff8c38] disabled:opacity-50 text-[#25343F] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95 shrink-0"
+            className="px-3.5 py-2 bg-[#FF9B51] hover:bg-[#ff8c38] disabled:opacity-50 text-[#25343F] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
           >
             {isDownloadingBackup
               ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
@@ -427,13 +427,13 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
         </div>
 
         {/* Row Pulihkan */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#BFC9D1]/25 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#BFC9D1]/25 shadow-md flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center shrink-0">
               <DocumentArrowUpIcon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-extrabold text-xs sm:text-sm text-[#25343F]">Pulihkan Database</h3>
+              <h3 className="font-extrabold text-xs sm:text-sm text-[#25343F] truncate">Pulihkan Database</h3>
               <p className="text-[#898989] text-[11px] sm:text-xs mt-0.5 truncate">
                 Impor file .json untuk pemulihan data
               </p>
@@ -443,7 +443,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
             type="button"
             disabled={isRestoring}
             onClick={handleSelectRestoreFile}
-            className="w-full sm:w-auto px-3.5 py-2 bg-[#25343F] hover:bg-[#1b262f] disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95 shrink-0"
+            className="px-3.5 py-2 bg-[#25343F] hover:bg-[#1b262f] disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
           >
             {isRestoring
               ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
