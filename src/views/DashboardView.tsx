@@ -64,6 +64,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today');
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
 
+  const { isPro, isTrial, daysRemaining, isTrialExpired } = useLicense();
+
+  const [isProfileBannerDismissed, setIsProfileBannerDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('bisnisurang_dismiss_profile_prompt') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const isProfileIncomplete = React.useMemo(() => {
+    const name = settings?.businessName?.trim() || '';
+    const isDefaultName = !name || name.toLowerCase() === 'nama bisnis anda' || name.toLowerCase() === 'sukunaru studio';
+    const hasContact = Boolean(settings?.phone?.trim() || settings?.whatsapp?.trim());
+    const hasAddress = Boolean(settings?.address?.trim());
+    const hasLogo = Boolean(settings?.logoUrl?.trim());
+    return isDefaultName || !hasContact || !hasAddress || !hasLogo;
+  }, [settings]);
+
   const loadData = async (showRefreshing = false) => {
     try {
       if (showRefreshing) setRefreshing(true);
@@ -343,25 +362,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
       </div>
     );
   }
-
-  const { isPro, isTrial, daysRemaining, isTrialExpired } = useLicense();
-
-  const [isProfileBannerDismissed, setIsProfileBannerDismissed] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem('bisnisurang_dismiss_profile_prompt') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  const isProfileIncomplete = React.useMemo(() => {
-    const name = settings?.businessName?.trim() || '';
-    const isDefaultName = !name || name.toLowerCase() === 'nama bisnis anda' || name.toLowerCase() === 'sukunaru studio';
-    const hasContact = Boolean(settings?.phone?.trim() || settings?.whatsapp?.trim());
-    const hasAddress = Boolean(settings?.address?.trim());
-    const hasLogo = Boolean(settings?.logoUrl?.trim());
-    return isDefaultName || !hasContact || !hasAddress || !hasLogo;
-  }, [settings]);
 
   return (
     <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
