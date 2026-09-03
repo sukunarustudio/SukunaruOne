@@ -2332,7 +2332,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsDetailModalOpen(false)}
-                  className="w-8 h-8 rounded-xl bg-[#EAEFEF] hover:bg-slate-200 text-[#898989] hover:text-[#25343F] flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-xl bg-[#EAEFEF] hover:bg-[#BFC9D1]/50 text-[#898989] hover:text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 border border-[#BFC9D1]/25"
                   title="Tutup Modal"
                 >
                   <XMarkIcon className="w-4 h-4" />
@@ -2492,13 +2492,30 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 <TrashIcon className="w-3.5 h-3.5" /> Hapus Pesanan
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Tutup
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Minimalist Icon-Only Print Button */}
+                <button
+                  type="button"
+                  id="btn-detail-footer-print-icon"
+                  onClick={() => {
+                    setInvoiceOrder(selectedOrder);
+                    setIsInvoiceModalOpen(true);
+                  }}
+                  className="h-9 w-9 rounded-xl bg-white hover:bg-[#EAEFEF] border border-[#BFC9D1]/40 text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shadow-xs"
+                  title="Cetak Faktur / SPK"
+                  aria-label="Cetak Faktur / SPK"
+                >
+                  <PrinterIcon className="w-4 h-4 text-[#25343F]" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="px-4 py-2 bg-[#FF9B51] hover:bg-[#ff8c38] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-xs active:scale-95"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>
