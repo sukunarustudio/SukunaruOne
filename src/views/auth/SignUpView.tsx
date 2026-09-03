@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   EnvelopeIcon,
   LockClosedIcon,
@@ -66,6 +66,9 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
           setRegisteredEmail(trimmedEmail);
           setIsEmailConfirmationStep(true);
         } else {
+          try {
+            sessionStorage.setItem('sukunaru_just_signed_in', 'true');
+          } catch {}
           showToast('Akun berhasil dibuat!', 'success');
           onSignUpSuccess();
         }

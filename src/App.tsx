@@ -169,17 +169,28 @@ function MainAppContent() {
       const user = session?.user ?? null;
       setAuthUser(user);
       if (user && !isSessionLocked()) {
-        // App restart with existing session: isFreshLogin = false
-        await handleUserSessionRestoration(user, false);
+        let isFresh = false;
+        try {
+          if (sessionStorage.getItem('sukunaru_just_signed_in') === 'true') {
+            isFresh = true;
+            sessionStorage.removeItem('sukunaru_just_signed_in');
+          }
+        } catch {}
+        await handleUserSessionRestoration(user, isFresh);
       }
     });
 
     // Subscribe to future auth changes
-    const cleanup = onAuthStateChange(async (user, _session, event) => {
+    const cleanup = onAuthStateChange(async (user) => {
       setAuthUser(user);
       if (user) {
-        // Only trigger fresh login flow when explicitly SIGNED_IN
-        const isFresh = event === 'SIGNED_IN';
+        let isFresh = false;
+        try {
+          if (sessionStorage.getItem('sukunaru_just_signed_in') === 'true') {
+            isFresh = true;
+            sessionStorage.removeItem('sukunaru_just_signed_in');
+          }
+        } catch {}
         await handleUserSessionRestoration(user, isFresh);
       } else {
         localStorage.removeItem('sukunaru_offline_mode');

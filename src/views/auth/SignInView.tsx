@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   EnvelopeIcon,
   LockClosedIcon,
@@ -55,6 +55,9 @@ export const SignInView: React.FC<SignInViewProps> = ({
     try {
       const result = await signIn(trimmedEmail, password);
       if (result.success) {
+        try {
+          sessionStorage.setItem('sukunaru_just_signed_in', 'true');
+        } catch {}
         showToast('Selamat datang kembali!', 'success');
         onSignInSuccess();
       } else {
