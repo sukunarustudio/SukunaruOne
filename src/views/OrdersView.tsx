@@ -2548,48 +2548,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         onUpdateBatchStatus={handleBatchUpdateStatus}
       />
 
-      {/* Floating Bottom Batch Action Bar (Hidden when Modals are open) */}
-      {selectedOrderIds.length > 0 && !isBatchPrintModalOpen && !isInvoiceModalOpen && (
-        <div
-          id="batch-actions-floating-bar"
-          className="fixed bottom-[92px] lg:bottom-7 left-1/2 -translate-x-1/2 z-50 max-w-xl w-[94%] sm:w-auto bg-[#25343F]/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 flex flex-wrap items-center justify-between gap-3 animate-fade-in"
-          style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}
-        >
-          <div className="flex items-center gap-2.5">
-            <span className="w-7 h-7 rounded-lg bg-[#25343F] text-white font-black text-xs flex items-center justify-center shadow-sm">
-              {selectedOrderIds.length}
-            </span>
-            <div>
-              <p className="text-xs font-bold text-white leading-tight">
-                {selectedOrderIds.length} Pesanan Dipilih
-              </p>
-              <p className="text-[10px] text-slate-300">
-                Total: {formatRupiah(orders.filter(o => selectedOrderIds.includes(o.id)).reduce((s, o) => s + o.totalAmount, 0))}
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              id="btn-trigger-floating-batch-print"
-              type="button"
-              onClick={() => setIsBatchPrintModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
-            >
-              <PrinterIcon className="w-3.5 h-3.5" />
-              <span>Cetak Massal</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDeselectAll}
-              className="px-2.5 py-1.5 rounded-xl bg-[#FF9B51] hover:bg-slate-700 text-slate-300 hover:text-[#25343F] text-xs font-medium transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Delete Confirmation */}
       <ConfirmDialog
@@ -2648,20 +2607,32 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         </div>
       )}
 
-      {/* ── Floating Batch Actions Bar (When items selected) ── */}
-      {selectedOrderIds.length > 0 && (
+      {/* ── Single Floating Batch Actions Bar (When items selected) ── */}
+      {selectedOrderIds.length > 0 && !isBatchPrintModalOpen && !isInvoiceModalOpen && (
         <div
-          className="fixed bottom-[92px] sm:bottom-8 left-1/2 -translate-x-1/2 z-40 bg-[#25343F] text-white px-4 py-2.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2.5 sm:gap-3 animate-fade-in max-w-[95vw]"
+          id="batch-actions-floating-bar"
+          className="fixed bottom-[92px] sm:bottom-8 left-1/2 -translate-x-1/2 z-40 bg-[#25343F] text-white px-3.5 py-2.5 sm:px-4 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2 sm:gap-3 animate-fade-in max-w-[95vw]"
           style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}
         >
-          <div className="text-xs font-black whitespace-nowrap">
-            <span className="text-[#FF9B51]">{selectedOrderIds.length}</span> Dipilih
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-6 h-6 rounded-lg bg-white/20 text-[#FF9B51] font-black text-xs flex items-center justify-center shrink-0">
+              {selectedOrderIds.length}
+            </span>
+            <div className="min-w-0">
+              <span className="text-xs font-black whitespace-nowrap block leading-tight">
+                {selectedOrderIds.length} Dipilih
+              </span>
+              <span className="text-[10px] text-white/70 font-mono hidden sm:block leading-tight">
+                Total: {formatRupiah(orders.filter(o => selectedOrderIds.includes(o.id)).reduce((s, o) => s + o.totalAmount, 0))}
+              </span>
+            </div>
           </div>
 
           <div className="h-4 w-px bg-white/20 shrink-0" />
 
           <button
             type="button"
+            id="btn-trigger-floating-batch-print"
             onClick={() => handleOpenBatchPrint()}
             className="px-3 py-1.5 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm shrink-0"
           >
@@ -2677,7 +2648,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
               }
             }}
             defaultValue=""
-            className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border border-white/20 shrink-0"
+            className="px-2 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border border-white/20 shrink-0"
           >
             <option value="" disabled className="text-zinc-800 font-normal">Ubah Status...</option>
             <option value="BARU" className="text-zinc-800">1. Baru</option>
