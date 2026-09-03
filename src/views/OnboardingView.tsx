@@ -26,6 +26,7 @@ import { api } from '../services/api';
 import { useToast } from '../components/Toast';
 import { verifyLicenseInCloud, isSupabaseConfigured } from '../services/supabaseClient';
 import { performInitialCloudSync, subscribeToRealtimeChanges } from '../services/syncManager';
+import { claimLicenseForUser, getSession } from '../services/authService';
 import appLogo from '../assets/app-logo.png';
 
 interface OnboardingViewProps {
@@ -279,6 +280,16 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         try {
           localStorage.setItem('sukunaru_license_info', JSON.stringify(licenseData));
         } catch {}
+
+        // Auto-claim license for the currently logged-in auth user
+        try {
+          const session = await getSession();
+          if (session?.user) {
+            await claimLicenseForUser(cleanKey);
+          }
+        } catch (_claimErr) {
+          // Non-fatal: license still works, just not linked to account
+        }
 
         setLicenseStatus('success');
         showToast('✓ License Key berhasil diaktifkan.', 'success');

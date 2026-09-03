@@ -4,6 +4,7 @@ import { ViewType, BusinessSettings } from '../types';
 import { useToast } from '../components/Toast';
 import { verifyLicenseInCloud, releaseLicenseInCloud, isSupabaseConfigured } from '../services/supabaseClient';
 import { syncWithSupabase, subscribeToRealtimeChanges } from '../services/syncManager';
+import { claimLicenseForUser, getSession } from '../services/authService';
 
 interface ActivationViewProps {
   onNavigate: (view: ViewType) => void;
@@ -214,6 +215,16 @@ export const ActivationView: React.FC<ActivationViewProps> = ({ onNavigate, sett
           showToast('Selamat! Versi Percobaan 14 Hari berhasil diaktifkan.', 'success');
         } else {
           showToast('Selamat! Aplikasi Sukunaru Studio berhasil diaktivasi permanen.', 'success');
+        }
+
+        // Auto-claim license for the currently logged-in auth user
+        try {
+          const session = await getSession();
+          if (session?.user) {
+            await claimLicenseForUser(cleanKey);
+          }
+        } catch (_claimErr) {
+          // Non-fatal: license still works, just not linked to account
         }
 
         // Automatically trigger sync and realtime subscription if cloud is configured

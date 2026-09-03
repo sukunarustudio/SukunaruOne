@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
   ChevronRightIcon,
+  ArrowRightOnRectangleIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import {
   BuildingStorefrontIcon,
   ShieldCheckIcon,
   Cog6ToothIcon,
-  CircleStackIcon,
   QuestionMarkCircleIcon,
   ChatBubbleOvalLeftIcon,
   InformationCircleIcon,
-  HeartIcon,
   SwatchIcon,
   CloudArrowUpIcon,
 } from '@heroicons/react/24/solid';
 import { ViewType, BusinessSettings } from '../types';
+import { signOut, getSession } from '../services/authService';
+import { useToast } from '../components/Toast';
 
 interface ProfileViewProps {
   onNavigate: (view: ViewType) => void;
@@ -25,8 +27,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onNavigate,
   settings,
 }) => {
+  const { showToast } = useToast();
   const [isActivated, setIsActivated] = useState(false);
   const [licenseInfo, setLicenseInfo] = useState<any>(null);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  const [authDisplayName, setAuthDisplayName] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
     try {
@@ -37,6 +43,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         setIsActivated(Boolean(parsed.isActivated));
       }
     } catch {}
+
+    // Load auth session
+    getSession().then((session) => {
+      if (session?.user) {
+        setAuthEmail(session.user.email ?? null);
+        setAuthDisplayName(
+          session.user.user_metadata?.display_name ||
+          session.user.email?.split('@')[0] ||
+          null
+        );
+      }
+    });
   }, []);
 
   const getLicenseBadge = () => {
@@ -51,6 +69,25 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       return { text: `TRIAL (${remaining} HARI)`, desc: `Trial aktif, sisa ${remaining} hari lagi`, color: 'text-amber-600', dot: 'bg-amber-600', isPro: true };
     }
     return { text: 'PRO LIFETIME', desc: 'Lisensi Pro Lifetime Aktif', color: 'text-emerald-600', dot: 'bg-emerald-600', isPro: true };
+  };
+
+  const handleSignOut = async () => {
+    if (!window.confirm('Keluar dari akun BisnisUrang? Data lokal Anda tetap aman di perangkat ini.')) return;
+    setIsSigningOut(true);
+    try {
+      const result = await signOut();
+      if (result.success) {
+        showToast('Berhasil keluar dari akun.', 'success');
+        // Clear offline mode so sign-in screen shows
+        localStorage.removeItem('sukunaru_offline_mode');
+        // Reload to re-trigger auth check in App.tsx
+        window.location.reload();
+      } else {
+        showToast(result.message, 'error');
+      }
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   const badge = getLicenseBadge();
@@ -164,6 +201,40 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       </div>
 
+      {/* Auth Account Card (show if logged in) */}
+      {authEmail && (
+        <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md overflow-hidden">
+          <div className="text-[10.5px] font-extrabold text-[#898989] uppercase tracking-wider px-4 pt-3 pb-1">
+            AKUN CLOUD
+          </div>
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center shrink-0">
+              <UserCircleIcon className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-[#25343F] truncate">
+                {authDisplayName || 'Pengguna BisnisUrang'}
+              </div>
+              <div className="text-[10px] text-[#898989] truncate">{authEmail}</div>
+            </div>
+            <button
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-rose-500 text-xs font-semibold hover:bg-rose-50 transition-colors shrink-0 disabled:opacity-60"
+            >
+              {isSigningOut ? (
+                <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <ArrowRightOnRectangleIcon className="w-3.5 h-3.5" />
+              )}
+              Keluar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Menu Sections List */}
       <div className="space-y-3.5">
@@ -206,8 +277,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* App Version Footer */}
       <div className="pt-4 text-center text-xs text-[#898989] font-medium">
-        Sukunaru Studio v1.1.0
+        BisnisUrang v2.0 · Powered by Sukunaru Studio
       </div>
     </div>
   );
 };
+

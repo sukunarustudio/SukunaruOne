@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
+import { User } from '@supabase/supabase-js';
 import { api } from './services/api';
 import { ViewType, BusinessSettings } from './types';
 import { ToastProvider, useToast } from './components/Toast';
@@ -7,6 +8,10 @@ import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { SignInView } from './views/auth/SignInView';
+import { SignUpView } from './views/auth/SignUpView';
+import { ForgotPasswordView } from './views/auth/ForgotPasswordView';
+import { onAuthStateChange, getSession } from './services/authService';
 
 // Views
 import { DashboardView } from './views/DashboardView';
@@ -58,6 +63,36 @@ function MainAppContent() {
       return true;
     }
   });
+
+  // Auth state — null = not checked yet, undefined = checked but not logged in
+  const [authUser, setAuthUser] = useState<User | null | undefined>(undefined);
+  // Auth sub-screen: 'sign-in' | 'sign-up' | 'forgot-password'
+  const [authScreen, setAuthScreen] = useState<'sign-in' | 'sign-up' | 'forgot-password'>('sign-in');
+  // Whether user explicitly chose offline mode (skip auth)
+  const [offlineMode, setOfflineMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sukunaru_offline_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Check existing session on mount
+  useEffect(() => {
+    getSession().then((session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    // Subscribe to future auth changes
+    const cleanup = onAuthStateChange((user) => {
+      setAuthUser(user);
+      if (!user) {
+        // User signed out — clear offline mode so sign-in screen shows
+        localStorage.removeItem('sukunaru_offline_mode');
+        setOfflineMode(false);
+      }
+    });
+    return cleanup;
+  }, []);
 
   // App Startup Splash Screen state
   const [showSplash, setShowSplash] = useState<boolean>(true);
@@ -286,6 +321,55 @@ function MainAppContent() {
     setCurrentView('dashboard');
     refreshStatsAndSettings();
   };
+
+  const handleContinueOffline = () => {
+    try {
+      localStorage.setItem('sukunaru_offline_mode', 'true');
+    } catch {}
+    setOfflineMode(true);
+  };
+
+  // ── Auth Gate ─────────────────────────────────────────────────────────────
+  // authUser === undefined → session check still loading → show nothing (splash covers)
+  // authUser === null + not offline → show sign-in/sign-up/forgot
+  // authUser !== null || offlineMode → proceed to app
+  const isAuthLoading = authUser === undefined;
+  const needsAuth = !isAuthLoading && authUser === null && !offlineMode;
+
+  if (needsAuth) {
+    if (authScreen === 'sign-up') {
+      return (
+        <SignUpView
+          onSignUpSuccess={() => {
+            // After sign-up, state change via onAuthStateChange will update authUser
+            setAuthScreen('sign-in');
+          }}
+          onNavigateToSignIn={() => setAuthScreen('sign-in')}
+          onContinueOffline={handleContinueOffline}
+        />
+      );
+    }
+
+    if (authScreen === 'forgot-password') {
+      return (
+        <ForgotPasswordView
+          onNavigateToSignIn={() => setAuthScreen('sign-in')}
+        />
+      );
+    }
+
+    // Default: sign-in
+    return (
+      <SignInView
+        onSignInSuccess={() => {
+          // authUser will be set via onAuthStateChange
+        }}
+        onNavigateToSignUp={() => setAuthScreen('sign-up')}
+        onNavigateToForgotPassword={() => setAuthScreen('forgot-password')}
+        onContinueOffline={handleContinueOffline}
+      />
+    );
+  }
 
   // If first launch after install: display smooth First Launch Onboarding
   if (!isOnboardingCompleted) {
