@@ -120,7 +120,7 @@ function MainAppContent() {
 
   // Handle restoring business context & license entitlement on login
   const handleUserSessionRestoration = useCallback(
-    async (user: User) => {
+    async (user: User, isFreshLogin: boolean = false) => {
       try {
         unlockBusinessSession();
         setSessionLocked(false);
@@ -134,17 +134,23 @@ function MainAppContent() {
           showToast(licRes.message, 'error');
         }
 
-        // 2. Check local vs cloud data presence
-        const presence = await checkLocalAndCloudDataPresence();
-        if (presence.hasLocalData && presence.hasCloudData) {
-          setRecoveryPresence(presence);
-          setIsRecoveryModalOpen(true);
-        } else if (presence.hasCloudData && !presence.hasLocalData) {
-          // Fresh / reset device: pull from Cloud
-          await applyCloudToLocalWithBackup();
-          subscribeToRealtimeChanges(true);
-          await refreshStatsAndSettings();
+        // 2. Check local vs cloud data presence ONLY during fresh login
+        if (isFreshLogin) {
+          const presence = await checkLocalAndCloudDataPresence();
+          if (presence.hasLocalData && presence.hasCloudData) {
+            setRecoveryPresence(presence);
+            setIsRecoveryModalOpen(true);
+          } else if (presence.hasCloudData && !presence.hasLocalData) {
+            // Fresh / reset device: pull from Cloud directly
+            await applyCloudToLocalWithBackup();
+            subscribeToRealtimeChanges(true);
+            await refreshStatsAndSettings();
+          } else {
+            subscribeToRealtimeChanges(true);
+            await refreshStatsAndSettings();
+          }
         } else {
+          // Regular app startup / reload: start realtime & refresh stats without modal
           subscribeToRealtimeChanges(true);
           await refreshStatsAndSettings();
         }
@@ -157,21 +163,24 @@ function MainAppContent() {
     [refreshStatsAndSettings, showToast]
   );
 
-  // Check existing session on mount
+  // Check existing session on mount (app startup)
   useEffect(() => {
     getSession().then(async (session) => {
       const user = session?.user ?? null;
       setAuthUser(user);
       if (user && !isSessionLocked()) {
-        await handleUserSessionRestoration(user);
+        // App restart with existing session: isFreshLogin = false
+        await handleUserSessionRestoration(user, false);
       }
     });
 
     // Subscribe to future auth changes
-    const cleanup = onAuthStateChange(async (user) => {
+    const cleanup = onAuthStateChange(async (user, _session, event) => {
       setAuthUser(user);
       if (user) {
-        await handleUserSessionRestoration(user);
+        // Only trigger fresh login flow when explicitly SIGNED_IN
+        const isFresh = event === 'SIGNED_IN';
+        await handleUserSessionRestoration(user, isFresh);
       } else {
         localStorage.removeItem('sukunaru_offline_mode');
         setOfflineMode(false);

@@ -27,11 +27,11 @@ export async function getSession(): Promise<Session | null> {
 }
 
 export function onAuthStateChange(
-  callback: (user: User | null, session: Session | null) => void
+  callback: (user: User | null, session: Session | null, event?: string) => void
 ): () => void {
   const client = getAuthClient();
-  const { data } = client.auth.onAuthStateChange((_event, session) => {
-    callback(session?.user ?? null, session);
+  const { data } = client.auth.onAuthStateChange((event, session) => {
+    callback(session?.user ?? null, session, event);
   });
   return () => {
     data.subscription.unsubscribe();
