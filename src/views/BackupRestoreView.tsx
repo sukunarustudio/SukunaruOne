@@ -252,21 +252,6 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
         </div>
       </div>
 
-      {/* ── INFO CARD BANNER (DI BAWAH TOP BAR) ── */}
-      <div className="bg-gradient-to-br from-[#25343F] to-[#1E293B] text-white rounded-2xl p-4 sm:p-5 shadow-md">
-        <div className="flex items-start gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-[#FF9B51]/20 border border-[#FF9B51]/40 flex items-center justify-center shrink-0">
-            <SparklesIcon className="w-4 h-4 text-[#FF9B51]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-black text-sm text-white">Pusat Cadangan & Sinkronisasi Studio</h3>
-            <p className="text-xs text-slate-300 leading-relaxed mt-1">
-              Kelola keamanan data studio Anda dalam satu tempat: sinkronisasi otomatis antar-perangkat (Android, Tablet, PC) via Supabase Realtime, buat & pulihkan snapshot cadangan database online di Cloud Storage, serta ekspor/impor file cadangan lokal (.json) secara offline kapan saja.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* BAGIAN 1: SINKRONISASI CLOUD                              */}
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -286,43 +271,43 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
       </div>
 
       {/* Cloud Status + Sync Button */}
-      <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-bold text-[#25343F]">
+          <p className="text-xs sm:text-sm font-bold text-[#25343F]">
             {configured ? `Cloud Sync: ${syncState.status}` : 'Cloud Sync Belum Dikonfigurasi'}
           </p>
-          <p className="text-xs text-[#898989] mt-0.5">
+          <p className="text-[11px] sm:text-xs text-[#898989] mt-0.5">
             {syncState.lastSyncAt
               ? `Terakhir sinkron: ${new Date(syncState.lastSyncAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
               : 'Belum pernah sinkronisasi'}
             {syncState.pendingCount > 0 && ` • ${syncState.pendingCount} data tertunda`}
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             disabled={isCreatingCloudBackup || !configured}
             onClick={handleCreateCloudBackup}
-            className="px-4 py-2.5 bg-[#25343F] hover:bg-[#1b262f] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+            className="flex-1 sm:flex-initial px-3.5 py-2 bg-[#25343F] hover:bg-[#1b262f] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
           >
-            <CloudArrowUpIcon className={`w-4 h-4 ${isCreatingCloudBackup ? 'animate-bounce' : ''}`} />
-            <span>{isCreatingCloudBackup ? 'Mencadangkan...' : 'Cadangkan DB Online'}</span>
+            <CloudArrowUpIcon className={`w-3.5 h-3.5 ${isCreatingCloudBackup ? 'animate-bounce' : ''}`} />
+            <span>{isCreatingCloudBackup ? 'Mencadangkan...' : 'Cadangkan Online'}</span>
           </button>
           <button
             type="button"
             disabled={isSyncing || !configured}
             onClick={handleTriggerSync}
-            className="px-4 py-2.5 bg-[#FF9B51] hover:bg-[#ff8c38] disabled:opacity-50 text-[#25343F] font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+            className="flex-1 sm:flex-initial px-3.5 py-2 bg-[#FF9B51] hover:bg-[#ff8c38] disabled:opacity-50 text-[#25343F] font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 shrink-0"
           >
-            <ArrowPathIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronkan Sekarang'}</span>
+            <ArrowPathIcon className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronkan'}</span>
           </button>
         </div>
       </div>
 
       {/* ── DAFTAR SNAPSHOT CADANGAN ONLINE ── */}
       {configured && (
-        <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md p-4 sm:p-5 space-y-3">
+        <div className="bg-white rounded-2xl border border-[#BFC9D1]/25 shadow-md p-3.5 sm:p-4 space-y-3">
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <CloudArrowUpIcon className="w-4 h-4 text-[#0284C7]" />
@@ -340,7 +325,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
 
           {cloudBackups.length === 0 ? (
             <p className="text-xs text-[#898989] py-3 text-center">
-              Belum ada file snapshot cadangan online. Klik tombol <span className="font-bold text-[#25343F]">Cadangkan DB Online</span> di atas untuk membuat salinan aman di Cloud.
+              Belum ada file snapshot cadangan online. Klik tombol <span className="font-bold text-[#25343F]">Cadangkan Online</span> di atas untuk membuat salinan aman di Cloud.
             </p>
           ) : (
             <div className="divide-y divide-slate-100 max-h-56 overflow-y-auto space-y-1">
