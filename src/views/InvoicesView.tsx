@@ -156,16 +156,6 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
         {/* Row 1: Header + Action Buttons */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            {onNavigate && (
-              <button
-                type="button"
-                onClick={() => onNavigate('dashboard')}
-                className="h-9 w-9 rounded-xl bg-white hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-md"
-                title="Kembali ke Beranda"
-              >
-                <ArrowLeftIcon className="w-4 h-4" />
-              </button>
-            )}
             <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
                 Riwayat Transaksi
