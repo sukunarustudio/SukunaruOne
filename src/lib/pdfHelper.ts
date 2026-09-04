@@ -13,7 +13,7 @@ import {
 
 export interface PdfExportOptions {
   filename?: string;
-  format?: 'a4' | 'a5' | 'letter' | [number, number];
+  format?: 'a4' | 'a5' | 'f4' | 'letter' | [number, number];
   orientation?: 'portrait' | 'landscape';
   marginMm?: number;
   scale?: number;
@@ -52,7 +52,7 @@ export async function saveNativeFile(
 
 /**
  * Downloads a DOM element as a high-resolution PDF file.
- * Uses html2canvas-pro with full support for modern CSS color formats and crisp fonts.
+ * Uses html2canvas-pro with full support for A5 (148x210mm), A4 (210x297mm), and F4 (210x330mm).
  */
 export async function downloadElementAsPdf(
   elementIdOrElement: string | HTMLElement,
@@ -71,14 +71,17 @@ export async function downloadElementAsPdf(
 
     const {
       filename = 'dokumen.pdf',
-      format = 'a4',
+      format = 'a5',
       orientation = 'portrait',
-      marginMm = 6,
-      scale = 2.5, // Crisp rendering for text and borders
+      marginMm = format === 'a5' ? 4 : 6,
+      scale = 2.5, // Crisp rendering for text, borders, and barcodes
     } = options;
 
     const isReceipt = targetElement.id === 'printable-receipt-area';
-    const standardWidth = isReceipt ? (targetElement.scrollWidth || (Array.isArray(format) && format[0] === 58 ? 250 : 330)) : 794;
+    const isA5 = format === 'a5';
+    const standardWidthPx = isReceipt
+      ? (targetElement.scrollWidth || (Array.isArray(format) && format[0] === 58 ? 250 : 330))
+      : isA5 ? 560 : 794;
 
     // Render HTML element to high-res canvas using html2canvas-pro
     const canvas = await html2canvas(targetElement, {
@@ -87,15 +90,18 @@ export async function downloadElementAsPdf(
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: isReceipt ? standardWidth : 1024,
+      windowWidth: isReceipt ? standardWidthPx : (isA5 ? 600 : 1024),
       onclone: (_clonedDoc, clonedElement) => {
         clonedElement.style.margin = '0';
         clonedElement.style.boxShadow = 'none';
         clonedElement.style.transform = 'none';
+        (clonedElement.style as any).webkitPrintColorAdjust = 'exact';
+        (clonedElement.style as any).printColorAdjust = 'exact';
         if (!isReceipt) {
-          clonedElement.style.width = '794px';
-          clonedElement.style.maxWidth = '794px';
-          clonedElement.style.minWidth = '794px';
+          const widthStr = `${standardWidthPx}px`;
+          clonedElement.style.width = widthStr;
+          clonedElement.style.maxWidth = widthStr;
+          clonedElement.style.minWidth = widthStr;
         }
       },
     });
@@ -103,8 +109,10 @@ export async function downloadElementAsPdf(
     const imgData = canvas.toDataURL('image/jpeg', 0.98);
 
     // Calculate dimensions in mm
-    let targetFormat: 'a4' | 'a5' | 'letter' | [number, number] = format;
-    if (isReceipt && Array.isArray(format)) {
+    let targetFormat: 'a4' | 'a5' | 'letter' | [number, number] = format as any;
+    if (format === 'f4') {
+      targetFormat = [210, 330]; // F4 / Folio: 210 x 330 mm
+    } else if (isReceipt && Array.isArray(format)) {
       const widthMm = format[0]; // e.g. 58 or 80
       const printableWidth = widthMm - marginMm * 2;
       const exactHeightMm = Math.ceil((canvas.height * printableWidth) / canvas.width + marginMm * 2);
@@ -168,14 +176,14 @@ export async function downloadElementAsPdf(
 }
 
 /**
- * Prints a specific DOM element cleanly with full CSS styling and robust fallbacks.
+ * Prints a specific DOM element cleanly with full CSS styling, solid status badges, and robust fallbacks.
  * Uses in-document print isolation with @media print overrides, pop-up tab fallback,
  * and automatic PDF export when native dialog is restricted by sandboxes.
  */
 export function printIsolatedElement(
   elementIdOrElement: string | HTMLElement,
   title: string = 'Cetak Dokumen',
-  paperSize: 'a4' | 'a5' | '58mm' | '80mm' | 'auto' = 'a5'
+  paperSize: 'a5' | 'a4' | 'f4' | '58mm' | '80mm' | 'auto' = 'a5'
 ): boolean {
   try {
     const targetElement =
@@ -195,6 +203,8 @@ export function printIsolatedElement(
 
     const isThermalReceipt = paperSize === '58mm' || paperSize === '80mm';
     const thermalWidthCss = paperSize === '58mm' ? '58mm' : '80mm';
+    const isA5 = paperSize === 'a5';
+    const standardWidthPx = isThermalReceipt ? thermalWidthCss : isA5 ? '560px' : '794px';
 
     // 1. Gather all active stylesheets from document
     const styleElements = document.querySelectorAll('style, link[rel="stylesheet"]');
@@ -207,15 +217,15 @@ export function printIsolatedElement(
 
     // 1. Check if running on native Capacitor (Android/iOS)
     if (Capacitor.isNativePlatform()) {
-      // In native Android WebView, window.open or window.print redirects out of app or freezes.
-      // Instead, generate PDF / image and open native share/save prompt directly.
       const isReceipt = paperSize === '58mm' || paperSize === '80mm';
-      const pdfFormat = isReceipt ? (paperSize === '58mm' ? [58, 140] as [number, number] : [80, 180] as [number, number]) : (paperSize === 'a5' ? 'a5' : 'a4');
+      const pdfFormat = isReceipt
+        ? (paperSize === '58mm' ? [58, 140] as [number, number] : [80, 180] as [number, number])
+        : paperSize;
       downloadElementAsPdf(targetElement, {
         filename: `${title}.pdf`,
         format: pdfFormat,
         orientation: 'portrait',
-        marginMm: isReceipt ? 2 : 5,
+        marginMm: isReceipt ? 2 : isA5 ? 4 : 6,
         scale: 2.5,
       });
       return true;
@@ -223,9 +233,17 @@ export function printIsolatedElement(
 
     // 2. Try Method A: Open standalone printable new window (desktop browsers)
     try {
-      const popupWidth = isThermalReceipt ? 450 : 850;
+      const popupWidth = isThermalReceipt ? 450 : isA5 ? 650 : 850;
       const printWin = window.open('', '_blank', `width=${popupWidth},height=950,top=50,left=50`);
       if (printWin && !printWin.closed) {
+        const pageSizeRule = isThermalReceipt
+          ? `${thermalWidthCss} auto`
+          : paperSize === 'a5'
+          ? 'A5 portrait'
+          : paperSize === 'f4'
+          ? '210mm 330mm portrait'
+          : 'A4 portrait';
+
         printWin.document.open();
         printWin.document.write(`
           <!DOCTYPE html>
@@ -237,14 +255,14 @@ export function printIsolatedElement(
               ${stylesHtml}
               <style>
                 @page {
-                  size: ${isThermalReceipt ? `${thermalWidthCss} auto` : paperSize === 'a5' ? 'A5 portrait' : paperSize === 'a4' ? 'A4 portrait' : 'auto'};
-                  margin: ${isThermalReceipt ? '0' : paperSize === 'a5' ? '5mm' : '8mm'};
+                  size: ${pageSizeRule};
+                  margin: ${isThermalReceipt ? '0' : paperSize === 'a5' ? '4mm' : '6mm'};
                 }
                 html, body {
                   background: #ffffff !important;
                   color: #000000 !important;
                   margin: 0 !important;
-                  padding: ${isThermalReceipt ? '0' : paperSize === 'a5' ? '4px' : '10px'} !important;
+                  padding: ${isThermalReceipt ? '0' : paperSize === 'a5' ? '2px' : '6px'} !important;
                   width: ${isThermalReceipt ? thermalWidthCss : '100%'} !important;
                   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
                   -webkit-print-color-adjust: exact !important;
@@ -253,6 +271,8 @@ export function printIsolatedElement(
                 * {
                   box-shadow: none !important;
                   text-shadow: none !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
                 }
                 .no-print {
                   display: none !important;
@@ -264,9 +284,9 @@ export function printIsolatedElement(
                   margin: 0 auto !important;
                   padding: 0 !important;
                 }
-                .print-container > div, #printable-receipt-area {
+                .print-container > div, #printable-receipt-area, #printable-invoice-area, #printable-spk-area, #printable-batch-area {
                   width: ${isThermalReceipt ? thermalWidthCss : '100%'} !important;
-                  max-width: ${isThermalReceipt ? thermalWidthCss : paperSize === 'a5' ? '600px' : '794px'} !important;
+                  max-width: ${standardWidthPx} !important;
                   box-shadow: none !important;
                   border: none !important;
                   padding: ${isThermalReceipt ? (paperSize === '58mm' ? '2mm 1.5mm' : '3mm 2mm') : '0'} !important;
@@ -301,13 +321,21 @@ export function printIsolatedElement(
       existingPrintStyle.remove();
     }
 
+    const pageSizeRule = isThermalReceipt
+      ? `${thermalWidthCss} auto`
+      : paperSize === 'a5'
+      ? 'A5 portrait'
+      : paperSize === 'f4'
+      ? '210mm 330mm portrait'
+      : 'A4 portrait';
+
     const dynamicStyle = document.createElement('style');
     dynamicStyle.id = 'dynamic-print-override-style';
     dynamicStyle.innerHTML = `
       @media print {
         @page {
-          size: ${isThermalReceipt ? `${thermalWidthCss} auto` : paperSize === 'a5' ? 'A5 portrait' : 'A4 portrait'};
-          margin: ${isThermalReceipt ? '0' : '6mm'};
+          size: ${pageSizeRule};
+          margin: ${isThermalReceipt ? '0' : paperSize === 'a5' ? '4mm' : '6mm'};
         }
         body {
           background: #ffffff !important;
@@ -324,7 +352,8 @@ export function printIsolatedElement(
           display: none !important;
         }
         #receipt-modal-overlay,
-        #invoice-modal-overlay {
+        #invoice-modal-overlay,
+        #batch-print-modal-overlay {
           position: static !important;
           background: transparent !important;
           padding: 0 !important;
@@ -333,7 +362,8 @@ export function printIsolatedElement(
           overflow: visible !important;
         }
         #receipt-modal-content,
-        #invoice-modal-content {
+        #invoice-modal-content,
+        #batch-print-modal-content {
           box-shadow: none !important;
           border: none !important;
           max-width: 100% !important;
@@ -344,7 +374,9 @@ export function printIsolatedElement(
         #receipt-modal-header,
         #receipt-modal-footer,
         #invoice-modal-header,
-        #invoice-modal-footer {
+        #invoice-modal-footer,
+        #batch-print-modal-header,
+        #batch-print-modal-footer {
           display: none !important;
         }
         #${typeof elementIdOrElement === 'string' ? elementIdOrElement : targetElement.id || 'printable-area'} {
@@ -354,7 +386,11 @@ export function printIsolatedElement(
           margin: 0 auto !important;
           padding: ${isThermalReceipt ? (paperSize === '58mm' ? '2mm 1.5mm' : '3mm 2mm') : '0'} !important;
           width: ${isThermalReceipt ? thermalWidthCss : '100%'} !important;
-          max-width: ${isThermalReceipt ? thermalWidthCss : '100%'} !important;
+          max-width: ${standardWidthPx} !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
@@ -395,6 +431,7 @@ export interface JpgExportOptions {
   filename?: string;
   scale?: number;
   quality?: number;
+  paperSize?: 'a5' | 'a4' | 'f4' | '58mm' | '80mm';
 }
 
 /**
@@ -419,10 +456,12 @@ export async function downloadElementAsJpg(
       filename = 'struk.jpg',
       scale = 3,
       quality = 0.96,
+      paperSize = 'a5',
     } = options;
 
     const isReceipt = targetElement.id === 'printable-receipt-area';
-    const standardWidth = isReceipt ? (targetElement.scrollWidth || 380) : 794;
+    const isA5 = paperSize === 'a5';
+    const standardWidthPx = isReceipt ? (targetElement.scrollWidth || 380) : isA5 ? 560 : 794;
 
     const canvas = await html2canvas(targetElement, {
       scale: scale,
@@ -430,15 +469,18 @@ export async function downloadElementAsJpg(
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: isReceipt ? standardWidth : 1024,
+      windowWidth: isReceipt ? standardWidthPx : isA5 ? 600 : 1024,
       onclone: (_clonedDoc, clonedElement) => {
         clonedElement.style.margin = '0';
         clonedElement.style.boxShadow = 'none';
         clonedElement.style.transform = 'none';
+        (clonedElement.style as any).webkitPrintColorAdjust = 'exact';
+        (clonedElement.style as any).printColorAdjust = 'exact';
         if (!isReceipt) {
-          clonedElement.style.width = '794px';
-          clonedElement.style.maxWidth = '794px';
-          clonedElement.style.minWidth = '794px';
+          const widthStr = `${standardWidthPx}px`;
+          clonedElement.style.width = widthStr;
+          clonedElement.style.maxWidth = widthStr;
+          clonedElement.style.minWidth = widthStr;
         }
       },
     });
@@ -478,6 +520,7 @@ export async function shareElementAsJpg(
     title?: string;
     text?: string;
     phone?: string;
+    paperSize?: 'a5' | 'a4' | 'f4' | '58mm' | '80mm';
   }
 ): Promise<ShareJpgResult> {
   try {
@@ -495,12 +538,14 @@ export async function shareElementAsJpg(
       title = 'Struk Sukunaru Studio',
       text = 'Berikut struk transaksi Anda.',
       phone,
+      paperSize = 'a5',
     } = options;
 
     const cleanFilename = sanitizeFilename(filename, '.jpg');
 
     const isReceipt = targetElement.id === 'printable-receipt-area';
-    const standardWidth = isReceipt ? (targetElement.scrollWidth || 380) : 794;
+    const isA5 = paperSize === 'a5';
+    const standardWidthPx = isReceipt ? (targetElement.scrollWidth || 380) : isA5 ? 560 : 794;
 
     // Render HTML element to high-res canvas in memory (scale: 3 for crisp text & barcodes)
     const canvas = await html2canvas(targetElement, {
@@ -509,15 +554,18 @@ export async function shareElementAsJpg(
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: isReceipt ? standardWidth : 1024,
+      windowWidth: isReceipt ? standardWidthPx : isA5 ? 600 : 1024,
       onclone: (_clonedDoc, clonedElement) => {
         clonedElement.style.margin = '0';
         clonedElement.style.boxShadow = 'none';
         clonedElement.style.transform = 'none';
+        (clonedElement.style as any).webkitPrintColorAdjust = 'exact';
+        (clonedElement.style as any).printColorAdjust = 'exact';
         if (!isReceipt) {
-          clonedElement.style.width = '794px';
-          clonedElement.style.maxWidth = '794px';
-          clonedElement.style.minWidth = '794px';
+          const widthStr = `${standardWidthPx}px`;
+          clonedElement.style.width = widthStr;
+          clonedElement.style.maxWidth = widthStr;
+          clonedElement.style.minWidth = widthStr;
         }
       },
     });

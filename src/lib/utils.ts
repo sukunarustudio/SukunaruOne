@@ -168,6 +168,120 @@ export function getStatusBadgeClass(status: string): string {
   }
 }
 
+export type PaperSize = 'a5' | 'a4' | 'f4';
+
+export interface PaperDimension {
+  id: PaperSize;
+  name: string;
+  label: string;
+  shortLabel: string;
+  widthMm: number;
+  heightMm: number;
+  widthPx: number; // Width in CSS px for preview (A5: 560px, A4/F4: 794px)
+}
+
+export const PAPER_CONFIGS: Record<PaperSize, PaperDimension> = {
+  a5: {
+    id: 'a5',
+    name: 'A5',
+    label: 'A5 — 148 × 210 mm (Default)',
+    shortLabel: 'A5 (148×210mm)',
+    widthMm: 148,
+    heightMm: 210,
+    widthPx: 560,
+  },
+  a4: {
+    id: 'a4',
+    name: 'A4',
+    label: 'A4 — 210 × 297 mm',
+    shortLabel: 'A4 (210×297mm)',
+    widthMm: 210,
+    heightMm: 297,
+    widthPx: 794,
+  },
+  f4: {
+    id: 'f4',
+    name: 'F4',
+    label: 'F4 — 210 × 330 mm (Folio)',
+    shortLabel: 'F4 (210×330mm)',
+    widthMm: 210,
+    heightMm: 330,
+    widthPx: 794,
+  },
+};
+
+/**
+ * Reusable payment status color mapping with SOLID BACKGROUND and WHITE TEXT for Faktur, Invoice, SPK, and Print outputs.
+ * - LUNAS -> Solid green (#15803d) + White text
+ * - DP / SEBAGIAN -> Solid orange/amber (#ea580c) + White text
+ * - BELUM BAYAR -> Solid red/rose (#dc2626) + White text
+ * - BATAL / REFUND -> Solid dark slate (#475569) + White text
+ */
+export function getPrintStatusBadgeStyle(status?: string, remainingAmount: number = 0): {
+  bgHex: string;
+  textHex: string;
+  label: string;
+  className: string;
+  style: React.CSSProperties;
+} {
+  const norm = (status || '').toUpperCase().trim().replace(/_/g, ' ');
+  if (norm === 'LUNAS' || norm === 'PAID' || (remainingAmount <= 0 && norm !== 'BATAL' && norm !== 'DIBATALKAN' && norm !== 'REFUND')) {
+    return {
+      bgHex: '#15803d',
+      textHex: '#ffffff',
+      label: 'LUNAS',
+      className: 'bg-[#15803d] text-white',
+      style: {
+        backgroundColor: '#15803d',
+        color: '#ffffff',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+      },
+    };
+  }
+  if (norm === 'DP' || norm === 'SEBAGIAN' || norm === 'PARTIAL' || norm === 'UANG MUKA') {
+    return {
+      bgHex: '#ea580c',
+      textHex: '#ffffff',
+      label: 'DP / SEBAGIAN',
+      className: 'bg-[#ea580c] text-white',
+      style: {
+        backgroundColor: '#ea580c',
+        color: '#ffffff',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+      },
+    };
+  }
+  if (norm === 'BATAL' || norm === 'DIBATALKAN' || norm === 'CANCELED' || norm === 'REFUND') {
+    return {
+      bgHex: '#475569',
+      textHex: '#ffffff',
+      label: norm === 'REFUND' ? 'REFUND' : 'DIBATALKAN',
+      className: 'bg-[#475569] text-white',
+      style: {
+        backgroundColor: '#475569',
+        color: '#ffffff',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+      },
+    };
+  }
+  // Default: BELUM BAYAR
+  return {
+    bgHex: '#dc2626',
+    textHex: '#ffffff',
+    label: 'BELUM BAYAR',
+    className: 'bg-[#dc2626] text-white',
+    style: {
+      backgroundColor: '#dc2626',
+      color: '#ffffff',
+      WebkitPrintColorAdjust: 'exact',
+      printColorAdjust: 'exact',
+    },
+  };
+}
+
 
 export function calculateHppFromComponents(
   components: ProductComponent[] = [],
