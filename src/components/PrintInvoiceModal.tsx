@@ -319,95 +319,95 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
             /* ========================================================= */
             <div
               id="printable-invoice-area"
-              className={`bg-white rounded-xl shadow-sm border border-[#BFC9D1]/30 text-[#25343F] font-sans leading-relaxed transition-all mx-auto ${
+              className={`bg-white rounded-xl shadow-sm border border-slate-200 text-slate-800 font-sans leading-relaxed transition-all mx-auto ${
                 paperSize === 'a5'
-                  ? 'p-5 sm:p-6 max-w-[560px] text-[11px] w-full'
-                  : 'p-6 sm:p-8 max-w-[794px] text-xs w-full'
+                  ? 'p-4 max-w-[540px] text-[10.5px] w-full'
+                  : 'p-6 max-w-[760px] text-xs w-full'
               }`}
               style={{
-                width: paperSize === 'a5' ? '560px' : '794px',
+                width: paperSize === 'a5' ? '540px' : '760px',
                 maxWidth: '100%',
                 WebkitPrintColorAdjust: 'exact',
                 printColorAdjust: 'exact',
               }}
             >
-              {/* Studio Header & Invoice Tag */}
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-3.5 pb-4 border-b-2 border-slate-900">
-                <div className="flex items-start gap-3">
+              {/* Studio Header & Invoice Tag (Fixed 2-column flex) */}
+              <div className="flex justify-between items-start gap-3 pb-3 border-b-2 border-slate-900">
+                <div className="flex items-start gap-2.5 max-w-[62%]">
                   {settings.logoUrl && (
                     <img
                       src={settings.logoUrl}
                       alt={settings.businessName || 'Logo'}
                       className={`${
-                        paperSize === 'a5' ? 'w-12 h-12' : 'w-14 h-14'
-                      } rounded-xl object-contain border border-[#BFC9D1]/25 p-1 shrink-0 bg-white`}
+                        paperSize === 'a5' ? 'w-11 h-11' : 'w-13 h-13'
+                      } rounded-lg object-contain border border-slate-200 p-0.5 shrink-0 bg-white`}
                     />
                   )}
                   <div>
                     <h1
                       className={`${
-                        paperSize === 'a5' ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl'
-                      } font-black tracking-tight text-[#25343F] uppercase`}
+                        paperSize === 'a5' ? 'text-base' : 'text-xl'
+                      } font-black tracking-tight text-slate-900 uppercase leading-tight`}
                     >
                       {settings.businessName || 'SUKUNARU STUDIO'}
                     </h1>
-                    <p className="text-[11px] font-semibold text-[#25343F] mt-0.5">
+                    <p className="text-[10px] font-bold text-slate-700 mt-0.5 leading-tight">
                       {settings.tagline || 'Solusi Percetakan & Desain Grafis Profesional'}
                     </p>
-                    <p className="text-[10px] text-[#898989] mt-0.5 max-w-xs sm:max-w-sm leading-tight">
+                    <p className="text-[9px] text-slate-500 mt-0.5 leading-tight">
                       {settings.address || 'Jl. Workshop Percetakan No. 1'}
                     </p>
-                    <p className="text-[10px] text-[#898989] font-mono mt-0.5">
+                    <p className="text-[9px] text-slate-500 font-mono mt-0.5">
                       WA: {settings.whatsapp || settings.phone || '-'} | Email: {settings.email || '-'}
                     </p>
                   </div>
                 </div>
 
-                <div className="text-left sm:text-right font-sans">
-                  <div className="flex sm:justify-end">
-                    <span className="inline-block px-2.5 py-0.5 bg-[#25343F] text-white font-extrabold text-[10px] tracking-wider uppercase rounded">
+                <div className="text-right font-sans shrink-0">
+                  <div className="flex justify-end">
+                    <span className="inline-block px-2 py-0.5 bg-slate-900 text-white font-extrabold text-[9.5px] tracking-wider uppercase rounded">
                       FAKTUR INVOICE
                     </span>
                   </div>
-                  <div className="mt-1.5 space-y-0.5 text-[11px] font-mono">
+                  <div className="mt-1 space-y-0.5 text-[10px] font-mono">
                     <div>
-                      <span className="text-[#898989]">No. Inv: </span>
-                      <strong className="text-[#25343F] text-xs">#{invoiceNumber}</strong>
+                      <span className="text-slate-500">No. Inv: </span>
+                      <strong className="text-slate-900 text-xs">#{invoiceNumber}</strong>
                     </div>
                     <div>
-                      <span className="text-[#898989]">Tgl Pesan: </span>
-                      <span>{formatDate(order.orderDate)}</span>
+                      <span className="text-slate-500">Tgl Pesan: </span>
+                      <span className="text-slate-800">{formatDate(order.orderDate)}</span>
                     </div>
                     <div>
-                      <span className="text-[#898989]">Tgl Selesai: </span>
-                      <span className="font-bold text-[#25343F]">{formatDate(order.deadlineDate)}</span>
+                      <span className="text-slate-500">Tgl Selesai: </span>
+                      <strong className="text-slate-900">{formatDate(order.deadlineDate)}</strong>
                     </div>
-                    <div className="text-[9px] text-[#898989]">
+                    <div className="text-[9px] text-slate-400">
                       Ukuran: {currentPaper.shortLabel}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Customer Info & Status Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-3 border-b border-[#BFC9D1]/40 items-center">
+              {/* Customer Info & Status Bar (Fixed 2-column grid) */}
+              <div className="grid grid-cols-2 gap-3 py-2.5 border-b border-slate-200 items-center">
                 <div>
-                  <span className="text-[10px] font-bold text-[#898989] uppercase tracking-wider block mb-0.5">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">
                     Ditagihkan Kepada:
                   </span>
-                  <h4 className="font-extrabold text-xs sm:text-sm text-[#25343F]">{order.customerName}</h4>
-                  <p className="text-[11px] text-[#898989] font-mono mt-0.5">
+                  <h4 className="font-extrabold text-xs text-slate-900 leading-tight">{order.customerName}</h4>
+                  <p className="text-[10px] text-slate-600 font-mono mt-0.5">
                     {order.customerPhone ? `WA: ${order.customerPhone}` : 'Pelanggan Walk-in'}
                   </p>
                 </div>
 
-                <div className="sm:text-right flex flex-col sm:items-end justify-center">
-                  <span className="text-[10px] font-bold text-[#898989] uppercase tracking-wider block mb-1">
+                <div className="text-right flex flex-col items-end justify-center">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">
                     Status Pembayaran:
                   </span>
                   <div>
                     <span
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-wider shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider text-white shadow-xs"
                       style={statusBadge.style}
                     >
                       {statusBadge.label === 'LUNAS' ? (
@@ -424,56 +424,56 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
               </div>
 
               {/* Items Table */}
-              <div className="py-3">
-                <table className="w-full text-left border-collapse">
+              <div className="py-2.5">
+                <table className="w-full text-left border-collapse table-fixed">
                   <thead>
-                    <tr className="border-b-2 border-slate-800 text-[#25343F] font-bold text-[10px] uppercase tracking-wider bg-[#EAEFEF]/60">
-                      <th className="py-2 px-1.5 w-7 text-center">#</th>
-                      <th className="py-2 px-2.5">Item Pesanan / Spesifikasi</th>
-                      <th className="py-2 px-2 text-center w-16">Qty</th>
-                      <th className="py-2 px-2 text-right w-24">Harga</th>
-                      <th className="py-2 px-2 text-right w-24">Subtotal</th>
+                    <tr className="border-b-2 border-slate-900 text-slate-900 font-bold text-[9.5px] uppercase tracking-wider bg-slate-100">
+                      <th className="py-1.5 px-1.5 w-6 text-center">#</th>
+                      <th className="py-1.5 px-2">Item Pesanan / Spesifikasi</th>
+                      <th className="py-1.5 px-1.5 text-center w-14">Qty</th>
+                      <th className="py-1.5 px-1.5 text-right w-20">Harga</th>
+                      <th className="py-1.5 px-1.5 text-right w-22">Subtotal</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#BFC9D1]/30">
+                  <tbody className="divide-y divide-slate-200">
                     {order.items.map((it, idx) => (
-                      <tr key={idx} className="hover:bg-[#EAEFEF]/40">
-                        <td className="py-2 px-1.5 text-center font-mono text-[#898989] text-[10px] align-top">
+                      <tr key={idx}>
+                        <td className="py-2 px-1.5 text-center font-mono text-slate-500 text-[9.5px] align-top">
                           {idx + 1}
                         </td>
-                        <td className="py-2 px-2.5 align-top">
-                          <div className="font-bold text-[#25343F] text-[11px]">{it.productName}</div>
+                        <td className="py-2 px-2 align-top">
+                          <div className="font-bold text-slate-900 text-[10.5px] leading-tight">{it.productName}</div>
                           {/* Technical attributes tags */}
-                          <div className="flex flex-wrap gap-1 mt-0.5 text-[9.5px]">
+                          <div className="flex flex-wrap gap-1 mt-0.5 text-[9px]">
                             {it.customWidth && it.customHeight ? (
-                              <span className="bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded font-mono">
+                              <span className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded font-mono border border-slate-200">
                                 {it.customWidth}×{it.customHeight} cm
                               </span>
                             ) : null}
                             {it.materialName ? (
-                              <span className="bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded">
+                              <span className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded border border-slate-200">
                                 {it.materialName}
                               </span>
                             ) : null}
                             {it.finishing ? (
-                              <span className="bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded">
+                              <span className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded border border-slate-200">
                                 {it.finishing}
                               </span>
                             ) : null}
                           </div>
                           {it.notes && (
-                            <div className="text-[10px] text-[#898989] italic mt-0.5 leading-tight">
+                            <div className="text-[9px] text-slate-500 italic mt-0.5 leading-tight">
                               Catatan: {it.notes}
                             </div>
                           )}
                         </td>
-                        <td className="py-2 px-2 text-center font-mono font-bold text-[#25343F] text-[11px] align-top">
+                        <td className="py-2 px-1.5 text-center font-mono font-bold text-slate-900 text-[10.5px] align-top">
                           {it.quantity} {it.unit || 'pcs'}
                         </td>
-                        <td className="py-2 px-2 text-right font-mono text-[#898989] text-[10.5px] align-top">
+                        <td className="py-2 px-1.5 text-right font-mono text-slate-600 text-[10px] align-top">
                           {formatRupiah(it.unitPrice || it.price || 0)}
                         </td>
-                        <td className="py-2 px-2 text-right font-mono font-bold text-[#25343F] text-[11px] align-top">
+                        <td className="py-2 px-1.5 text-right font-mono font-bold text-slate-900 text-[10.5px] align-top">
                           {formatRupiah(it.subtotal)}
                         </td>
                       </tr>
@@ -482,63 +482,63 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
                 </table>
               </div>
 
-              {/* Calculation & Payment Summary */}
-              <div className="pt-2.5 border-t-2 border-slate-900 grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+              {/* Calculation & Payment Summary (Fixed 2-column grid) */}
+              <div className="pt-2 border-t-2 border-slate-900 grid grid-cols-2 gap-3 items-start">
                 {/* Bank Accounts & Terms */}
-                <div className="p-2.5 bg-[#EAEFEF]/90 rounded-lg border border-[#BFC9D1]/30 space-y-1 text-[9.5px]">
-                  <span className="font-bold text-[#25343F] uppercase tracking-wider block text-[9px]">
+                <div className="p-2 bg-slate-50 rounded-lg border border-slate-200 space-y-1 text-[9px]">
+                  <span className="font-bold text-slate-900 uppercase tracking-wider block text-[8.5px]">
                     Informasi Pembayaran / Transfer:
                   </span>
-                  <div className="whitespace-pre-line font-mono text-[#25343F] leading-tight">
-                    {settings.bankAccount || 'BCA: 123-456-7890 a.n Sukunaru Studio\nMandiri: 987-654-3210 a.n Sukunaru Studio'}
+                  <div className="whitespace-pre-line font-mono text-slate-800 leading-tight">
+                    {settings.bankAccount || 'BCA: 123-456-7890 a.n Sukunaru Studio'}
                   </div>
                   {order.notes && (
-                    <div className="text-[9px] text-[#25343F] pt-1 border-t border-[#BFC9D1]/40 leading-tight">
-                      <strong>Catatan Order:</strong> {order.notes}
+                    <div className="text-[8.5px] text-slate-800 pt-1 border-t border-slate-200 leading-tight">
+                      <strong>Catatan:</strong> {order.notes}
                     </div>
                   )}
-                  <p className="text-[8.5px] text-[#898989] pt-1 border-t border-[#BFC9D1]/40 leading-tight">
+                  <p className="text-[8px] text-slate-500 pt-0.5 border-t border-slate-200 leading-tight">
                     {settings.footerNotes || 'Harap konfirmasi bukti transfer via WhatsApp setelah melakukan pembayaran.'}
                   </p>
                 </div>
 
                 {/* Grand Total Breakdown */}
-                <div className="space-y-1 text-[11px] sm:pl-2">
-                  <div className="flex justify-between text-[#898989] py-0.5">
+                <div className="space-y-0.5 text-[10.5px] pl-1">
+                  <div className="flex justify-between text-slate-600 py-0.5">
                     <span>Total Subtotal:</span>
-                    <span className="font-mono font-bold text-[#25343F]">{formatRupiah(order.totalAmount)}</span>
+                    <span className="font-mono font-bold text-slate-900">{formatRupiah(order.totalAmount)}</span>
                   </div>
                   {order.discount ? (
-                    <div className="flex justify-between text-[#898989] py-0.5">
+                    <div className="flex justify-between text-slate-600 py-0.5">
                       <span>Diskon:</span>
-                      <span className="font-mono font-bold text-[#25343F]">-{formatRupiah(order.discount)}</span>
+                      <span className="font-mono font-bold text-slate-900">-{formatRupiah(order.discount)}</span>
                     </div>
                   ) : null}
-                  <div className="flex justify-between text-[#898989] py-0.5">
-                    <span>Sudah Dibayar (DP/Cicilan):</span>
-                    <span className="font-mono font-bold text-[#25343F]">-{formatRupiah(order.paidAmount)}</span>
+                  <div className="flex justify-between text-slate-600 py-0.5">
+                    <span>Sudah Dibayar (DP):</span>
+                    <span className="font-mono font-bold text-slate-900">-{formatRupiah(order.paidAmount)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-1.5 border-t-2 border-slate-900 text-[#25343F]">
-                    <span className="font-black text-xs uppercase tracking-wider">Sisa Tagihan:</span>
-                    <span className="font-mono font-black text-sm sm:text-base text-[#25343F]">
+                  <div className="flex justify-between items-center pt-1 border-t-2 border-slate-900 text-slate-900">
+                    <span className="font-black text-[11px] uppercase tracking-wider">Sisa Tagihan:</span>
+                    <span className="font-mono font-black text-xs text-slate-900">
                       {formatRupiah(order.remainingAmount)}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Signatures Footer */}
-              <div className="grid grid-cols-2 gap-4 pt-5 mt-3 border-t border-[#BFC9D1]/40 text-center text-[10px]">
+              {/* Signatures Footer (Fixed 2-column grid) */}
+              <div className="grid grid-cols-2 gap-4 pt-4 mt-2.5 border-t border-slate-200 text-center text-[9.5px]">
                 <div>
-                  <p className="text-[#898989] font-medium mb-8">Penerima / Pelanggan,</p>
-                  <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 max-w-full mx-auto pb-1">
-                    <span className="font-bold text-[#25343F]">{order.customerName}</span>
+                  <p className="text-slate-500 font-medium mb-7">Penerima / Pelanggan,</p>
+                  <div className="border-b border-dashed border-slate-400 w-32 max-w-full mx-auto pb-0.5">
+                    <span className="font-bold text-slate-900">{order.customerName}</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-[#898989] font-medium mb-8">Hormat Kami,</p>
-                  <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 max-w-full mx-auto pb-1">
-                    <span className="font-bold text-[#25343F]">{settings.businessName || 'Admin / Kasir'}</span>
+                  <p className="text-slate-500 font-medium mb-7">Hormat Kami,</p>
+                  <div className="border-b border-dashed border-slate-400 w-32 max-w-full mx-auto pb-0.5">
+                    <span className="font-bold text-slate-900">{settings.businessName || 'Admin / Kasir'}</span>
                   </div>
                 </div>
               </div>
@@ -549,57 +549,57 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
             /* ========================================================= */
             <div
               id="printable-spk-area"
-              className={`bg-white rounded-xl shadow-sm border border-[#BFC9D1]/30 text-[#25343F] font-sans leading-relaxed transition-all mx-auto ${
+              className={`bg-white rounded-xl shadow-sm border border-slate-200 text-slate-800 font-sans leading-relaxed transition-all mx-auto ${
                 paperSize === 'a5'
-                  ? 'p-5 sm:p-6 max-w-[560px] text-[11px] w-full'
-                  : 'p-6 sm:p-8 max-w-[794px] text-xs w-full'
+                  ? 'p-4 max-w-[540px] text-[10.5px] w-full'
+                  : 'p-6 max-w-[760px] text-xs w-full'
               }`}
               style={{
-                width: paperSize === 'a5' ? '560px' : '794px',
+                width: paperSize === 'a5' ? '540px' : '760px',
                 maxWidth: '100%',
                 WebkitPrintColorAdjust: 'exact',
                 printColorAdjust: 'exact',
               }}
             >
-              {/* SPK Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-3 pb-3.5 border-b-2 border-slate-900">
-                <div className="flex items-start gap-3">
+              {/* SPK Header (Fixed 2-column flex) */}
+              <div className="flex justify-between items-start gap-3 pb-3 border-b-2 border-slate-900">
+                <div className="flex items-start gap-2.5 max-w-[62%]">
                   {settings.logoUrl && (
                     <img
                       src={settings.logoUrl}
                       alt={settings.businessName || 'Logo'}
                       className={`${
-                        paperSize === 'a5' ? 'w-11 h-11' : 'w-13 h-13'
-                      } rounded-lg object-contain border border-[#BFC9D1]/25 p-1 shrink-0 bg-white`}
+                        paperSize === 'a5' ? 'w-10 h-10' : 'w-12 h-12'
+                      } rounded-lg object-contain border border-slate-200 p-0.5 shrink-0 bg-white`}
                     />
                   )}
                   <div>
                     <h1
                       className={`${
-                        paperSize === 'a5' ? 'text-base sm:text-lg' : 'text-lg sm:text-xl'
-                      } font-black tracking-tight text-[#25343F] uppercase`}
+                        paperSize === 'a5' ? 'text-base' : 'text-lg'
+                      } font-black tracking-tight text-slate-900 uppercase leading-tight`}
                     >
                       SURAT PERINTAH KERJA (SPK)
                     </h1>
-                    <p className="text-[11px] font-bold text-[#25343F] mt-0.5">
+                    <p className="text-[10px] font-bold text-slate-700 mt-0.5">
                       Workshop &amp; Tim Produksi — {settings.businessName || 'Sukunaru Studio'}
                     </p>
-                    <p className="text-[10px] text-[#898989] font-mono">
+                    <p className="text-[9px] text-slate-500 font-mono">
                       Ukuran Dokumen: {currentPaper.label}
                     </p>
                   </div>
                 </div>
 
-                <div className="text-left sm:text-right font-mono text-[11px]">
+                <div className="text-right font-mono text-[10px] shrink-0">
                   <div>
-                    <span className="text-[#898989]">No. SPK: </span>
-                    <strong className="text-[#25343F] text-xs">#{spkNumber}</strong>
+                    <span className="text-slate-500">No. SPK: </span>
+                    <strong className="text-slate-900 text-xs">#{spkNumber}</strong>
                   </div>
                   <div>
-                    <span className="text-[#898989]">Target Selesai: </span>
+                    <span className="text-slate-500">Target Selesai: </span>
                     <strong
                       className={`text-xs font-black ${
-                        isOverdue ? 'text-red-600' : isToday ? 'text-amber-600' : 'text-[#25343F]'
+                        isOverdue ? 'text-red-600' : isToday ? 'text-amber-600' : 'text-slate-900'
                       }`}
                     >
                       {formatDate(order.deadlineDate)}
@@ -607,7 +607,7 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
                   </div>
                   <div className="mt-1">
                     <span
-                      className="inline-block px-2 py-0.5 rounded text-[9.5px] font-bold uppercase"
+                      className="inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase text-white shadow-xs"
                       style={statusBadge.style}
                     >
                       {statusBadge.label}
@@ -616,70 +616,70 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
                 </div>
               </div>
 
-              {/* Order Meta Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 py-2.5 bg-[#EAEFEF] p-2.5 rounded-lg border border-[#BFC9D1]/25 mt-3 text-[10.5px]">
+              {/* Order Meta Grid (Fixed 4 Columns) */}
+              <div className="grid grid-cols-4 gap-2 py-2 bg-slate-100 p-2 rounded-lg border border-slate-200 mt-2.5 text-[9.5px]">
                 <div>
-                  <span className="text-[#898989] block font-semibold text-[9.5px]">Nama Pemesan:</span>
-                  <span className="font-bold text-[#25343F] truncate block">{order.customerName}</span>
+                  <span className="text-slate-500 block font-semibold text-[8.5px]">Nama Pemesan:</span>
+                  <span className="font-bold text-slate-900 truncate block">{order.customerName}</span>
                 </div>
                 <div>
-                  <span className="text-[#898989] block font-semibold text-[9.5px]">Kontak WA:</span>
-                  <span className="font-mono text-[#25343F]">{order.customerPhone || '-'}</span>
+                  <span className="text-slate-500 block font-semibold text-[8.5px]">Kontak WA:</span>
+                  <span className="font-mono text-slate-900">{order.customerPhone || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-[#898989] block font-semibold text-[9.5px]">Tgl Masuk:</span>
-                  <span className="font-mono text-[#25343F]">{formatDate(order.orderDate)}</span>
+                  <span className="text-slate-500 block font-semibold text-[8.5px]">Tgl Masuk:</span>
+                  <span className="font-mono text-slate-900">{formatDate(order.orderDate)}</span>
                 </div>
                 <div>
-                  <span className="text-[#898989] block font-semibold text-[9.5px]">Status Alur:</span>
-                  <span className="font-bold text-[#25343F] uppercase">{order.status}</span>
+                  <span className="text-slate-500 block font-semibold text-[8.5px]">Status Alur:</span>
+                  <span className="font-bold text-slate-900 uppercase">{order.status}</span>
                 </div>
               </div>
 
               {/* Technical Job Specifications */}
-              <div className="py-3.5 space-y-2.5">
-                <h3 className="font-black text-xs uppercase tracking-wider text-[#25343F] border-b border-[#BFC9D1]/40 pb-1">
+              <div className="py-2.5 space-y-2">
+                <h3 className="font-black text-[11px] uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
                   Rincian Item Pekerjaan &amp; Spesifikasi Teknis
                 </h3>
 
                 {order.items.map((it, idx) => (
                   <div
                     key={idx}
-                    className="p-2.5 rounded-lg border border-[#BFC9D1]/30 bg-white space-y-1.5 shadow-2xs"
+                    className="p-2 rounded-lg border border-slate-200 bg-white space-y-1 shadow-2xs"
                   >
                     <div className="flex justify-between items-start gap-2">
-                      <div className="font-black text-xs text-[#25343F]">
+                      <div className="font-black text-[11px] text-slate-900">
                         {idx + 1}. {it.productName}
                       </div>
-                      <div className="px-2 py-0.5 bg-[#25343F] text-white font-mono font-black text-[10px] rounded shrink-0">
+                      <div className="px-2 py-0.5 bg-slate-900 text-white font-mono font-black text-[9.5px] rounded shrink-0">
                         JUMLAH: {it.quantity} {it.unit || 'pcs'}
                       </div>
                     </div>
 
-                    {/* Technical detail chips */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-1 text-[10px]">
-                      <div className="bg-[#EAEFEF]/60 px-2 py-1 rounded border border-[#BFC9D1]/20">
-                        <span className="text-[#898989] text-[9px] block">Ukuran / Dimensi:</span>
-                        <strong className="text-[#25343F] font-mono">
+                    {/* Technical detail chips (Fixed 3 Columns) */}
+                    <div className="grid grid-cols-3 gap-1.5 pt-0.5 text-[9.5px]">
+                      <div className="bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                        <span className="text-slate-500 text-[8.5px] block">Ukuran / Dimensi:</span>
+                        <strong className="text-slate-900 font-mono">
                           {it.customWidth && it.customHeight ? `${it.customWidth} × ${it.customHeight} cm` : 'Standar'}
                         </strong>
                       </div>
-                      <div className="bg-[#EAEFEF]/60 px-2 py-1 rounded border border-[#BFC9D1]/20">
-                        <span className="text-[#898989] text-[9px] block">Bahan / Material:</span>
-                        <strong className="text-[#25343F]">{it.materialName || 'Sesuai Katalog'}</strong>
+                      <div className="bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                        <span className="text-slate-500 text-[8.5px] block">Bahan / Material:</span>
+                        <strong className="text-slate-900">{it.materialName || 'Sesuai Katalog'}</strong>
                       </div>
-                      <div className="bg-[#EAEFEF]/60 px-2 py-1 rounded border border-[#BFC9D1]/20">
-                        <span className="text-[#898989] text-[9px] block">Finishing:</span>
-                        <strong className="text-[#25343F]">{it.finishing || 'Tanpa Finishing'}</strong>
+                      <div className="bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                        <span className="text-slate-500 text-[8.5px] block">Finishing:</span>
+                        <strong className="text-slate-900">{it.finishing || 'Tanpa Finishing'}</strong>
                       </div>
                     </div>
 
                     {it.notes ? (
-                      <div className="p-1.5 bg-[#EAEFEF] rounded border border-[#BFC9D1]/25 text-[#25343F] font-medium text-[10px]">
+                      <div className="p-1 bg-slate-50 rounded border border-slate-200 text-slate-900 font-medium text-[9px]">
                         <strong>Instruksi Khusus:</strong> {it.notes}
                       </div>
                     ) : (
-                      <div className="text-[#898989] text-[9.5px] italic">Standar produksi workshop.</div>
+                      <div className="text-slate-400 text-[8.5px] italic">Standar produksi workshop.</div>
                     )}
                   </div>
                 ))}
@@ -687,54 +687,54 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
 
               {/* Order Global Notes if any */}
               {order.notes && (
-                <div className="p-2 bg-[#EAEFEF] rounded-lg border border-[#BFC9D1]/25 text-[10px] text-[#25343F] mb-3">
+                <div className="p-2 bg-slate-50 rounded-lg border border-slate-200 text-[9px] text-slate-900 mb-2">
                   <strong>Catatan Pesanan:</strong> {order.notes}
                 </div>
               )}
 
-              {/* Quality Checklist */}
-              <div className="p-2.5 bg-[#EAEFEF] rounded-xl border border-[#BFC9D1]/25 space-y-1.5 text-[10px]">
-                <span className="font-bold text-[#25343F] block uppercase tracking-wider text-[9.5px]">
+              {/* Quality Checklist (Fixed 2 Columns) */}
+              <div className="p-2 bg-slate-50 rounded-lg border border-slate-200 space-y-1 text-[9px]">
+                <span className="font-bold text-slate-900 block uppercase tracking-wider text-[8.5px]">
                   Checklist Quality Control (QC) Workshop:
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 font-medium">
-                  <label className="flex items-center gap-1.5 text-[#25343F]">
-                    <input type="checkbox" className="rounded text-[#25343F]" readOnly />
+                <div className="grid grid-cols-2 gap-1.5 font-medium">
+                  <label className="flex items-center gap-1.5 text-slate-800">
+                    <input type="checkbox" className="rounded text-slate-900" readOnly />
                     <span>Kesesuaian ukuran, bahan &amp; finishing</span>
                   </label>
-                  <label className="flex items-center gap-1.5 text-[#25343F]">
-                    <input type="checkbox" className="rounded text-[#25343F]" readOnly />
+                  <label className="flex items-center gap-1.5 text-slate-800">
+                    <input type="checkbox" className="rounded text-slate-900" readOnly />
                     <span>Kualitas cetak, kerapian &amp; bebas cacat</span>
                   </label>
-                  <label className="flex items-center gap-1.5 text-[#25343F]">
-                    <input type="checkbox" className="rounded text-[#25343F]" readOnly />
+                  <label className="flex items-center gap-1.5 text-slate-800">
+                    <input type="checkbox" className="rounded text-slate-900" readOnly />
                     <span>Kelengkapan jumlah &amp; rincian pesanan</span>
                   </label>
-                  <label className="flex items-center gap-1.5 text-[#25343F]">
-                    <input type="checkbox" className="rounded text-[#25343F]" readOnly />
+                  <label className="flex items-center gap-1.5 text-slate-800">
+                    <input type="checkbox" className="rounded text-slate-900" readOnly />
                     <span>Pengemasan rapi &amp; siap serah terima</span>
                   </label>
                 </div>
               </div>
 
-              {/* SPK Signatures (3 Columns: Admin, Operator, QC / Customer) */}
-              <div className="grid grid-cols-3 gap-2 pt-4 mt-3 border-t border-[#BFC9D1]/40 text-center text-[9.5px]">
+              {/* SPK Signatures (Fixed 3 Columns: Admin, Operator, QC / Customer) */}
+              <div className="grid grid-cols-3 gap-2 pt-3 mt-2 border-t border-slate-200 text-center text-[9px]">
                 <div>
-                  <p className="text-[#898989] font-medium mb-7">Admin / CS,</p>
-                  <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
-                    <span className="font-bold text-[#25343F]">(........................)</span>
+                  <p className="text-slate-500 font-medium mb-6">Admin / CS,</p>
+                  <div className="border-b border-dashed border-slate-400 w-24 max-w-full mx-auto pb-0.5">
+                    <span className="font-bold text-slate-900">(........................)</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-[#898989] font-medium mb-7">Operator Produksi,</p>
-                  <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
-                    <span className="font-bold text-[#25343F]">(........................)</span>
+                  <p className="text-slate-500 font-medium mb-6">Operator Produksi,</p>
+                  <div className="border-b border-dashed border-slate-400 w-24 max-w-full mx-auto pb-0.5">
+                    <span className="font-bold text-slate-900">(........................)</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-[#898989] font-medium mb-7">Serah Terima / Pelanggan,</p>
-                  <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
-                    <span className="font-bold text-[#25343F]">{order.customerName}</span>
+                  <p className="text-slate-500 font-medium mb-6">Serah Terima / Pelanggan,</p>
+                  <div className="border-b border-dashed border-slate-400 w-24 max-w-full mx-auto pb-0.5">
+                    <span className="font-bold text-slate-900">{order.customerName}</span>
                   </div>
                 </div>
               </div>
