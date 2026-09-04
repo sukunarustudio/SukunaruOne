@@ -2704,14 +2704,15 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           id="btn-add-order-fab"
           type="button"
           onClick={() => setViewMode('pos')}
-          className="fixed bottom-[92px] right-4 sm:bottom-8 sm:right-8 z-30 w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] flex items-center justify-center shadow-xl border-2 border-white transition-all cursor-pointer active:scale-90 hover:scale-105"
+          className="fixed bottom-[92px] right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-xl border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
           style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}
-          title="Buat Pesanan Kerja Baru"
-          aria-label="Buat Pesanan Kerja Baru"
+          title="Buat Pesanan Baru"
+          aria-label="Buat Pesanan Baru"
         >
-          <PlusIcon className="w-6 h-6 stroke-[2.5]" />
+          <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+          <span>Tambah Pesanan</span>
           {newOrderItems.length > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 rounded-full bg-[#25343F] text-white text-[10px] font-black flex items-center justify-center border-2 border-white">
+            <span className="min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#25343F] text-white text-[10px] font-black flex items-center justify-center border border-white ml-0.5">
               {newOrderItems.reduce((s, i) => s + i.quantity, 0)}
             </span>
           )}

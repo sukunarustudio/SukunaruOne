@@ -930,11 +930,12 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
         id="btn-add-finance-fab"
         type="button"
         onClick={() => setIsAddModalOpen(true)}
-        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 h-11 px-4 sm:px-5 bg-[#25343F] hover:bg-[#1B2730] text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-xl border border-white/20 transition-all cursor-pointer active:scale-95 hover:scale-105"
+        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-xl border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
+        style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 12px))' }}
         title="Catat Transaksi Kas"
         aria-label="Catat Transaksi Kas"
       >
-        <PlusIcon className="w-4 h-4 text-[#FF9B51] stroke-[2.5]" />
+        <PlusIcon className="w-5 h-5 stroke-[2.5]" />
         <span>Catat Kas</span>
       </button>
     </div>

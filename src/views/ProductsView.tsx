@@ -1826,11 +1826,13 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
         id="btn-add-product-fab"
         type="button"
         onClick={handleOpenAdd}
-        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] flex items-center justify-center shadow-xl border-2 border-white transition-all cursor-pointer active:scale-90 hover:scale-105"
+        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-xl border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
+        style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 12px))' }}
         title="Tambah Produk Baru"
         aria-label="Tambah Produk Baru"
       >
-        <PlusIcon className="w-6 h-6 stroke-[2.5]" />
+        <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+        <span>Tambah Produk</span>
       </button>
     </div>
   );

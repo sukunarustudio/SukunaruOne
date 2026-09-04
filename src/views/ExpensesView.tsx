@@ -142,11 +142,10 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onRefreshDashboard }
             id="btn-add-expense"
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="min-h-[38px] px-3.5 py-2 bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-colors cursor-pointer shrink-0"
+            className="min-h-[38px] px-3.5 py-2 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-colors cursor-pointer shrink-0"
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
-            <span className="hidden sm:inline">Catat Pengeluaran</span>
-            <span className="sm:hidden">Catat</span>
+            <span>Catat Pengeluaran</span>
           </button>
         </div>
 
@@ -453,6 +452,20 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onRefreshDashboard }
         onConfirm={handleDeleteExpense}
         onCancel={() => setExpenseToDelete(null)}
       />
+
+      {/* ── Floating Action Button (FAB) Catat Pengeluaran ── */}
+      <button
+        id="btn-add-expense-fab"
+        type="button"
+        onClick={() => setIsAddModalOpen(true)}
+        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-xl border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
+        style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 12px))' }}
+        title="Catat Pengeluaran Baru"
+        aria-label="Catat Pengeluaran Baru"
+      >
+        <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+        <span>Catat Pengeluaran</span>
+      </button>
     </div>
   );
 };
