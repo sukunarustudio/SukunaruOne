@@ -96,6 +96,24 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
     };
   }, [activeMenuProductId]);
 
+  // Top-bar ⋮ menu state
+  const [isTopMenuOpen, setIsTopMenuOpen] = useState(false);
+  const topMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (topMenuRef.current && !topMenuRef.current.contains(event.target as Node)) {
+        setIsTopMenuOpen(false);
+      }
+    };
+    if (isTopMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTopMenuOpen]);
+
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -473,20 +491,6 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Barcode Label Print Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setLabelPrintProductId(undefined);
-                setIsLabelPrintOpen(true);
-              }}
-              className="h-9 px-2.5 rounded-xl border border-[#BFC9D1]/25 bg-white hover:bg-[#EAEFEF] text-[#25343F] flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 text-xs font-semibold"
-              title="Cetak Label Barcode"
-            >
-              <PrinterIcon className="w-4 h-4 text-[#FF9B51]" />
-              <span className="hidden sm:inline">Cetak Label</span>
-            </button>
-
             {/* Search Toggle Icon */}
             <button
               type="button"
@@ -501,25 +505,64 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
               <MagnifyingGlassIcon className="w-4 h-4" />
             </button>
 
-            {/* Unified Filter & Urutkan Button */}
-            <button
-              type="button"
-              id="btn-filter-sort-products"
-              onClick={() => setIsFilterDrawerOpen(true)}
-              aria-label="Filter & Urutkan Produk"
-              title="Filter & Urutkan Produk"
-              className={`h-9 px-3 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 shrink-0 text-xs font-bold ${
-                activeFiltersCount > 0 || sortBy !== 'name-asc'
-                  ? 'bg-[#25343F] border-[#25343F] text-white shadow-sm'
-                  : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
-              }`}
-            >
-              <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#FF9B51]" />
-              <span>Filter &amp; Urutkan</span>
-              {(activeFiltersCount > 0 || sortBy !== 'name-asc') && (
-                <span className="w-2 h-2 rounded-full bg-[#FF9B51]" />
+            {/* Three-dot Menu: Print + Filter */}
+            <div className="relative" ref={topMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsTopMenuOpen(prev => !prev)}
+                className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative ${
+                  isTopMenuOpen
+                    ? 'bg-[#25343F] text-white border-slate-900'
+                    : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
+                }`}
+                title="Menu"
+                aria-label="Menu lainnya"
+              >
+                <EllipsisVerticalIcon className="w-4 h-4" />
+                {/* Active filter dot indicator */}
+                {(activeFiltersCount > 0 || sortBy !== 'name-asc') && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#FF9B51]" />
+                )}
+              </button>
+
+              {/* Dropdown Menu */}
+              {isTopMenuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-[#BFC9D1]/40 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                  {/* Cetak Label Barcode */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTopMenuOpen(false);
+                      setLabelPrintProductId(undefined);
+                      setIsLabelPrintOpen(true);
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3 text-sm text-left hover:bg-[#EAEFEF] transition-colors cursor-pointer text-[#25343F]"
+                  >
+                    <PrinterIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
+                    <span className="font-semibold text-xs">Cetak Label Barcode</span>
+                  </button>
+
+                  <div className="h-px bg-[#BFC9D1]/30 mx-3" />
+
+                  {/* Filter & Urutkan */}
+                  <button
+                    type="button"
+                    id="btn-filter-sort-products"
+                    onClick={() => {
+                      setIsTopMenuOpen(false);
+                      setIsFilterDrawerOpen(true);
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3 text-sm text-left hover:bg-[#EAEFEF] transition-colors cursor-pointer text-[#25343F]"
+                  >
+                    <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
+                    <span className="font-semibold text-xs">Filter &amp; Urutkan</span>
+                    {(activeFiltersCount > 0 || sortBy !== 'name-asc') && (
+                      <span className="ml-auto w-2 h-2 rounded-full bg-[#FF9B51] shrink-0" />
+                    )}
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
 
