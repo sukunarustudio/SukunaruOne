@@ -1813,18 +1813,6 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                         <span className="font-black text-xs sm:text-sm text-[#25343F] font-mono">
                           {formatRupiah(order.totalAmount)}
                         </span>
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setInvoiceOrder(order);
-                            setIsInvoiceModalOpen(true);
-                          }}
-                          className="p-1 text-[#898989] hover:text-[#25343F] hover:bg-[#EAEFEF] rounded-lg cursor-pointer"
-                          title="Cetak Faktur / SPK"
-                        >
-                          <PrinterIcon className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     </div>
 
@@ -2062,20 +2050,9 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                                   setIsDetailModalOpen(true);
                                 }}
                                 className="p-1.5 rounded-lg text-[#898989] hover:text-[#25343F] hover:bg-[#EAEFEF] transition-colors cursor-pointer"
-                                title="Lihat Detail &amp; File"
+                                title="Lihat Detail"
                               >
                                 <EyeIcon className="w-3.5 h-3.5" />
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  setInvoiceOrder(order);
-                                  setIsInvoiceModalOpen(true);
-                                }}
-                                className="p-1.5 rounded-lg text-[#898989] hover:text-[#25343F] hover:bg-[#EAEFEF] transition-colors cursor-pointer"
-                                title="Cetak Faktur / SPK"
-                              >
-                                <PrinterIcon className="w-3.5 h-3.5" />
                               </button>
 
                               {order.remainingAmount > 0 && (
@@ -2224,18 +2201,6 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                               <span className="font-extrabold text-[#25343F] text-xs font-mono">
                                 {formatRupiah(order.totalAmount)}
                               </span>
-                              <button
-                                type="button"
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  setInvoiceOrder(order);
-                                  setIsInvoiceModalOpen(true);
-                                }}
-                                className="p-1 text-[#898989] hover:text-[#25343F] hover:bg-[#EAEFEF] rounded cursor-pointer"
-                                title="Cetak Faktur"
-                              >
-                                <PrinterIcon className="w-3 h-3" />
-                              </button>
                             </div>
                           </div>
 
