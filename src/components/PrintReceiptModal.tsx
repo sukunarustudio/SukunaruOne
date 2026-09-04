@@ -43,14 +43,9 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
 
   if (!isOpen || !transaction) return null;
 
-  const handlePrint = async () => {
-    if (Capacitor.isNativePlatform()) {
-      showToast('Menyiapkan file PDF struk untuk dicetak/disimpan...', 'info');
-      await handleDownloadPdf();
-    } else {
-      showToast(`Mencetak struk (${paperWidth})...`, 'info');
-      printIsolatedElement('printable-receipt-area', `Struk-${transaction.receiptNumber}`, paperWidth);
-    }
+  const handlePrint = () => {
+    showToast(`Mencetak struk (${paperWidth})...`, 'info');
+    printIsolatedElement('printable-receipt-area', `Struk-${transaction.receiptNumber}`, paperWidth);
   };
 
   const handleDownloadPdf = async () => {

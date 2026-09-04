@@ -71,16 +71,11 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
   const isToday = isDeadlineToday(order.deadlineDate, order.status);
   const currentPaper = PAPER_CONFIGS[paperSize];
 
-  const handlePrint = async () => {
-    if (Capacitor.isNativePlatform()) {
-      showToast(`Menyiapkan file PDF ${docType === 'invoice' ? 'Invoice' : 'SPK'} untuk dicetak...`, 'info');
-      await handleDownloadPdf();
-    } else {
-      const targetId = docType === 'invoice' ? 'printable-invoice-area' : 'printable-spk-area';
-      const title = docType === 'invoice' ? `Invoice-${invoiceNumber}` : `SPK-${spkNumber}`;
-      showToast(`Mempersiapkan cetak ${docType === 'invoice' ? 'Invoice' : 'SPK'} (${currentPaper.name})...`, 'info');
-      printIsolatedElement(targetId, title, paperSize);
-    }
+  const handlePrint = () => {
+    const targetId = docType === 'invoice' ? 'printable-invoice-area' : 'printable-spk-area';
+    const title = docType === 'invoice' ? `Invoice-${invoiceNumber}` : `SPK-${spkNumber}`;
+    showToast(`Mempersiapkan cetak ${docType === 'invoice' ? 'Invoice' : 'SPK'} (${currentPaper.name})...`, 'info');
+    printIsolatedElement(targetId, title, paperSize);
   };
 
   const handleDownloadPdf = async () => {

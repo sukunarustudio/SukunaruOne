@@ -204,28 +204,23 @@ export function printIsolatedElement(
     const isThermalReceipt = paperSize === '58mm' || paperSize === '80mm';
     const thermalWidthCss = paperSize === '58mm' ? '58mm' : '80mm';
     const isA5 = paperSize === 'a5';
-    const isA4OrF4 = paperSize === 'a4' || paperSize === 'f4';
 
-    // 1. Check if running on native Capacitor (Android/iOS)
-    if (Capacitor.isNativePlatform()) {
-      const pdfFormat = isThermalReceipt
-        ? (paperSize === '58mm' ? [58, 140] as [number, number] : [80, 180] as [number, number])
-        : paperSize;
-      downloadElementAsPdf(targetElement, {
-        filename: `${title}.pdf`,
-        format: pdfFormat,
-        orientation: 'portrait',
-        marginMm: isThermalReceipt ? 2 : isA5 ? 4 : 6,
-        scale: 2.5,
-      });
-      return true;
-    }
+    // Remove any previous print mount point or style tag
+    const existingMount = document.getElementById('print-mount-point');
+    if (existingMount) existingMount.remove();
+    const existingStyle = document.getElementById('dynamic-print-override-style');
+    if (existingStyle) existingStyle.remove();
 
-    // 2. Dynamic In-Page Print Mode (Direct Window Print with exact style injection)
-    const existingPrintStyle = document.getElementById('dynamic-print-override-style');
-    if (existingPrintStyle) {
-      existingPrintStyle.remove();
-    }
+    // Create an isolated mount point outside #root directly on body
+    const mountPoint = document.createElement('div');
+    mountPoint.id = 'print-mount-point';
+    mountPoint.className = 'print-only-container';
+
+    // Clone target element cleanly so only the document itself is printed
+    const clonedTarget = targetElement.cloneNode(true) as HTMLElement;
+    clonedTarget.id = 'printed-target-clone';
+    mountPoint.appendChild(clonedTarget);
+    document.body.appendChild(mountPoint);
 
     const pageSizeRule = isThermalReceipt
       ? `${thermalWidthCss} auto`
@@ -250,6 +245,9 @@ export function printIsolatedElement(
     const dynamicStyle = document.createElement('style');
     dynamicStyle.id = 'dynamic-print-override-style';
     dynamicStyle.innerHTML = `
+      #print-mount-point {
+        display: none;
+      }
       @media print {
         @page {
           size: ${pageSizeRule};
@@ -261,52 +259,34 @@ export function printIsolatedElement(
           margin: 0 !important;
           padding: 0 !important;
           width: 100% !important;
+          height: auto !important;
+          overflow: visible !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
+        #root,
         #main-sidebar,
         #main-topbar,
         #global-search-backdrop,
         .no-print,
-        button,
-        nav,
-        aside,
-        header {
-          display: none !important;
-        }
-        #receipt-modal-overlay,
+        dialog,
         #invoice-modal-overlay,
+        #receipt-modal-overlay,
         #batch-print-modal-overlay {
-          position: static !important;
-          background: transparent !important;
-          padding: 0 !important;
-          margin: 0 !important;
-          display: block !important;
-          inset: auto !important;
-          overflow: visible !important;
-        }
-        #receipt-modal-content,
-        #invoice-modal-content,
-        #batch-print-modal-content {
-          box-shadow: none !important;
-          border: none !important;
-          background: transparent !important;
-          max-width: 100% !important;
-          max-height: none !important;
-          width: 100% !important;
-          padding: 0 !important;
-          margin: 0 auto !important;
-          overflow: visible !important;
-        }
-        #receipt-modal-header,
-        #receipt-modal-footer,
-        #invoice-modal-header,
-        #invoice-modal-footer,
-        #batch-print-modal-header,
-        #batch-print-modal-footer {
           display: none !important;
         }
-        #${typeof elementIdOrElement === 'string' ? elementIdOrElement : targetElement.id || 'printable-area'} {
+        #print-mount-point {
+          display: block !important;
+          position: relative !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          overflow: visible !important;
+        }
+        #printed-target-clone {
           display: block !important;
           box-sizing: border-box !important;
           box-shadow: none !important;
@@ -328,20 +308,28 @@ export function printIsolatedElement(
     `;
     document.head.appendChild(dynamicStyle);
 
+    const cleanup = () => {
+      setTimeout(() => {
+        if (document.body.contains(mountPoint)) {
+          mountPoint.remove();
+        }
+        if (document.head.contains(dynamicStyle)) {
+          dynamicStyle.remove();
+        }
+      }, 1000);
+    };
+
+    window.addEventListener('afterprint', cleanup, { once: true });
+
     setTimeout(() => {
       try {
         window.focus();
         window.print();
       } catch (winPrintErr) {
         console.warn('Native window.print() failed:', winPrintErr);
-        // Fallback to direct PDF export
         downloadElementAsPdf(targetElement, { filename: `${title}.pdf` });
       } finally {
-        setTimeout(() => {
-          if (document.head.contains(dynamicStyle)) {
-            dynamicStyle.remove();
-          }
-        }, 1500);
+        setTimeout(cleanup, 2500);
       }
     }, 150);
 
