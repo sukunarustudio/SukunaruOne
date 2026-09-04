@@ -291,3 +291,26 @@ export async function downloadCsvFile(
     dialogTitle: 'Simpan File Spreadsheet CSV',
   });
 }
+
+/**
+ * Helper to download Excel spreadsheet (.xls XML Spreadsheet / .xlsx).
+ */
+export async function downloadExcelFile(
+  excelContent: string,
+  filename: string,
+  openSharePrompt: boolean = true
+): Promise<FileDownloadResult> {
+  const cleanName = filename.toLowerCase().endsWith('.xls') || filename.toLowerCase().endsWith('.xlsx')
+    ? sanitizeFilename(filename)
+    : sanitizeFilename(filename, '.xls');
+
+  return saveAndDownloadFile({
+    filename: cleanName,
+    data: excelContent,
+    mimeType: 'application/vnd.ms-excel',
+    isBase64: false,
+    openSharePrompt,
+    dialogTitle: 'Simpan File Excel Spreadsheet',
+  });
+}
+

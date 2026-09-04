@@ -78,10 +78,20 @@ export async function downloadElementAsPdf(
     } = options;
 
     const isReceipt = targetElement.id === 'printable-receipt-area';
+    const isLandscape = orientation === 'landscape';
     const isA5 = format === 'a5';
-    const standardWidthPx = isReceipt
-      ? (targetElement.scrollWidth || (Array.isArray(format) && format[0] === 58 ? 250 : 330))
-      : isA5 ? 560 : 794;
+    const isA4 = format === 'a4';
+    const isF4 = format === 'f4';
+    const isLetter = format === 'letter';
+
+    let standardWidthPx = 794;
+    if (isReceipt) {
+      standardWidthPx = targetElement.scrollWidth || (Array.isArray(format) && format[0] === 58 ? 250 : 330);
+    } else if (isLandscape) {
+      standardWidthPx = isA5 ? 794 : isF4 ? 1248 : isLetter ? 1056 : 1122;
+    } else {
+      standardWidthPx = isA5 ? 560 : isLetter ? 816 : 794;
+    }
 
     // Render HTML element to high-res canvas using html2canvas-pro
     const canvas = await html2canvas(targetElement, {
@@ -90,7 +100,7 @@ export async function downloadElementAsPdf(
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: isReceipt ? standardWidthPx : (isA5 ? 600 : 1024),
+      windowWidth: isReceipt ? standardWidthPx : (isLandscape ? 1200 : (isA5 ? 600 : 1024)),
       onclone: (_clonedDoc, clonedElement) => {
         clonedElement.style.margin = '0';
         clonedElement.style.boxShadow = 'none';
@@ -111,7 +121,7 @@ export async function downloadElementAsPdf(
     // Calculate dimensions in mm
     let targetFormat: 'a4' | 'a5' | 'letter' | [number, number] = format as any;
     if (format === 'f4') {
-      targetFormat = [210, 330]; // F4 / Folio: 210 x 330 mm
+      targetFormat = isLandscape ? [330, 210] : [210, 330]; // F4 / Folio: 210 x 330 mm
     } else if (isReceipt && Array.isArray(format)) {
       const widthMm = format[0]; // e.g. 58 or 80
       const printableWidth = widthMm - marginMm * 2;
@@ -183,7 +193,8 @@ export async function downloadElementAsPdf(
 export function printIsolatedElement(
   elementIdOrElement: string | HTMLElement,
   title: string = 'Cetak Dokumen',
-  paperSize: 'a5' | 'a4' | 'f4' | '58mm' | '80mm' | 'auto' = 'a5'
+  paperSize: 'a5' | 'a4' | 'f4' | 'letter' | '58mm' | '80mm' | 'auto' = 'a5',
+  orientation: 'portrait' | 'landscape' = 'portrait'
 ): boolean {
   try {
     const targetElement =
@@ -204,6 +215,7 @@ export function printIsolatedElement(
     const isThermalReceipt = paperSize === '58mm' || paperSize === '80mm';
     const thermalWidthCss = paperSize === '58mm' ? '58mm' : '80mm';
     const isA5 = paperSize === 'a5';
+    const isLandscape = orientation === 'landscape';
 
     // Remove any previous print mount point or style tag
     const existingMount = document.getElementById('print-mount-point');
@@ -222,24 +234,36 @@ export function printIsolatedElement(
     mountPoint.appendChild(clonedTarget);
     document.body.appendChild(mountPoint);
 
-    const pageSizeRule = isThermalReceipt
-      ? `${thermalWidthCss} auto`
-      : paperSize === 'a5'
-      ? '148mm 210mm portrait'
-      : paperSize === 'f4'
-      ? '210mm 330mm portrait'
-      : '210mm 297mm portrait';
+    let pageSizeRule = '210mm 297mm portrait';
+    if (isThermalReceipt) {
+      pageSizeRule = `${thermalWidthCss} auto`;
+    } else if (paperSize === 'a5') {
+      pageSizeRule = isLandscape ? '210mm 148mm landscape' : '148mm 210mm portrait';
+    } else if (paperSize === 'f4') {
+      pageSizeRule = isLandscape ? '330mm 210mm landscape' : '210mm 330mm portrait';
+    } else if (paperSize === 'letter') {
+      pageSizeRule = isLandscape ? '279.4mm 215.9mm landscape' : '215.9mm 279.4mm portrait';
+    } else {
+      pageSizeRule = isLandscape ? '297mm 210mm landscape' : '210mm 297mm portrait';
+    }
 
-    const targetMaxWidth = isThermalReceipt
-      ? thermalWidthCss
-      : isA5
-      ? '138mm'
-      : '190mm';
+    let targetMaxWidth = '190mm';
+    if (isThermalReceipt) {
+      targetMaxWidth = thermalWidthCss;
+    } else if (paperSize === 'a5') {
+      targetMaxWidth = isLandscape ? '198mm' : '138mm';
+    } else if (paperSize === 'f4') {
+      targetMaxWidth = isLandscape ? '312mm' : '196mm';
+    } else if (paperSize === 'letter') {
+      targetMaxWidth = isLandscape ? '264mm' : '200mm';
+    } else {
+      targetMaxWidth = isLandscape ? '280mm' : '196mm';
+    }
 
     const targetPadding = isThermalReceipt
       ? (paperSize === '58mm' ? '2mm 1.5mm' : '3mm 2mm')
       : isA5
-      ? '16px 20px'
+      ? (isLandscape ? '14px 18px' : '16px 20px')
       : '20px 24px';
 
     const dynamicStyle = document.createElement('style');
@@ -300,6 +324,25 @@ export function printIsolatedElement(
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          page-break-inside: auto !important;
+        }
+        tr {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        thead {
+          display: table-header-group !important;
+        }
+        tfoot {
+          display: table-footer-group !important;
+        }
+        .avoid-page-break, .report-section, .kpi-card {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
@@ -327,7 +370,7 @@ export function printIsolatedElement(
         window.print();
       } catch (winPrintErr) {
         console.warn('Native window.print() failed:', winPrintErr);
-        downloadElementAsPdf(targetElement, { filename: `${title}.pdf` });
+        downloadElementAsPdf(targetElement, { filename: `${title}.pdf`, format: paperSize as any, orientation: orientation });
       } finally {
         setTimeout(cleanup, 2500);
       }
