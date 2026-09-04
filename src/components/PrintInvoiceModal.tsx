@@ -536,13 +536,13 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
               <div className="grid grid-cols-2 gap-4 pt-5 mt-3 border-t border-[#BFC9D1]/40 text-center text-[10px]">
                 <div>
                   <p className="text-[#898989] font-medium mb-8">Penerima / Pelanggan,</p>
-                  <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto pb-1">
+                  <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 max-w-full mx-auto pb-1">
                     <span className="font-bold text-[#25343F]">{order.customerName}</span>
                   </div>
                 </div>
                 <div>
                   <p className="text-[#898989] font-medium mb-8">Hormat Kami,</p>
-                  <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto pb-1">
+                  <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 max-w-full mx-auto pb-1">
                     <span className="font-bold text-[#25343F]">{settings.businessName || 'Admin / Kasir'}</span>
                   </div>
                 </div>
@@ -726,19 +726,19 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
               <div className="grid grid-cols-3 gap-2 pt-4 mt-3 border-t border-[#BFC9D1]/40 text-center text-[9.5px]">
                 <div>
                   <p className="text-[#898989] font-medium mb-7">Admin / CS,</p>
-                  <div className="border-b border-dashed border-slate-400 w-4/5 mx-auto pb-0.5">
+                  <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
                     <span className="font-bold text-[#25343F]">(........................)</span>
                   </div>
                 </div>
                 <div>
                   <p className="text-[#898989] font-medium mb-7">Operator Produksi,</p>
-                  <div className="border-b border-dashed border-slate-400 w-4/5 mx-auto pb-0.5">
+                  <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
                     <span className="font-bold text-[#25343F]">(........................)</span>
                   </div>
                 </div>
                 <div>
                   <p className="text-[#898989] font-medium mb-7">Serah Terima / Pelanggan,</p>
-                  <div className="border-b border-dashed border-slate-400 w-4/5 mx-auto pb-0.5">
+                  <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
                     <span className="font-bold text-[#25343F]">{order.customerName}</span>
                   </div>
                 </div>

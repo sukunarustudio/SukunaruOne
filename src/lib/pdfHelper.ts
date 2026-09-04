@@ -204,118 +204,24 @@ export function printIsolatedElement(
     const isThermalReceipt = paperSize === '58mm' || paperSize === '80mm';
     const thermalWidthCss = paperSize === '58mm' ? '58mm' : '80mm';
     const isA5 = paperSize === 'a5';
-    const standardWidthPx = isThermalReceipt ? thermalWidthCss : isA5 ? '560px' : '794px';
-
-    // 1. Gather all active stylesheets from document
-    const styleElements = document.querySelectorAll('style, link[rel="stylesheet"]');
-    let stylesHtml = '';
-    styleElements.forEach(el => {
-      stylesHtml += el.outerHTML;
-    });
-
-    const printContent = targetElement.outerHTML;
+    const isA4OrF4 = paperSize === 'a4' || paperSize === 'f4';
 
     // 1. Check if running on native Capacitor (Android/iOS)
     if (Capacitor.isNativePlatform()) {
-      const isReceipt = paperSize === '58mm' || paperSize === '80mm';
-      const pdfFormat = isReceipt
+      const pdfFormat = isThermalReceipt
         ? (paperSize === '58mm' ? [58, 140] as [number, number] : [80, 180] as [number, number])
         : paperSize;
       downloadElementAsPdf(targetElement, {
         filename: `${title}.pdf`,
         format: pdfFormat,
         orientation: 'portrait',
-        marginMm: isReceipt ? 2 : isA5 ? 4 : 6,
+        marginMm: isThermalReceipt ? 2 : isA5 ? 4 : 6,
         scale: 2.5,
       });
       return true;
     }
 
-    // 2. Try Method A: Open standalone printable new window (desktop browsers)
-    try {
-      const popupWidth = isThermalReceipt ? 450 : isA5 ? 650 : 850;
-      const printWin = window.open('', '_blank', `width=${popupWidth},height=950,top=50,left=50`);
-      if (printWin && !printWin.closed) {
-        const pageSizeRule = isThermalReceipt
-          ? `${thermalWidthCss} auto`
-          : paperSize === 'a5'
-          ? 'A5 portrait'
-          : paperSize === 'f4'
-          ? '210mm 330mm portrait'
-          : 'A4 portrait';
-
-        printWin.document.open();
-        printWin.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>${title}</title>
-              ${stylesHtml}
-              <style>
-                @page {
-                  size: ${pageSizeRule};
-                  margin: ${isThermalReceipt ? '0' : paperSize === 'a5' ? '4mm' : '6mm'};
-                }
-                html, body {
-                  background: #ffffff !important;
-                  color: #000000 !important;
-                  margin: 0 !important;
-                  padding: ${isThermalReceipt ? '0' : paperSize === 'a5' ? '2px' : '6px'} !important;
-                  width: ${isThermalReceipt ? thermalWidthCss : '100%'} !important;
-                  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                  -webkit-print-color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                }
-                * {
-                  box-shadow: none !important;
-                  text-shadow: none !important;
-                  -webkit-print-color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                }
-                .no-print {
-                  display: none !important;
-                }
-                .print-container {
-                  display: flex;
-                  justify-content: center;
-                  width: ${isThermalReceipt ? thermalWidthCss : '100%'} !important;
-                  margin: 0 auto !important;
-                  padding: 0 !important;
-                }
-                .print-container > div, #printable-receipt-area, #printable-invoice-area, #printable-spk-area, #printable-batch-area {
-                  width: ${isThermalReceipt ? thermalWidthCss : '100%'} !important;
-                  max-width: ${standardWidthPx} !important;
-                  box-shadow: none !important;
-                  border: none !important;
-                  padding: ${isThermalReceipt ? (paperSize === '58mm' ? '2mm 1.5mm' : '3mm 2mm') : '0'} !important;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="print-container">
-                ${printContent}
-              </div>
-              <script>
-                window.onload = function() {
-                  setTimeout(function() {
-                    window.focus();
-                    window.print();
-                  }, 250);
-                };
-              </script>
-            </body>
-          </html>
-        `);
-        printWin.document.close();
-        return true;
-      }
-    } catch (popupErr) {
-      console.warn('Popup window print blocked or failed, trying in-page print:', popupErr);
-    }
-
-    // 3. Try Method B: In-Page Dynamic Print Mode (Direct Window Print with injected style tag)
+    // 2. Dynamic In-Page Print Mode (Direct Window Print with exact style injection)
     const existingPrintStyle = document.getElementById('dynamic-print-override-style');
     if (existingPrintStyle) {
       existingPrintStyle.remove();
@@ -324,10 +230,22 @@ export function printIsolatedElement(
     const pageSizeRule = isThermalReceipt
       ? `${thermalWidthCss} auto`
       : paperSize === 'a5'
-      ? 'A5 portrait'
+      ? '148mm 210mm portrait'
       : paperSize === 'f4'
       ? '210mm 330mm portrait'
-      : 'A4 portrait';
+      : '210mm 297mm portrait';
+
+    const targetMaxWidth = isThermalReceipt
+      ? thermalWidthCss
+      : isA5
+      ? '138mm'
+      : '190mm';
+
+    const targetPadding = isThermalReceipt
+      ? (paperSize === '58mm' ? '2mm 1.5mm' : '3mm 2mm')
+      : isA5
+      ? '16px 20px'
+      : '20px 24px';
 
     const dynamicStyle = document.createElement('style');
     dynamicStyle.id = 'dynamic-print-override-style';
@@ -337,9 +255,14 @@ export function printIsolatedElement(
           size: ${pageSizeRule};
           margin: ${isThermalReceipt ? '0' : paperSize === 'a5' ? '4mm' : '6mm'};
         }
-        body {
+        html, body {
           background: #ffffff !important;
-          color: #000000 !important;
+          color: #25343F !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         #main-sidebar,
         #main-topbar,
@@ -357,6 +280,7 @@ export function printIsolatedElement(
           position: static !important;
           background: transparent !important;
           padding: 0 !important;
+          margin: 0 !important;
           display: block !important;
           inset: auto !important;
           overflow: visible !important;
@@ -366,9 +290,12 @@ export function printIsolatedElement(
         #batch-print-modal-content {
           box-shadow: none !important;
           border: none !important;
+          background: transparent !important;
           max-width: 100% !important;
           max-height: none !important;
           width: 100% !important;
+          padding: 0 !important;
+          margin: 0 auto !important;
           overflow: visible !important;
         }
         #receipt-modal-header,
@@ -381,12 +308,15 @@ export function printIsolatedElement(
         }
         #${typeof elementIdOrElement === 'string' ? elementIdOrElement : targetElement.id || 'printable-area'} {
           display: block !important;
+          box-sizing: border-box !important;
           box-shadow: none !important;
-          border: none !important;
+          border: ${isThermalReceipt ? 'none' : '1px solid #cbd5e1'} !important;
+          border-radius: ${isThermalReceipt ? '0' : '8px'} !important;
           margin: 0 auto !important;
-          padding: ${isThermalReceipt ? (paperSize === '58mm' ? '2mm 1.5mm' : '3mm 2mm') : '0'} !important;
-          width: ${isThermalReceipt ? thermalWidthCss : '100%'} !important;
-          max-width: ${standardWidthPx} !important;
+          padding: ${targetPadding} !important;
+          width: 100% !important;
+          max-width: ${targetMaxWidth} !important;
+          background: #ffffff !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }

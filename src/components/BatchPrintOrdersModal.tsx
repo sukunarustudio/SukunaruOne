@@ -390,19 +390,19 @@ export const BatchPrintOrdersModal: React.FC<BatchPrintOrdersModalProps> = ({
                       <div className="grid grid-cols-3 gap-2 pt-3 mt-2 border-t border-[#BFC9D1]/30 text-center text-[9px]">
                         <div>
                           <p className="text-[#898989] mb-5">Admin / CS,</p>
-                          <div className="border-b border-dashed border-slate-400 w-4/5 mx-auto pb-0.5">
+                          <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
                             <span className="font-bold text-[#25343F]">(................)</span>
                           </div>
                         </div>
                         <div>
                           <p className="text-[#898989] mb-5">Operator,</p>
-                          <div className="border-b border-dashed border-slate-400 w-4/5 mx-auto pb-0.5">
+                          <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
                             <span className="font-bold text-[#25343F]">(................)</span>
                           </div>
                         </div>
                         <div>
                           <p className="text-[#898989] mb-5">Pelanggan,</p>
-                          <div className="border-b border-dashed border-slate-400 w-4/5 mx-auto pb-0.5">
+                          <div className="border-b border-dashed border-slate-400 w-28 sm:w-32 max-w-full mx-auto pb-0.5">
                             <span className="font-bold text-[#25343F]">{order.customerName}</span>
                           </div>
                         </div>
@@ -595,13 +595,13 @@ export const BatchPrintOrdersModal: React.FC<BatchPrintOrdersModalProps> = ({
                       <div className="grid grid-cols-2 gap-4 pt-3 mt-2 border-t border-[#BFC9D1]/30 text-center text-[9px]">
                         <div>
                           <p className="text-[#898989] mb-6">Penerima / Pelanggan,</p>
-                          <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto pb-0.5">
+                          <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 max-w-full mx-auto pb-0.5">
                             <span className="font-bold text-[#25343F]">{order.customerName}</span>
                           </div>
                         </div>
                         <div>
                           <p className="text-[#898989] mb-6">Hormat Kami,</p>
-                          <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto pb-0.5">
+                          <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 max-w-full mx-auto pb-0.5">
                             <span className="font-bold text-[#25343F]">{settings.businessName || 'Admin'}</span>
                           </div>
                         </div>
