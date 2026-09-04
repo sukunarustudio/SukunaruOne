@@ -1600,7 +1600,7 @@ export const DatabaseService = {
           for (const item of order.items) {
             const qty = Number(item.quantity) || 1;
             if (item.productId) {
-              const prod = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId);
+              const prod = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId) as any;
               if (prod) {
                 if (prod.trackStock) {
                   db.prepare('UPDATE products SET currentStock = currentStock + ?, updatedAt = ? WHERE id = ?')
@@ -1608,11 +1608,11 @@ export const DatabaseService = {
                 }
 
                 // Check BOM components
-                const components = db.prepare('SELECT * FROM product_components WHERE productId = ?').all(item.productId);
+                const components = db.prepare('SELECT * FROM product_components WHERE productId = ?').all(item.productId) as any[];
                 if (components && components.length > 0) {
                   for (const comp of components) {
                     if (comp.materialId) {
-                      const material = db.prepare('SELECT * FROM materials WHERE id = ?').get(comp.materialId);
+                      const material = db.prepare('SELECT * FROM materials WHERE id = ?').get(comp.materialId) as any;
                       if (material) {
                         const returnQty = (Number(comp.quantity) || 1) * qty;
                         const prevStock = material.currentStock;
@@ -1643,7 +1643,7 @@ export const DatabaseService = {
                     }
                   }
                 } else if (prod.trackStock) {
-                  const material = db.prepare('SELECT * FROM materials WHERE sku = ? OR LOWER(name) = LOWER(?)').get(prod.sku, prod.name);
+                  const material = db.prepare('SELECT * FROM materials WHERE sku = ? OR LOWER(name) = LOWER(?)').get(prod.sku, prod.name) as any;
                   if (material) {
                     const prevStock = material.currentStock;
                     const newStock = prevStock + qty;

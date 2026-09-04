@@ -681,7 +681,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
     const target = orders.find(o => o.id === orderId) || (selectedOrder?.id === orderId ? selectedOrder : null);
     const norm = newStatus.toUpperCase().trim();
 
-    if ((norm === 'BATAL' || norm === 'DIBATALKAN') && target && target.status !== 'BATAL' && target.status !== 'DIBATALKAN') {
+    if ((norm === 'BATAL' || norm === 'DIBATALKAN') && target && target.status !== 'BATAL' && (target.status as string) !== 'DIBATALKAN') {
       setOrderToCancel(target);
       setIsCancelModalOpen(true);
       return;

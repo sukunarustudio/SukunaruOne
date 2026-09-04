@@ -525,7 +525,7 @@ export async function downloadProfitReportExcel(data: ReportExportData, filename
         headers: ['Tanggal', 'Keterangan Pengeluaran', 'Kategori', 'Metode Pembayaran', 'Nominal (Rp)'],
         rows: data.expenses.map(e => [
           formatDateTime(e.date || e.createdAt),
-          e.description || e.name || 'Pengeluaran',
+          e.description || (e as any).name || (e as any).title || 'Pengeluaran',
           e.category || 'Operasional',
           e.paymentMethod || 'TUNAI',
           Number(e.amount) || 0,

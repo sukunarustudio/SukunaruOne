@@ -3,7 +3,7 @@
  */
 
 import { SupabaseClient, User, Session, AuthError } from '@supabase/supabase-js';
-import { getSupabaseClient } from './supabaseClient';
+import { getSupabaseClient, verifyLicenseInCloud } from './supabaseClient';
 
 function getAuthClient(): SupabaseClient {
   const client = getSupabaseClient();

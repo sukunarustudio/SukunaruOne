@@ -1,5 +1,5 @@
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
-import { localDb } from './localDb';
+import { localDb, emitDataMutation } from './localDb';
 import {
   Customer,
   Material,
