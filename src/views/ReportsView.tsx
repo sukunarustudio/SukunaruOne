@@ -64,7 +64,7 @@ interface ReportsViewProps {
 }
 
 type PeriodType = 'weekly' | 'monthly' | 'yearly' | 'custom' | 'all';
-type PaperSize = 'a4' | 'a5' | 'f4' | 'letter';
+type PaperSize = 'a4' | 'a5' | 'f4';
 type PaperOrientation = 'portrait' | 'landscape';
 
 const MONTH_NAMES = [
@@ -75,8 +75,7 @@ const MONTH_NAMES = [
 const PAPER_CONFIGS: Record<PaperSize, { name: string; dimension: string; desc: string }> = {
   a4: { name: 'A4', dimension: '210 × 297 mm', desc: 'Standar Dokumen Laporan Bisnis' },
   a5: { name: 'A5', dimension: '148 × 210 mm', desc: 'Ukuran Ringkas / Hemat Kertas' },
-  f4: { name: 'F4 / Folio', dimension: '210 × 330 mm', desc: 'Standar Administrasi Indonesia' },
-  letter: { name: 'US Letter', dimension: '215.9 × 279.4 mm', desc: 'Standar Dokumen Letter' },
+  f4: { name: 'F4', dimension: '210 × 330 mm', desc: 'Standar Dokumen Administrasi' },
 };
 
 export const ReportsView: React.FC<ReportsViewProps> = ({
@@ -962,7 +961,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         )}
       </div>
 
-      {/* ── DOKUMEN & FORMAT CETAK SELECTOR BAR (A4, A5, F4, Letter & Orientation) ── */}
+      {/* ── DOKUMEN & FORMAT CETAK SELECTOR BAR (A4, A5, F4 & Orientation) ── */}
       <div className="no-print bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-[#BFC9D1]/25 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-[#25343F] text-white flex items-center justify-center shrink-0">
@@ -984,7 +983,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
           {/* Paper Size selector */}
           <div className="flex items-center p-1 bg-[#EAEFEF] dark:bg-slate-800 rounded-xl border border-[#BFC9D1]/25 dark:border-slate-700">
-            {(['a4', 'a5', 'f4', 'letter'] as PaperSize[]).map(ps => (
+            {(['a4', 'a5', 'f4'] as PaperSize[]).map(ps => (
               <button
                 key={ps}
                 type="button"
