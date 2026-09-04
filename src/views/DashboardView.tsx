@@ -28,6 +28,7 @@ import {
   getStatusBadgeClass,
 } from '../lib/utils';
 import { useToast } from '../components/Toast';
+import { PullToRefresh } from '../components/PullToRefresh';
 
 interface DashboardViewProps {
   onNavigate?: (view: ViewType, recordId?: string) => void;
@@ -377,7 +378,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   }
 
   return (
-    <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
+    <PullToRefresh onRefresh={() => loadData(true)}>
+      <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
 
       {/* ── FLOATING PROFILE PROMPT ── */}
       {!isProfileBannerDismissed && isProfileIncomplete && (
@@ -873,7 +875,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
           </div>
         )}
       </div>
-
     </div>
-  );
+  </PullToRefresh>
+);
 };
