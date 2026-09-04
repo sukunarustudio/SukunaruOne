@@ -74,6 +74,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     }
   });
 
+  const [isProductBannerDismissed, setIsProductBannerDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('bisnisurang_dismiss_product_prompt') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [productCount, setProductCount] = useState<number>(1); // start at 1 to avoid flash
+
   const isProfileIncomplete = React.useMemo(() => {
     const name = settings?.businessName?.trim() || '';
     const isDefaultName = !name || name.toLowerCase() === 'nama bisnis anda' || name.toLowerCase() === 'sukunaru studio';
@@ -82,6 +92,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     const hasLogo = Boolean(settings?.logoUrl?.trim());
     return isDefaultName || !hasContact || !hasAddress || !hasLogo;
   }, [settings]);
+
 
   const loadData = async (showRefreshing = false) => {
     try {
@@ -101,15 +112,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
         }
       }
 
-      const [statsData, ordersData, finData] = await Promise.all([
+      const [statsData, ordersData, finData, productsData] = await Promise.all([
         api.getStats(),
         api.getOrders(),
         api.getFinancialTransactions().catch(() => []),
+        api.getProducts().catch(() => []),
       ]);
 
       setStats(statsData);
       setAllOrders(ordersData);
       setFinTransactions(finData);
+      setProductCount(productsData.length);
       if (showRefreshing) {
         showToast(
           isSynced
@@ -366,7 +379,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   return (
     <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
 
-      {/* ── FLOATING LOW-OPACITY BUSINESS PROFILE PROMPT (CENTERED ABOVE BOTTOM BAR) ── */}
+      {/* ── FLOATING PROFILE PROMPT ── */}
       {!isProfileBannerDismissed && isProfileIncomplete && (
         <div
           className="fixed left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-md bg-white/85 dark:bg-[#151D2A]/85 backdrop-blur-md border border-[#BFC9D1]/40 dark:border-slate-800 shadow-xl shadow-black/10 p-2 sm:p-2.5 rounded-full flex items-center justify-between gap-3 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto"
@@ -397,6 +410,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                   sessionStorage.setItem('bisnisurang_dismiss_profile_prompt', 'true');
                 } catch {}
                 setIsProfileBannerDismissed(true);
+              }}
+              className="p-1 text-[#898989] hover:text-[#25343F] dark:hover:text-white transition-colors cursor-pointer rounded-full hover:bg-black/5"
+              title="Tutup"
+              aria-label="Tutup"
+            >
+              <XMarkIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── FLOATING PRODUCT PROMPT (stacked above profile banner if both visible) ── */}
+      {!isProductBannerDismissed && productCount === 0 && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-md bg-white/85 dark:bg-[#151D2A]/85 backdrop-blur-md border border-[#BFC9D1]/40 dark:border-slate-800 shadow-xl shadow-black/10 p-2 sm:p-2.5 rounded-full flex items-center justify-between gap-3 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto"
+          style={{
+            bottom: (!isProfileBannerDismissed && isProfileIncomplete)
+              ? 'calc(78px + env(safe-area-inset-bottom, 8px) + 52px)'
+              : 'calc(78px + env(safe-area-inset-bottom, 8px))',
+          }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0 pl-1">
+            <div className="w-7 h-7 rounded-full bg-[#25343F]/10 text-[#25343F] dark:text-white flex items-center justify-center shrink-0">
+              <CubeIcon className="w-4 h-4 stroke-[2.2]" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs font-bold text-[#25343F] dark:text-white truncate">
+                Tambahkan produk pertama
+              </h4>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 pr-0.5">
+            <button
+              type="button"
+              onClick={() => goTo('products')}
+              className="px-3 py-1.5 bg-[#25343F] hover:bg-[#1a2630] active:scale-95 text-white text-xs font-bold rounded-full shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            >
+              Tambah →
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  sessionStorage.setItem('bisnisurang_dismiss_product_prompt', 'true');
+                } catch {}
+                setIsProductBannerDismissed(true);
               }}
               className="p-1 text-[#898989] hover:text-[#25343F] dark:hover:text-white transition-colors cursor-pointer rounded-full hover:bg-black/5"
               title="Tutup"
