@@ -535,7 +535,10 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
             >
               <ShoppingCartIcon className="w-3.5 h-3.5 text-[#25343F]" />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-[#FF9B51] text-white font-black text-[9px] flex items-center justify-center shadow-sm">
+                <span
+                  className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full font-black text-[9px] flex items-center justify-center shadow-sm"
+                  style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                >
                   {cart.reduce((s, i) => s + i.quantity, 0)}
                 </span>
               )}
@@ -863,7 +866,8 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               id="btn-pos-checkout"
               onClick={handleOpenPayment}
               disabled={cart.length === 0}
-              className="flex-1 py-3 px-4 rounded-xl bg-[#FF9B51] hover:bg-[#FF9B51] disabled:bg-slate-300 text-[#25343F] font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+              style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+              className="flex-1 py-3 px-4 rounded-xl disabled:bg-slate-300 font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-opacity hover:opacity-90 active:scale-[0.99] cursor-pointer"
             >
               <CreditCardIcon className="w-4 h-4" />
               <span>Bayar</span>
@@ -897,13 +901,28 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
             type="button"
             onClick={() => setMobileTab('cart')}
             aria-label="Lihat Rincian Pesanan / Keranjang"
-            className="h-11 pl-2.5 pr-4 rounded-full bg-gradient-to-r from-[#FF9B51] to-[#FF8533] hover:from-[#ff8f3d] hover:to-[#ff751a] text-[#1E293B] shadow-[0_8px_20px_-4px_rgba(255,155,81,0.45)] flex items-center gap-2 font-bold text-xs cursor-pointer border border-white/30 active:scale-95 transition-all"
+            style={{
+              backgroundColor: 'var(--color-accent)',
+              color: 'var(--color-accent-contrast)',
+              boxShadow: '0 8px 24px -4px var(--color-accent-soft, rgba(0,0,0,0.35))',
+            }}
+            className="h-11 pl-2.5 pr-4 rounded-full flex items-center gap-2 font-bold text-xs cursor-pointer border border-white/30 active:scale-95 transition-all"
           >
-            <span className="w-6 h-6 rounded-full bg-[#1E293B] text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs">
+            <span
+              className="w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs"
+              style={{
+                backgroundColor: 'var(--color-accent-contrast)',
+                color: 'var(--color-accent)',
+              }}
+            >
               {cart.reduce((s, i) => s + i.quantity, 0)}
             </span>
-            <span className="font-mono font-black text-xs text-[#1E293B]">{formatRupiah(finalTotal)}</span>
-            <span className="text-sm font-black text-[#1E293B] leading-none">&rarr;</span>
+            <span className="font-mono font-black text-xs" style={{ color: 'var(--color-accent-contrast)' }}>
+              {formatRupiah(finalTotal)}
+            </span>
+            <span className="text-sm font-black leading-none" style={{ color: 'var(--color-accent-contrast)' }}>
+              &rarr;
+            </span>
           </button>
         </div>
       )}
@@ -1028,7 +1047,8 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                 type="button"
                 disabled={isProcessing || amountPaid < finalTotal}
                 onClick={handleCompleteTransaction}
-                className="px-6 py-2.5 rounded-xl bg-[#FF9B51] hover:bg-[#FF9B51] disabled:bg-slate-300 text-[#25343F] text-xs font-bold shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
+                style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                className="px-6 py-2.5 rounded-xl disabled:bg-slate-300 text-xs font-bold shadow-sm transition-opacity hover:opacity-90 flex items-center gap-2 cursor-pointer"
               >
                 <CheckCircleIcon className="w-4 h-4" />
                 {isProcessing ? 'Menyimpan...' : 'Selesaikan Transaksi & Cetak Struk'}
@@ -1075,7 +1095,8 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] text-xs font-bold"
+                  style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Simpan & Pilih
                 </button>
@@ -1123,7 +1144,8 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                   setIsBarcodeLockedModalOpen(false);
                   if (onNavigate) onNavigate('activation');
                 }}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#FF9B51] hover:bg-[#e8894a] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#FF9B51]/25 active:scale-95 transition-all cursor-pointer"
+                style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 hover:opacity-90 transition-all cursor-pointer"
               >
                 <StarIcon className="w-3.5 h-3.5" />
                 <span>Aktivasi Lisensi Sekarang</span>
@@ -1182,12 +1204,18 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                 : 'bg-[#1E293B]/95 backdrop-blur-md text-white border-white/15 hover:bg-[#151D2A]'
             }`}
           >
-            <div className="w-6 h-6 rounded-full bg-[#FF9B51]/20 border border-[#FF9B51]/30 flex items-center justify-center shrink-0">
-              <QrCodeIcon className="w-3.5 h-3.5 text-[#FF9B51] stroke-[2.2]" />
+            <div
+              className="w-6 h-6 rounded-full border flex items-center justify-center shrink-0"
+              style={{ backgroundColor: 'var(--color-accent-soft)', borderColor: 'var(--color-accent)' }}
+            >
+              <QrCodeIcon className="w-3.5 h-3.5 stroke-[2.2]" style={{ color: 'var(--color-accent)' }} />
             </div>
             <span className="tracking-tight font-bold">Scan Barcode</span>
             {!isPro && (
-              <span className="px-1.5 py-0.5 text-[8.5px] font-black rounded bg-gradient-to-r from-[#FF9B51] to-[#FF8533] text-[#1E293B] uppercase tracking-wider">
+              <span
+                className="px-1.5 py-0.5 text-[8.5px] font-black rounded uppercase tracking-wider"
+                style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+              >
                 PRO
               </span>
             )}

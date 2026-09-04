@@ -1624,7 +1624,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 type="submit"
                 id="btn-submit-pos-order"
                 disabled={isSubmittingOrder || newOrderItems.length === 0}
-                className="w-full py-2.5 bg-[#FF9B51] hover:bg-[#ff8c38] disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                className="w-full py-2.5 disabled:opacity-50 rounded-xl font-bold text-sm shadow-md transition-all hover:opacity-90 active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
               >
                 {isSubmittingOrder ? (
                   <>
@@ -1666,13 +1667,28 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 type="button"
                 onClick={() => setMobileTab('order')}
                 aria-label="Lihat Rincian Pesanan Kerja"
-                className="h-11 pl-2.5 pr-4 rounded-full bg-gradient-to-r from-[#FF9B51] to-[#FF8533] hover:from-[#ff8f3d] hover:to-[#ff751a] text-[#1E293B] shadow-[0_8px_20px_-4px_rgba(255,155,81,0.45)] flex items-center gap-2 font-bold text-xs cursor-pointer border border-white/30 active:scale-95 transition-all"
+                style={{
+                  backgroundColor: 'var(--color-accent)',
+                  color: 'var(--color-accent-contrast)',
+                  boxShadow: '0 8px 24px -4px var(--color-accent-soft, rgba(0,0,0,0.35))',
+                }}
+                className="h-11 pl-2.5 pr-4 rounded-full flex items-center gap-2 font-bold text-xs cursor-pointer border border-white/30 active:scale-95 transition-all"
               >
-                <span className="w-6 h-6 rounded-full bg-[#1E293B] text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs">
+                <span
+                  className="w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs"
+                  style={{
+                    backgroundColor: 'var(--color-accent-contrast)',
+                    color: 'var(--color-accent)',
+                  }}
+                >
                   {newOrderItems.reduce((s, i) => s + i.quantity, 0)}
                 </span>
-                <span className="font-mono font-black text-xs text-[#1E293B]">{formatRupiah(newOrderTotal)}</span>
-                <span className="text-sm font-black text-[#1E293B] leading-none">&rarr;</span>
+                <span className="font-mono font-black text-xs" style={{ color: 'var(--color-accent-contrast)' }}>
+                  {formatRupiah(newOrderTotal)}
+                </span>
+                <span className="text-sm font-black leading-none" style={{ color: 'var(--color-accent-contrast)' }}>
+                  &rarr;
+                </span>
               </button>
             </div>
           )}
@@ -2397,7 +2413,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                     <button
                       type="button"
                       onClick={() => handleOpenAddPayment(selectedOrder)}
-                      className="px-3 py-1.5 rounded-lg bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                      style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                      className="px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md hover:opacity-90 transition-opacity"
                     >
                       <PlusIcon className="w-3.5 h-3.5" /> Catat Pelunasan / DP
                     </button>
@@ -2550,7 +2567,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 <button
                   type="submit"
                   disabled={isSavingPayment}
-                  className="px-5 py-2 rounded-xl bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] font-bold shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                  className="px-5 py-2 rounded-xl font-bold shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5 hover:opacity-90 transition-opacity"
                 >
                   {isSavingPayment ? 'Menyimpan...' : editingPaymentId ? 'Perbarui Pembayaran' : 'Simpan Pembayaran'}
                 </button>
@@ -2626,7 +2644,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-[#FF9B51] hover:bg-[#FF9B51] text-[#25343F] text-xs font-bold"
+                  style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer"
                 >
                   Simpan & Pilih
                 </button>
@@ -2644,7 +2663,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}
         >
           <div className="flex items-center gap-2 min-w-0">
-            <span className="w-6 h-6 rounded-lg bg-white/20 text-[#FF9B51] font-black text-xs flex items-center justify-center shrink-0">
+            <span
+              className="w-6 h-6 rounded-lg bg-white/20 font-black text-xs flex items-center justify-center shrink-0"
+              style={{ color: 'var(--color-accent)' }}
+            >
               {selectedOrderIds.length}
             </span>
             <div className="min-w-0">
@@ -2663,7 +2685,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
             type="button"
             id="btn-trigger-floating-batch-print"
             onClick={() => handleOpenBatchPrint()}
-            className="px-3 py-1.5 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm shrink-0"
+            style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+            className="px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 hover:opacity-90 cursor-pointer shadow-sm shrink-0"
           >
             <PrinterIcon className="w-3.5 h-3.5" />
             <span className="whitespace-nowrap">Cetak Massal</span>
@@ -2704,15 +2727,26 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           id="btn-add-order-fab"
           type="button"
           onClick={() => setViewMode('pos')}
-          className="fixed bottom-[92px] right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-xl border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
-          style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}
+          style={{
+            bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))',
+            backgroundColor: 'var(--color-accent)',
+            color: 'var(--color-accent-contrast)',
+            boxShadow: '0 10px 25px -4px var(--color-accent-soft, rgba(0,0,0,0.4))',
+          }}
+          className="fixed right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full font-extrabold text-xs sm:text-sm flex items-center gap-2 border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
           title="Buat Pesanan Baru"
           aria-label="Buat Pesanan Baru"
         >
           <PlusIcon className="w-5 h-5 stroke-[2.5]" />
           <span>Tambah Pesanan</span>
           {newOrderItems.length > 0 && (
-            <span className="min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#25343F] text-white text-[10px] font-black flex items-center justify-center border border-white ml-0.5">
+            <span
+              className="min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-black flex items-center justify-center border border-white ml-0.5"
+              style={{
+                backgroundColor: 'var(--color-accent-contrast)',
+                color: 'var(--color-accent)',
+              }}
+            >
               {newOrderItems.reduce((s, i) => s + i.quantity, 0)}
             </span>
           )}

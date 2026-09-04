@@ -95,7 +95,8 @@ html.dark .dashboard-title-text {
 }
 
 .text-\[\#FF9B51\],
-.text-\[\#ff9b51\] {
+.text-\[\#ff9b51\],
+.text-\[\#c45e00\] {
   color: var(--color-accent) !important;
 }
 
@@ -113,21 +114,44 @@ html.dark .dashboard-title-text {
 
 .bg-\[\#FFF0E6\],
 .bg-\[\#fff0e6\],
+.bg-\[\#FFF6F0\],
+.bg-\[\#FF9B51\]\/8,
+.bg-\[\#FF9B51\]\/10,
 .bg-\[\#FF9B51\]\/15,
-.bg-\[\#FF9B51\]\/20,
-.bg-\[\#FF9B51\]\/10 {
+.bg-\[\#FF9B51\]\/20 {
   background-color: var(--color-accent-soft) !important;
 }
 
 .hover\:bg-\[\#ff8c38\]:hover,
 .hover\:bg-\[\#FF9B51\]:hover,
-.hover\:bg-\[\#ff9b51\]:hover {
+.hover\:bg-\[\#ff9b51\]:hover,
+.hover\:bg-\[\#e8894a\]:hover {
   background-color: var(--color-accent-hover) !important;
 }
 
+.hover\:bg-\[\#FF9B51\]\/8:hover,
+.hover\:bg-\[\#FF9B51\]\/10:hover {
+  background-color: var(--color-accent-soft) !important;
+}
+
 .hover\:text-\[\#FF9B51\]:hover,
-.hover\:text-\[\#ff9b51\]:hover {
+.hover\:text-\[\#ff9b51\]:hover,
+.hover\:text-\[\#c45e00\]:hover {
   color: var(--color-accent-hover) !important;
+}
+
+.from-\[\#FF9B51\],
+.from-\[\#ff9b51\] {
+  --tw-gradient-from: var(--color-accent) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: var(--color-accent-hover) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-from), var(--tw-gradient-to)) !important;
+}
+
+.to-\[\#FF8533\],
+.to-\[\#ff8533\],
+.to-\[\#ff8c38\],
+.to-\[\#ff751a\] {
+  --tw-gradient-to: var(--color-accent-hover) var(--tw-gradient-to-position) !important;
 }
 
 /* ── Dark Mode Global Overrides ── */
