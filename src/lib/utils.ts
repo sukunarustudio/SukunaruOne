@@ -168,7 +168,7 @@ export function getStatusBadgeClass(status: string): string {
   }
 }
 
-export type PaperSize = 'a5' | 'a4' | 'f4';
+export type PaperSize = 'a5' | 'a4';
 
 export interface PaperDimension {
   id: PaperSize;
@@ -177,36 +177,27 @@ export interface PaperDimension {
   shortLabel: string;
   widthMm: number;
   heightMm: number;
-  widthPx: number; // Width in CSS px for preview (A5: 560px, A4/F4: 794px)
+  widthPx: number; // Width in CSS px for preview (A5: 540px, A4: 760px)
 }
 
 export const PAPER_CONFIGS: Record<PaperSize, PaperDimension> = {
   a5: {
     id: 'a5',
     name: 'A5',
-    label: 'A5 — 148 × 210 mm (Default)',
-    shortLabel: 'A5 (148×210mm)',
+    label: 'A5',
+    shortLabel: 'A5',
     widthMm: 148,
     heightMm: 210,
-    widthPx: 560,
+    widthPx: 540,
   },
   a4: {
     id: 'a4',
     name: 'A4',
-    label: 'A4 — 210 × 297 mm',
-    shortLabel: 'A4 (210×297mm)',
+    label: 'A4',
+    shortLabel: 'A4',
     widthMm: 210,
     heightMm: 297,
-    widthPx: 794,
-  },
-  f4: {
-    id: 'f4',
-    name: 'F4',
-    label: 'F4 — 210 × 330 mm (Folio)',
-    shortLabel: 'F4 (210×330mm)',
-    widthMm: 210,
-    heightMm: 330,
-    widthPx: 794,
+    widthPx: 760,
   },
 };
 

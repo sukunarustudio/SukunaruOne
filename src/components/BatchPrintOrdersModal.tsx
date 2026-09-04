@@ -154,9 +154,8 @@ export const BatchPrintOrdersModal: React.FC<BatchPrintOrdersModalProps> = ({
                   className="bg-transparent text-xs font-bold text-[#25343F] border-none focus:outline-hidden cursor-pointer"
                   title="Pilih ukuran kertas cetak batch"
                 >
-                  <option value="a5">A5 — 148 × 210 mm (Default)</option>
-                  <option value="a4">A4 — 210 × 297 mm</option>
-                  <option value="f4">F4 — 210 × 330 mm (Folio)</option>
+                  <option value="a5">A5</option>
+                  <option value="a4">A4</option>
                 </select>
               </div>
 
