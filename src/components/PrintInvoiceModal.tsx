@@ -246,7 +246,7 @@ export const PrintInvoiceModal: React.FC<PrintInvoiceModalProps> = ({
               ) : (
                 <>
                   <WrenchScrewdriverIcon className="w-4 h-4 text-[#25343F]" />
-                  <span>Surat Perintah Kerja (SPK Workshop)</span>
+                  <span>Surat Perintah Kerja (SPK)</span>
                 </>
               )}
             </h3>
