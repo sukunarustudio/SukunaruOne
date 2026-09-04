@@ -43,7 +43,6 @@ export interface SignUpResult {
   user?: User;
   session?: Session;
   message: string;
-  requiresEmailConfirmation?: boolean;
 }
 
 export async function signUp(
@@ -66,15 +65,6 @@ export async function signUp(
       return { success: false, message: translateAuthError(error) };
     }
 
-    if (data.user && !data.session) {
-      return {
-        success: true,
-        user: data.user,
-        message: 'Pendaftaran berhasil! Cek email Anda untuk konfirmasi.',
-        requiresEmailConfirmation: true,
-      };
-    }
-
     return {
       success: true,
       user: data.user ?? undefined,
@@ -82,7 +72,7 @@ export async function signUp(
       message: 'Akun berhasil dibuat! Selamat datang di BisnisUrang.',
     };
   } catch (err: any) {
-    return { success: false, message: err.message || 'Terjadi kesalahan saat mendaftar.' };
+    return { success: false, message: translateAuthError(err) };
   }
 }
 
@@ -342,7 +332,12 @@ export async function getUserLicenseKey(): Promise<string | null> {
 export function translateAuthError(error: AuthError | Error): string {
   const msg = error.message?.toLowerCase() || '';
 
-  if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
+  if (
+    msg.includes('invalid login credentials') ||
+    msg.includes('invalid_credentials') ||
+    msg.includes('invalid password') ||
+    msg.includes('wrong password')
+  ) {
     return 'Email atau password belum sesuai.';
   }
   if (msg.includes('email not confirmed')) {
@@ -351,20 +346,40 @@ export function translateAuthError(error: AuthError | Error): string {
   if (msg.includes('user not found') || msg.includes('no user')) {
     return 'Email belum terdaftar.';
   }
-  if (msg.includes('user already registered') || msg.includes('already registered')) {
+  if (
+    msg.includes('user already registered') ||
+    msg.includes('already registered') ||
+    msg.includes('already exists') ||
+    msg.includes('identity already exists')
+  ) {
     return 'Email ini sudah terdaftar. Silakan masuk.';
   }
-  if (msg.includes('password should be at least') || msg.includes('weak password')) {
+  if (
+    msg.includes('password should be at least') ||
+    msg.includes('weak password') ||
+    msg.includes('password is too short')
+  ) {
     return 'Password minimal 6 karakter.';
   }
-  if (msg.includes('rate limit') || msg.includes('too many requests')) {
+  if (msg.includes('rate limit') || msg.includes('too many requests') || msg.includes('over_email_send_rate_limit')) {
     return 'Terlalu banyak percobaan. Tunggu beberapa saat.';
   }
-  if (msg.includes('invalid email') || msg.includes('unable to validate email')) {
+  if (
+    msg.includes('invalid email') ||
+    msg.includes('unable to validate email') ||
+    msg.includes('email_address_invalid')
+  ) {
     return 'Format email belum sesuai.';
   }
-  if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch')) {
-    return 'Koneksi internet bermasalah. Coba lagi.';
+  if (
+    msg.includes('network') ||
+    msg.includes('fetch') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('koneksi') ||
+    msg.includes('offline') ||
+    msg.includes('timeout')
+  ) {
+    return 'Koneksi bermasalah. Periksa internet dan coba lagi.';
   }
 
   return error.message || 'Terjadi kendala. Silakan coba lagi.';

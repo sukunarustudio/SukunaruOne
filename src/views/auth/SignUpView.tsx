@@ -4,7 +4,6 @@ import {
   LockClosedIcon,
   EyeIcon,
   EyeSlashIcon,
-  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import { signUp } from '../../services/authService';
 import { useToast } from '../../components/Toast';
@@ -29,8 +28,6 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isEmailConfirmationStep, setIsEmailConfirmationStep] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const validateEmail = (val: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
@@ -62,16 +59,11 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
     try {
       const result = await signUp(trimmedEmail, password);
       if (result.success) {
-        if (result.requiresEmailConfirmation) {
-          setRegisteredEmail(trimmedEmail);
-          setIsEmailConfirmationStep(true);
-        } else {
-          try {
-            sessionStorage.setItem('sukunaru_just_signed_in', 'true');
-          } catch {}
-          showToast('Akun berhasil dibuat!', 'success');
-          onSignUpSuccess();
-        }
+        try {
+          sessionStorage.setItem('sukunaru_just_signed_in', 'true');
+        } catch {}
+        showToast('Akun berhasil dibuat! Selamat datang di BisnisUrang.', 'success');
+        onSignUpSuccess();
       } else {
         setErrorMessage(result.message);
       }
@@ -79,39 +71,6 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
       setIsLoading(false);
     }
   };
-
-  if (isEmailConfirmationStep) {
-    return (
-      <div className="min-h-screen bg-[#EAEFEF] dark:bg-[#0B0F17] flex flex-col justify-center items-center px-4 py-8 sm:px-6 transition-colors">
-        <div className="w-full max-w-md bg-white dark:bg-[#151D2A] rounded-2xl border border-[#BFC9D1]/30 dark:border-slate-800 shadow-sm p-6 sm:p-8 text-center">
-          <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mx-auto mb-4">
-            <CheckCircleIcon className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <h2 className="text-xl font-bold text-[#25343F] dark:text-white mb-2">
-            Periksa Email Anda
-          </h2>
-          <p className="text-xs sm:text-sm text-[#898989] dark:text-slate-400 mb-2">
-            Tautan konfirmasi pendaftaran telah dikirimkan ke:
-          </p>
-          <div className="bg-[#EAEFEF] dark:bg-slate-900 border border-[#BFC9D1]/30 dark:border-slate-800 rounded-xl py-2 px-3 mb-5 inline-block max-w-full truncate">
-            <span className="text-xs font-semibold text-[#25343F] dark:text-white">
-              {registeredEmail}
-            </span>
-          </div>
-          <p className="text-xs text-[#898989] dark:text-slate-400 leading-relaxed mb-6">
-            Buka email tersebut dan klik tautan konfirmasi untuk mengaktifkan akun Anda. Setelah itu, silakan kembali ke halaman masuk.
-          </p>
-          <button
-            type="button"
-            onClick={onNavigateToSignIn}
-            className="w-full py-3 px-4 rounded-xl bg-[#FF6A00] hover:bg-[#e65c00] active:scale-[0.99] text-white font-bold text-sm shadow-sm transition cursor-pointer"
-          >
-            Kembali ke Halaman Masuk
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#EAEFEF] dark:bg-[#0B0F17] flex flex-col justify-center items-center px-4 py-8 sm:px-6 transition-colors">
