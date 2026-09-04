@@ -221,9 +221,9 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       {/* ── Content Area with Elastic Pull Translation ── */}
       <div
         style={{
-          transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.55}px, 0)` : 'translate3d(0, 0, 0)',
-          transition: isPulling ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)',
-          willChange: isPulling ? 'transform' : 'auto',
+          transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.55}px, 0)` : undefined,
+          transition: isPulling ? 'none' : pullDistance > 0 ? 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)' : undefined,
+          willChange: isPulling ? 'transform' : undefined,
         }}
       >
         {children}

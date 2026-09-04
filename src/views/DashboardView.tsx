@@ -378,9 +378,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   }
 
   return (
-    <PullToRefresh onRefresh={() => loadData(true)}>
-      <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
-
+    <>
       {/* ── FLOATING PROFILE PROMPT ── */}
       {!isProfileBannerDismissed && isProfileIncomplete && (
         <div
@@ -468,6 +466,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
           </div>
         </div>
       )}
+
+      <PullToRefresh onRefresh={() => loadData(true)}>
+        <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
 
       {isPro && isTrial && daysRemaining !== null && daysRemaining <= 5 && (
         <div className="bg-amber-500/10 border border-amber-500/30 text-amber-900 px-4 py-2.5 rounded-xl flex items-center justify-between gap-3 text-xs">
@@ -877,5 +878,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
       </div>
     </div>
   </PullToRefresh>
-);
+</>
+  );
 };
