@@ -52,7 +52,7 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
       icon: CloudArrowUpIcon,
       iconBg: 'bg-[#EAEFEF] border-[#BFC9D1]/30 text-[#25343F]',
       title: 'Realtime Cloud Sync & Backup',
-      desc: 'Sinkronisasi multi-device secara realtime via Supabase serta pencadangan database lokal dan snapshot cloud aman.',
+      desc: 'Sinkronisasi multi-device secara realtime serta pencadangan database lokal dan snapshot cloud aman.',
     },
   ];
 
@@ -64,7 +64,7 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
       value: getLicenseStatusText(),
       icon: isPro ? ShieldCheckIcon : LockClosedIcon,
     },
-    { label: 'Arsitektur Data', value: 'Offline-First (SQLite) + Cloud Sync Supabase', icon: CircleStackIcon },
+    { label: 'Arsitektur Data', value: 'Offline-First (Lokal) + Sinkronisasi Cloud Otomatis', icon: CircleStackIcon },
     { label: 'Pengembang', value: 'Sukunaru Studio', icon: ServerIcon },
     { label: 'Dukungan Perangkat', value: 'Android APK (Mobile) & Web Desktop / Tablet', icon: ComputerDesktopIcon },
   ];

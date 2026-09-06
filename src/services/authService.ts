@@ -4,6 +4,7 @@
 
 import { SupabaseClient, User, Session, AuthError } from '@supabase/supabase-js';
 import { getSupabaseClient, verifyLicenseInCloud } from './supabaseClient';
+import { resolvePlan } from '../hooks/useLicense';
 
 function getAuthClient(): SupabaseClient {
   const client = getSupabaseClient();
@@ -188,6 +189,7 @@ export async function restoreUserLicenseSession(user: User): Promise<{
   licenseKey?: string;
   message?: string;
   isTrial?: boolean;
+  plan?: string;
 }> {
   try {
     const client = getAuthClient();
@@ -196,21 +198,67 @@ export async function restoreUserLicenseSession(user: User): Promise<{
       user.user_metadata?.display_name || user.email?.split('@')[0] || 'Owner';
 
     // 1. Query licenses linked to this user_id
-    const { data: licList, error: licErr } = await client
+    let { data: licList, error: licErr } = await client
       .from('licenses')
       .select('*')
       .eq('user_id', user.id)
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false });
 
+    // 2. If no license found → auto-provision for new user (idempotent)
     if (licErr || !licList || licList.length === 0) {
-      return { found: false, valid: false };
+      console.log('[Auth] No license found for user — auto-provisioning...');
+      try {
+        const { data: provisionResult, error: provisionErr } = await client.rpc(
+          'provision_new_user',
+          { p_user_id: user.id, p_display_name: displayName }
+        );
+        if (provisionErr) {
+          console.warn('[Auth] Provision RPC error:', provisionErr);
+          return { found: false, valid: false, message: provisionErr.message };
+        }
+
+        const provLicKey: string = provisionResult?.license_key;
+        const provPlan: string = provisionResult?.plan || 'TRIAL';
+        const provTrialExpires: string | null = provisionResult?.trial_expires_at || null;
+        const now = new Date();
+
+        const licenseData = {
+          isActivated: true,
+          licenseKey: provLicKey,
+          licenseType: provPlan === 'PRO' ? 'PRO_LIFETIME' : 'TRIAL_14_DAYS',
+          plan: provPlan,
+          activatedAt: now.toISOString(),
+          activatedAtLabel: now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+          trialExpiresAt: provTrialExpires,
+          expiresAt: provTrialExpires,
+          durationDays: provPlan === 'TRIAL' ? 14 : null,
+          registeredTo: displayName,
+          deviceId,
+        };
+
+        localStorage.setItem('sukunaru_license_info', JSON.stringify(licenseData));
+        localStorage.setItem('sukunaru_onboarding_completed', 'true');
+        unlockBusinessSession();
+
+        return {
+          found: true,
+          valid: true,
+          licenseKey: provLicKey,
+          message: `Akun baru terdeteksi — Trial 14 hari dimulai!`,
+          isTrial: provPlan === 'TRIAL',
+          plan: provPlan,
+        };
+      } catch (provErr: any) {
+        console.warn('[Auth] Provision error:', provErr);
+        return { found: false, valid: false, message: provErr.message };
+      }
     }
 
     const linkedLic = licList[0];
     const licKey = linkedLic.license_key;
 
-    // 2. Verify with cloud validation & register current device
+    // 3. Verify with cloud validation & register current device
     const verifyRes = await verifyLicenseInCloud(licKey, deviceId, displayName);
     if (!verifyRes.valid) {
       return {
@@ -222,7 +270,8 @@ export async function restoreUserLicenseSession(user: User): Promise<{
     }
 
     const cloudLic = verifyRes.license || linkedLic;
-    const isTrial = cloudLic.tier === 'TRIAL_14_DAYS' || Boolean(cloudLic.duration_days);
+
+    const trialExpiresAt = cloudLic.trial_expires_at || cloudLic.expires_at || null;
     const now = new Date();
     const nowStr = now.toLocaleDateString('id-ID', {
       day: 'numeric',
@@ -230,21 +279,37 @@ export async function restoreUserLicenseSession(user: User): Promise<{
       year: 'numeric',
     });
 
-    const licenseData = {
+    const candidateInfo = {
       isActivated: true,
       licenseKey: licKey,
-      licenseType: cloudLic.tier || (isTrial ? 'TRIAL_14_DAYS' : 'PRO_LIFETIME'),
+      plan: cloudLic.plan,
+      tier: cloudLic.tier,
+      licenseType: cloudLic.tier || cloudLic.plan,
       activatedAt: cloudLic.activated_at || now.toISOString(),
       activatedAtLabel: nowStr,
-      expiresAt: cloudLic.expires_at,
-      durationDays: cloudLic.duration_days || (isTrial ? 14 : null),
+      trialExpiresAt,
+      expiresAt: trialExpiresAt,
+      durationDays: cloudLic.duration_days,
       registeredTo: displayName,
       deviceId,
+    };
+
+    const resolved = resolvePlan(candidateInfo);
+
+    const licenseData = {
+      ...candidateInfo,
+      plan: resolved.plan,
+      licenseType: resolved.plan === 'PRO' ? 'PRO_LIFETIME' : (resolved.plan === 'TRIAL' ? 'TRIAL_14_DAYS' : 'FREE'),
+      durationDays: resolved.plan === 'PRO' ? null : (cloudLic.duration_days ?? 14),
     };
 
     localStorage.setItem('sukunaru_license_info', JSON.stringify(licenseData));
     localStorage.setItem('sukunaru_onboarding_completed', 'true');
     unlockBusinessSession();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sukunaru:license_updated', { detail: licenseData }));
+    }
 
     return {
       found: true,
@@ -252,12 +317,14 @@ export async function restoreUserLicenseSession(user: User): Promise<{
       licenseKey: licKey,
       message: verifyRes.message,
       isTrial,
+      plan: resolvedPlan,
     };
   } catch (err: any) {
     console.warn('[Restore User License Error]:', err);
     return { found: false, valid: false, message: err.message };
   }
 }
+
 
 export async function claimLicenseForUser(
   licenseKey: string

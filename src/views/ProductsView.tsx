@@ -5,7 +5,7 @@ import { Product, Material, ProductComponent, ProductType } from '../types';
 import { formatRupiah } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { ProductImage, ProductImageUploader } from '../components/ProductImage';
+import { ProductImage, ProductImageUploader, resolveProductImageUrl } from '../components/ProductImage';
 import { generateBarcodeValue, validateBarcodeValue, renderBarcodeToSvg, BarcodeFormat, BARCODE_FORMAT_LABELS } from '../lib/barcodeUtils';
 import { BarcodeLabelPrintModal } from '../components/BarcodeLabelPrintModal';
 
@@ -55,7 +55,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
   // Form fields
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('Dokumen');
+  const [category, setCategory] = useState('');
   const [type, setType] = useState<ProductType>('CETAK');
   const [unit, setUnit] = useState('pcs');
   const [description, setDescription] = useState('');
@@ -196,7 +196,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
     setEditingProduct(null);
     setSku(`PRD-${Math.floor(1000 + Math.random() * 9000)}`);
     setName('');
-    setCategory('Percetakan');
+    setCategory('');
     setType('CETAK');
     setUnit('pcs');
     setDescription('');
@@ -236,7 +236,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
     setPendingImageFile(null);
     setFormImagePath(prod.imagePath || null);
     setFormThumbnailPath(prod.thumbnailPath || null);
-    setFormImagePreviewUrl(prod.imagePath ? `/uploads/${prod.imagePath}` : null);
+    setFormImagePreviewUrl(resolveProductImageUrl(prod.imagePath || prod.thumbnailPath));
     setIsFormModalOpen(true);
     setActiveMenuProductId(null);
   };
@@ -482,7 +482,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
             </button>
             <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
-                Produk
+                Produk Bisnis
               </h1>
               <p className="text-xs sm:text-[13px] text-[#898989] font-medium truncate hidden sm:block">
                 {loading ? 'Memuat...' : `${filteredProducts.length} dari ${products.length} item`}
@@ -1298,13 +1298,15 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Kategori Plain Text Input */}
                 <div>
-                  <label className="block font-bold text-[#25343F] mb-1">Kategori</label>
+                  <label className="block font-bold text-[#25343F] mb-1">
+                    Kategori <span className="text-[11px] font-normal text-[#898989]">(Opsional)</span>
+                  </label>
                   <input
                     type="text"
                     value={category}
                     onChange={e => setCategory(e.target.value)}
                     placeholder="Ketik kategori produk..."
-                    className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl"
+                    className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl text-xs font-medium"
                   />
                 </div>
 

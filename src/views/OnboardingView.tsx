@@ -435,7 +435,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
 
             <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 text-center">
               <span className="text-[9px] font-bold text-blue-700 dark:text-blue-300">
-                🔒 Terenkripsi Aman &amp; Realtime Sync via Cloud Supabase
+                🔒 Terenkripsi Aman &amp; Realtime Cloud Sync Multi-Perangkat
               </span>
             </div>
           </div>

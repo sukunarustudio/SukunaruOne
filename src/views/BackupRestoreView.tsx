@@ -80,7 +80,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
 
   const handleCreateCloudBackup = async () => {
     if (!isSupabaseConfigured()) {
-      showToast('Cloud Supabase belum terhubung.', 'error');
+      showToast('Server Cloud belum terhubung.', 'error');
       return;
     }
     try {
@@ -198,10 +198,10 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
 
   const handleTriggerSync = async () => {
     if (!isSupabaseConfigured()) {
-      showToast('Konfigurasi Cloud Supabase belum lengkap!', 'error');
+      showToast('Konfigurasi Cloud belum lengkap!', 'error');
       return;
     }
-    showToast('Memulai sinkronisasi dua arah dengan Supabase...', 'info');
+    showToast('Memulai sinkronisasi dua arah dengan Cloud...', 'info');
     subscribeToRealtimeChanges(true);
     const res = await syncWithSupabase();
     showToast(res.message, res.success ? 'success' : 'error');
@@ -218,8 +218,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
       case 'SYNCING': return { label: '⟳ Menyinkronkan...', cls: 'bg-blue-100 text-blue-800' };
       case 'RECONNECTING': return { label: '⟳ Menghubungkan Ulang...', cls: 'bg-amber-100 text-amber-800' };
       case 'OFFLINE': return { label: '○ Offline', cls: 'bg-slate-100 text-slate-700' };
-      case 'ERROR': return { label: '⚠ Gangguan Jaringan', cls: 'bg-rose-100 text-rose-800' };
-      default: return { label: '● Terhubung', cls: 'bg-emerald-100 text-emerald-800' };
+      default: return { label: '○ ' + syncState.status, cls: 'bg-slate-100 text-slate-700' };
     }
   };
 
@@ -250,7 +249,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
             Cadangan Data & Sinkronisasi Cloud
           </h1>
           <p className="text-[11px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-            Sinkronisasi real-time Supabase & cadangan database lokal
+            Sinkronisasi real-time Cloud & cadangan database lokal
           </p>
         </div>
       </div>
@@ -266,7 +265,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
         </div>
         <div>
           <h2 className="font-black text-sm text-[#25343F]">Sinkronisasi Cloud</h2>
-          <p className="text-[11px] text-[#898989]">Real-time multi-perangkat via Supabase</p>
+          <p className="text-[11px] text-[#898989]">Real-time multi-perangkat otomatis</p>
         </div>
         <span className={`ml-auto px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusBadge.cls}`}>
           {statusBadge.label}

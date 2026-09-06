@@ -1,6 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PhotoIcon } from '@heroicons/react/24/outline';
 import { api, resolveApiUrl } from '../services/api';
+
+/**
+ * Helper to resolve any product image path into a valid URL or data URI.
+ * Handles:
+ * - base64 Data URLs (data:image/...)
+ * - Blob preview URLs (blob:http...)
+ * - External HTTP/HTTPS URLs (https://...)
+ * - Relative upload paths (products/xyz.jpg, /uploads/products/xyz.jpg)
+ */
+export const resolveProductImageUrl = (imagePath?: string | null): string | null => {
+  if (!imagePath || typeof imagePath !== 'string') return null;
+  const path = imagePath.trim();
+  if (!path || path === '__pending__' || path === 'pending') {
+    return null;
+  }
+  // Data URLs, Blob URLs, or external web URLs
+  if (
+    path.startsWith('data:') ||
+    path.startsWith('blob:') ||
+    path.startsWith('http://') ||
+    path.startsWith('https://')
+  ) {
+    return path;
+  }
+  // Relative local upload paths
+  const cleanPath = path.startsWith('/uploads') ? path : `/uploads/${path.replace(/^\/+/, '')}`;
+  return resolveApiUrl(cleanPath);
+};
 
 interface ProductImageProps {
   thumbnailPath?: string | null;
@@ -37,12 +65,14 @@ export const ProductImage: React.FC<ProductImageProps> = ({
   className = '',
   rounded = 'rounded-lg',
 }) => {
+  const [hasError, setHasError] = useState(false);
   const srcPath = preferFull ? (imagePath || thumbnailPath) : (thumbnailPath || imagePath);
-  const src = srcPath
-    ? (srcPath.startsWith('http://') || srcPath.startsWith('https://') || srcPath.startsWith('data:')
-        ? srcPath
-        : resolveApiUrl(srcPath.startsWith('/uploads') ? srcPath : `/uploads/${srcPath}`))
-    : null;
+  const src = resolveProductImageUrl(srcPath);
+
+  // Reset error state if image path changes
+  useEffect(() => {
+    setHasError(false);
+  }, [srcPath]);
 
   const sizeClass = SIZE_CLASSES[size] ?? SIZE_CLASSES.md;
   const iconClass = ICON_CLASSES[size] ?? ICON_CLASSES.md;
@@ -51,19 +81,14 @@ export const ProductImage: React.FC<ProductImageProps> = ({
     <div
       className={`${sizeClass} ${rounded} overflow-hidden bg-[#EAEFEF] dark:bg-slate-800/80 flex items-center justify-center shrink-0 ${className}`}
     >
-      {src ? (
+      {src && !hasError ? (
         <img
           src={src}
           alt={productName}
           className="w-full h-full object-cover"
           loading="lazy"
-          onError={e => {
-            // On broken image: hide img and show placeholder
-            (e.target as HTMLImageElement).style.display = 'none';
-            const parent = (e.target as HTMLImageElement).parentElement;
-            if (parent) {
-              parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-[#EAEFEF] dark:bg-slate-800"><svg xmlns='http://www.w3.org/2000/svg' class='${iconClass} text-[#898989]/60' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='1.5'><path stroke-linecap='round' stroke-linejoin='round' d='m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z' /></svg></div>`;
-            }
+          onError={() => {
+            setHasError(true);
           }}
         />
       ) : (
@@ -101,16 +126,19 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
   setLoading,
 }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = React.useState<string | null>(
-    currentImagePath ? `/uploads/${currentImagePath}` : null
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(() =>
+    resolveProductImageUrl(currentImagePath || currentThumbnailPath)
   );
+  const [hasImageError, setHasImageError] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [uploading, setUploading] = React.useState(false);
 
   // If the parent passes a new currentImagePath, sync preview
   React.useEffect(() => {
-    setPreviewUrl(currentImagePath ? `/uploads/${currentImagePath}` : null);
-  }, [currentImagePath]);
+    const resolved = resolveProductImageUrl(currentImagePath || currentThumbnailPath);
+    setPreviewUrl(resolved);
+    setHasImageError(false);
+  }, [currentImagePath, currentThumbnailPath]);
 
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   const MAX_MB = 10;
@@ -120,6 +148,7 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
     if (!file) return;
 
     setError(null);
+    setHasImageError(false);
 
     // Client-side validation
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -141,7 +170,8 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
         setUploading(true);
         setLoading?.(true);
         const data = await api.uploadProductImage(productId, file);
-        setPreviewUrl(data.imageUrl);
+        const resolvedUploaded = resolveProductImageUrl(data.imageUrl || data.imagePath);
+        setPreviewUrl(resolvedUploaded || localUrl);
         onUploadSuccess({
           imagePath: data.imagePath,
           thumbnailPath: data.thumbnailPath,
@@ -150,7 +180,7 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
         });
       } catch (err: any) {
         setError(err.message || 'Gagal mengunggah gambar produk.');
-        setPreviewUrl(currentImagePath ? resolveApiUrl(`/uploads/${currentImagePath}`) : null);
+        setPreviewUrl(resolveProductImageUrl(currentImagePath || currentThumbnailPath));
       } finally {
         setUploading(false);
         setLoading?.(false);
@@ -171,6 +201,7 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
 
   const handleRemove = () => {
     setPreviewUrl(null);
+    setHasImageError(false);
     setError(null);
     onPendingFile?.(null);
     onRemoveImage();
@@ -178,20 +209,20 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
 
   return (
     <div className="space-y-3">
-      <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider">
+      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
         Gambar Produk
       </label>
 
       {/* Preview / Placeholder */}
       <div className="relative">
-        {previewUrl ? (
-          <div className="relative group w-full aspect-square max-w-[200px] rounded-xl overflow-hidden border border-[#BFC9D1]/25 bg-[#EAEFEF]">
+        {previewUrl && !hasImageError ? (
+          <div className="relative group w-full aspect-square max-w-[200px] rounded-xl overflow-hidden border border-[#BFC9D1]/25 bg-[#EAEFEF] dark:bg-slate-800">
             <img
               src={previewUrl}
               alt="Preview gambar produk"
               className="w-full h-full object-cover"
-              onError={e => {
-                (e.target as HTMLImageElement).src = '';
+              onError={() => {
+                setHasImageError(true);
               }}
             />
             {uploading && (
@@ -202,11 +233,13 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
           </div>
         ) : (
           <div
-            className="w-full max-w-[200px] aspect-square rounded-xl border-2 border-dashed border-[#BFC9D1] bg-[#EAEFEF] dark:bg-slate-800/60 dark:border-slate-700 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-zinc-400 hover:bg-[#EAEFEF] transition-colors"
+            className="w-full max-w-[200px] aspect-square rounded-xl border-2 border-dashed border-[#BFC9D1] bg-[#EAEFEF] dark:bg-slate-800/60 dark:border-slate-700 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-zinc-400 hover:bg-[#EAEFEF]/80 transition-colors p-3 text-center"
             onClick={() => fileInputRef.current?.click()}
           >
             <PhotoIcon className="w-10 h-10 text-zinc-400 dark:text-slate-500" strokeWidth={1.2} />
-            <span className="text-[11px] text-[#898989] font-medium">Klik untuk pilih gambar</span>
+            <span className="text-[11px] text-[#898989] font-medium">
+              {hasImageError ? 'Gambar sebelumnya tidak dapat dimuat. Klik untuk ganti gambar' : 'Klik untuk pilih gambar'}
+            </span>
             <span className="text-[10px] text-zinc-400">JPG, PNG, WebP — maks 10MB</span>
           </div>
         )}
@@ -225,16 +258,16 @@ export const ProductImageUploader: React.FC<ProductImageUploaderProps> = ({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading || isLoading}
-          className="px-3 py-1.5 text-xs font-semibold border border-[#BFC9D1]/25 rounded-lg text-zinc-700 hover:bg-[#EAEFEF] transition-colors disabled:opacity-50 cursor-pointer"
+          className="px-3 py-1.5 text-xs font-semibold border border-[#BFC9D1]/25 rounded-lg text-zinc-700 dark:text-zinc-200 hover:bg-[#EAEFEF] dark:hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
         >
-          {previewUrl ? 'Ganti Gambar' : 'Pilih Gambar'}
+          {previewUrl && !hasImageError ? 'Ganti Gambar' : 'Pilih Gambar'}
         </button>
         {previewUrl && (
           <button
             type="button"
             onClick={handleRemove}
             disabled={uploading || isLoading}
-            className="px-3 py-1.5 text-xs font-semibold border border-red-200 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold border border-red-200 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50 cursor-pointer"
           >
             Hapus Gambar
           </button>

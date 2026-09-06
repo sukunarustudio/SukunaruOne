@@ -29,6 +29,7 @@ import {
   DocumentDuplicateIcon,
   CheckIcon,
   DocumentTextIcon,
+  EllipsisVerticalIcon,
 } from '@heroicons/react/24/outline';
 import {
   ResponsiveContainer,
@@ -668,89 +669,120 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Action Group on Top */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Excel Download Dropdown Button */}
-            <div id="excel-dropdown-container" className="relative">
-              <button
-                type="button"
-                disabled={isExportingExcel}
-                onClick={() => setShowExcelDropdown(prev => !prev)}
-                className="min-h-[38px] px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-              >
-                {isExportingExcel ? (
-                  <ArrowPathIcon className="w-4 h-4 animate-spin text-white" />
-                ) : (
-                  <TableCellsIcon className="w-4 h-4 stroke-[2.5]" />
-                )}
-                <span className="hidden sm:inline">Unduh Excel</span>
-                <span className="sm:hidden">Excel</span>
-                <ChevronDownIcon className="w-3 h-3 stroke-[3] opacity-80" />
-              </button>
-
-              {showExcelDropdown && (
-                <div className="absolute right-0 mt-1.5 w-64 bg-white dark:bg-slate-900 border border-[#BFC9D1]/40 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-800 dark:text-slate-200">
-                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[#898989] block">
-                      Opsi Ekspor Spreadsheet
-                    </span>
-                    <span className="text-[11px] font-bold text-[#25343F] dark:text-white">
-                      Microsoft Excel (.xls / CSV)
-                    </span>
-                  </div>
-
-                  <div className="py-1 space-y-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadExcel('active')}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer"
-                    >
-                      <TableCellsIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <div>
-                        <div className="font-extrabold text-[11.5px]">Excel Tab Ini ({reportTitles[activeTab].replace('Laporan-', '')})</div>
-                        <div className="text-[9.5px] text-[#898989] font-normal">Format .xls dengan formula &amp; rincian</div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadExcel('full')}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer"
-                    >
-                      <DocumentDuplicateIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <div>
-                        <div className="font-extrabold text-[11.5px] text-emerald-700 dark:text-emerald-400">
-                          Buku Besar Lengkap (Multi-Sheet)
-                        </div>
-                        <div className="text-[9.5px] text-[#898989] font-normal">Kompilasi 5 Sheet: Penjualan, Laba, Stok, Trx</div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadExcel('csv')}
-                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer border-t border-slate-100 dark:border-slate-800/80 mt-1 pt-2"
-                    >
-                      <DocumentTextIcon className="w-4 h-4 text-[#898989] shrink-0" />
-                      <div>
-                        <div className="font-bold text-[11px]">Spreadsheet CSV (.csv)</div>
-                        <div className="text-[9.5px] text-[#898989] font-normal">Format teks universal standar UTF-8 BOM</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Print Button */}
+          {/* Three-dot (⋮) Action Menu */}
+          <div className="relative" id="excel-dropdown-container">
             <button
               type="button"
-              onClick={handlePrint}
-              className="min-h-[38px] px-3.5 rounded-xl bg-[#25343F] dark:bg-slate-800 hover:bg-slate-900 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+              onClick={() => setShowExcelDropdown(prev => !prev)}
+              className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative ${
+                showExcelDropdown
+                  ? 'bg-[#25343F] text-white border-slate-900'
+                  : 'bg-white hover:bg-[#EAEFEF] dark:bg-slate-800 dark:hover:bg-slate-700 border-[#BFC9D1]/25 dark:border-slate-700 text-[#25343F] dark:text-white'
+              }`}
+              title="Menu Opsi Laporan"
+              aria-label="Menu Opsi Laporan"
             >
-              <PrinterIcon className="w-4 h-4 text-[#FF9B51]" />
-              <span className="hidden sm:inline">Cetak</span>
+              <EllipsisVerticalIcon className="w-4 h-4" />
             </button>
+
+            {/* Dropdown Menu Container */}
+            {showExcelDropdown && (
+              <div className="absolute right-0 top-full mt-1.5 w-72 bg-white dark:bg-slate-900 border border-[#BFC9D1]/40 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-800 dark:text-slate-200">
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#898989] block">
+                    Aksi &amp; Ekspor Dokumen
+                  </span>
+                  <span className="text-[11px] font-bold text-[#25343F] dark:text-white">
+                    {reportTitles[activeTab]} ({PAPER_CONFIGS[paperSize].name} · {paperOrientation === 'landscape' ? 'Landscape' : 'Portrait'})
+                  </span>
+                </div>
+
+                <div className="py-1 space-y-0.5">
+                  {/* Cetak / Print */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowExcelDropdown(false);
+                      handlePrint();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-[#EAEFEF] dark:hover:bg-slate-800 text-[#25343F] dark:text-white flex items-center gap-2.5 transition cursor-pointer"
+                  >
+                    <PrinterIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
+                    <div>
+                      <div className="font-extrabold text-[11.5px]">Cetak Dokumen Laporan</div>
+                      <div className="text-[9.5px] text-[#898989] font-normal">Cetak via printer atau Simpan sebagai PDF</div>
+                    </div>
+                  </button>
+
+                  {/* Unduh PDF Langsung */}
+                  <button
+                    type="button"
+                    disabled={isExportingPdf}
+                    onClick={() => {
+                      setShowExcelDropdown(false);
+                      handleDownloadPdf();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-[#EAEFEF] dark:hover:bg-slate-800 text-[#25343F] dark:text-white flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {isExportingPdf ? (
+                      <ArrowPathIcon className="w-4 h-4 animate-spin text-[#FF9B51] shrink-0" />
+                    ) : (
+                      <ArrowDownTrayIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
+                    )}
+                    <div>
+                      <div className="font-extrabold text-[11.5px]">Unduh File PDF</div>
+                      <div className="text-[9.5px] text-[#898989] font-normal">Simpan langsung berkas PDF beresolusi tinggi</div>
+                    </div>
+                  </button>
+
+                  <div className="h-px bg-[#BFC9D1]/30 dark:bg-slate-800 my-1 mx-2" />
+
+                  {/* Excel Tab Ini */}
+                  <button
+                    type="button"
+                    disabled={isExportingExcel}
+                    onClick={() => handleDownloadExcel('active')}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <TableCellsIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="font-extrabold text-[11.5px]">Unduh Excel ({reportTitles[activeTab].replace('Laporan-', '')})</div>
+                      <div className="text-[9.5px] text-[#898989] font-normal">Format spreadsheet .xls dengan formula &amp; rincian</div>
+                    </div>
+                  </button>
+
+                  {/* Excel Buku Besar Lengkap */}
+                  <button
+                    type="button"
+                    disabled={isExportingExcel}
+                    onClick={() => handleDownloadExcel('full')}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <DocumentDuplicateIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="font-extrabold text-[11.5px] text-emerald-700 dark:text-emerald-400">
+                        Buku Besar Lengkap (Multi-Sheet)
+                      </div>
+                      <div className="text-[9.5px] text-[#898989] font-normal">Kompilasi 5 Sheet: Penjualan, Laba, Stok &amp; Transaksi</div>
+                    </div>
+                  </button>
+
+                  {/* CSV Export */}
+                  <button
+                    type="button"
+                    disabled={isExportingExcel}
+                    onClick={() => handleDownloadExcel('csv')}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer border-t border-slate-100 dark:border-slate-800/80 mt-1 pt-1.5 disabled:opacity-50"
+                  >
+                    <DocumentTextIcon className="w-4 h-4 text-[#898989] shrink-0" />
+                    <div>
+                      <div className="font-bold text-[11px]">Spreadsheet CSV (.csv)</div>
+                      <div className="text-[9.5px] text-[#898989] font-normal">Format teks universal standar UTF-8 BOM</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

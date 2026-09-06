@@ -1,4 +1,4 @@
-import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
+import { getSupabaseClient, isSupabaseConfigured, fetchLatestLicense } from './supabaseClient';
 import { localDb, emitDataMutation } from './localDb';
 import {
   Customer,
@@ -1020,6 +1020,11 @@ export async function syncWithSupabase(): Promise<{
   let pulled = 0;
 
   try {
+    // 0. Refresh license info from Cloud in background
+    if (licenseKey && licenseKey !== 'SKNR-DEFAULT-OFFLINE') {
+      fetchLatestLicense(licenseKey).catch(() => {});
+    }
+
     // 1. Flush any pending queue items first
     await flushSyncQueue();
 
@@ -1311,6 +1316,12 @@ function handleIncomingRealtimeChange(payload: any) {
 
     // Tables that affect Dashboard Hero Card — always force a UI refresh on event
     const DASHBOARD_TABLES = new Set(['transactions', 'orders', 'expenses', 'financial_transactions', 'business_settings']);
+
+    if (table === 'licenses') {
+      console.log('[REALTIME] Licenses table change detected — refreshing license status...');
+      fetchLatestLicense(activeLicenseKey).catch(() => {});
+      return;
+    }
 
     if (eventType === 'DELETE') {
       const oldRecordId = payload.old?.id || payload.old?.license_key;

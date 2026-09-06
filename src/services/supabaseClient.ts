@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { resolvePlan } from '../hooks/useLicense';
 
 const DEFAULT_SUPABASE_URL = 'https://jeydktowldsduarptsur.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_g3y6cS7DcyaLUSOuk0Y9Kg_Ufc1BB3a';
@@ -177,42 +178,23 @@ export async function verifyLicenseInCloud(
       .single();
 
     if (error || !data) {
-      return { valid: false, message: 'Kunci Lisensi tidak ditemukan di server Cloud Supabase.' };
+      return { valid: false, message: 'Kunci Lisensi tidak ditemukan di server Cloud.' };
     }
 
     if (data.status !== 'ACTIVE') {
       return { valid: false, message: `Lisensi tidak aktif (Status: ${data.status}). Hubungi customer support.` };
     }
 
-    // Check expiration for trial or timed licenses
     const now = new Date();
-    if (data.duration_days && data.activated_at) {
-      const actDate = new Date(data.activated_at);
-      const expDate = new Date(actDate.getTime() + data.duration_days * 24 * 60 * 60 * 1000);
-      if (now > expDate) {
-        return {
-          valid: false,
-          message: `Masa aktif lisensi (${data.duration_days} hari) telah berakhir pada ${expDate.toLocaleDateString('id-ID')}. Silakan upgrade ke Pro Lifetime.`,
-        };
-      }
-    }
-
     // Check registered devices
     const devices: string[] = Array.isArray(data.registered_devices) ? data.registered_devices : [];
     const activatedAt = data.activated_at || now.toISOString();
-    let expiresAt = data.expires_at;
-    if (data.duration_days && !expiresAt) {
+    let expiresAt = data.expires_at || data.trial_expires_at;
+    if (data.duration_days && !expiresAt && data.tier?.includes('TRIAL')) {
       expiresAt = new Date(new Date(activatedAt).getTime() + data.duration_days * 24 * 60 * 60 * 1000).toISOString();
     }
 
     if (!devices.includes(deviceId)) {
-      if (devices.length >= (data.max_devices || 1)) {
-        return {
-          valid: false,
-          message: `Lisensi telah mencapai batas maksimal (${data.max_devices || 1} perangkat).`,
-        };
-      }
-      // Register this device
       devices.push(deviceId);
       await client
         .from('licenses')
@@ -226,13 +208,15 @@ export async function verifyLicenseInCloud(
         .eq('license_key', cleanKey);
     }
 
-    const isTrial = data.tier === 'TRIAL_14_DAYS' || Boolean(data.duration_days);
+    const rawPlan = String(data.plan || '').trim().toUpperCase();
+    const rawTier = String(data.tier || '').trim().toUpperCase();
+    const isPro = rawPlan.includes('PRO') || rawPlan.includes('LIFETIME') || rawTier.includes('PRO') || rawTier.includes('LIFETIME');
 
     return {
       valid: true,
-      message: isTrial
-        ? `Lisensi Trial 14 Hari (${data.max_devices || 1} Perangkat) berhasil diverifikasi!`
-        : `Lisensi PRO Lifetime (${data.max_devices || 1} Perangkat) berhasil diverifikasi & terhubung ke Cloud!`,
+      message: isPro
+        ? `Lisensi PRO Lifetime berhasil diverifikasi & terhubung ke Cloud!`
+        : `Lisensi Trial 14 Hari berhasil diverifikasi!`,
       license: { ...data, activated_at: activatedAt, expires_at: expiresAt },
     };
   } catch (err: any) {
@@ -240,6 +224,85 @@ export async function verifyLicenseInCloud(
       valid: false,
       message: `Gagal verifikasi lisensi: ${err.message || 'Terjadi kesalahan jaringan'}`,
     };
+  }
+}
+
+/**
+ * Query Cloud Supabase for the latest license status, resolve plan,
+ * update localStorage.sukunaru_license_info and broadcast the update.
+ */
+export async function fetchLatestLicense(
+  targetKey?: string
+): Promise<{ success: boolean; data?: any; message?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, message: 'Klien Supabase belum terhubung.' };
+  }
+
+  try {
+    let key = targetKey;
+    let localSaved: any = null;
+    try {
+      const raw = localStorage.getItem('sukunaru_license_info');
+      if (raw) localSaved = JSON.parse(raw);
+    } catch {}
+
+    if (!key) {
+      key = localSaved?.licenseKey;
+    }
+
+    if (!key || key === 'SKNR-DEFAULT-OFFLINE') {
+      return { success: false, message: 'Tidak ada License Key aktif.' };
+    }
+
+    const cleanKey = key.trim().toUpperCase();
+    const { data, error } = await client
+      .from('licenses')
+      .select('*')
+      .eq('license_key', cleanKey)
+      .single();
+
+    if (error || !data) {
+      return { success: false, message: 'Lisensi tidak ditemukan di Cloud.' };
+    }
+
+    const trialExpiresAt = data.trial_expires_at || data.expires_at || null;
+    const now = new Date();
+
+    const candidateInfo = {
+      isActivated: data.status === 'ACTIVE',
+      licenseKey: cleanKey,
+      plan: data.plan,
+      tier: data.tier,
+      licenseType: data.tier || data.plan,
+      activatedAt: data.activated_at || localSaved?.activatedAt || now.toISOString(),
+      activatedAtLabel: localSaved?.activatedAtLabel || now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      trialExpiresAt,
+      expiresAt: trialExpiresAt,
+      durationDays: data.duration_days,
+      registeredTo: data.registered_name || localSaved?.registeredTo || 'Owner',
+    };
+
+    const resolved = resolvePlan(candidateInfo);
+
+    const updatedLicenseInfo = {
+      ...localSaved,
+      ...candidateInfo,
+      plan: resolved.plan,
+      licenseType: resolved.plan === 'PRO' ? 'PRO_LIFETIME' : (resolved.plan === 'TRIAL' ? 'TRIAL_14_DAYS' : 'FREE'),
+      durationDays: resolved.plan === 'PRO' ? null : (data.duration_days ?? 14),
+    };
+
+    localStorage.setItem('sukunaru_license_info', JSON.stringify(updatedLicenseInfo));
+
+    // Dispatch custom event so reactive useLicense hook & all UI re-renders immediately
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sukunaru:license_updated', { detail: updatedLicenseInfo }));
+    }
+
+    return { success: true, data: updatedLicenseInfo };
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Gagal sinkronisasi lisensi dari cloud.' };
   }
 }
 

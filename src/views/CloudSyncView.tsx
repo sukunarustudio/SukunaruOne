@@ -265,7 +265,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
       setTesting(false);
       setTestResult({
         success: false,
-        message: 'Harap isi URL dan Anon Public Key Supabase.',
+        message: 'Harap isi URL Server dan Public API Key Cloud.',
       });
       return;
     }
@@ -274,13 +274,13 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
       const res = await testSupabaseConnection({ url: cleanUrl, key: cleanKey });
       setTestResult(res);
       if (res.success) {
-        showToast('Koneksi ke Supabase berhasil terhubung!', 'success');
+        showToast('Koneksi ke Server Cloud berhasil terhubung!', 'success');
       } else {
         showToast(res.message, 'error');
       }
     } catch (err: any) {
       setTestResult({ success: false, message: err.message || 'Gagal terhubung ke server.' });
-      showToast('Gagal terhubung ke Supabase', 'error');
+      showToast('Gagal terhubung ke Server Cloud', 'error');
     } finally {
       setTesting(false);
     }
@@ -288,7 +288,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
 
   const handleManualSync = async () => {
     if (!isSupabaseConfigured()) {
-      showToast('Konfigurasi Supabase belum lengkap. Isi URL dan Key terlebih dahulu.', 'error');
+      showToast('Konfigurasi Server Cloud belum lengkap. Isi URL dan Key terlebih dahulu.', 'error');
       return;
     }
 
@@ -338,7 +338,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
           </button>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
-              Sinkronisasi Cloud Supabase
+              Pengaturan Sinkronisasi Cloud
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
               Arsitektur Offline-First (Tetap cepat offline, otomatis sync ke cloud saat online)
@@ -422,9 +422,9 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
       <form onSubmit={handleSaveAndTest} className="bg-white dark:bg-slate-900 rounded-2xl border border-[#BFC9D1]/25 dark:border-slate-800 shadow-sm p-4 sm:p-5 space-y-4">
         <div className="border-b border-slate-100 dark:border-slate-800 pb-2.5 flex items-center justify-between">
           <div>
-            <h3 className="font-extrabold text-sm text-[#25343F] dark:text-white">Pengaturan Kredensial Supabase</h3>
+            <h3 className="font-extrabold text-sm text-[#25343F] dark:text-white">Pengaturan Kredensial Server Cloud</h3>
             <p className="text-xs text-[#898989] mt-0.5">
-              Dapatkan Project URL &amp; Anon Public Key dari menu <i>Project Settings &rarr; API</i> di Supabase.
+              Dapatkan Project URL &amp; Public API Key dari dashboard database Cloud Anda.
             </p>
           </div>
           <button
@@ -433,7 +433,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
             className="text-xs font-bold text-[#FF6A00] hover:underline flex items-center gap-1 cursor-pointer"
           >
             <DocumentDuplicateIcon className="w-4 h-4" />
-            <span>Lihat Skrip SQL Tabel</span>
+            <span>Lihat Skrip SQL Database</span>
           </button>
         </div>
 
@@ -441,7 +441,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
           {/* Project URL */}
           <div>
             <label className="block text-xs font-bold text-[#25343F] dark:text-slate-200 mb-1.5">
-              Supabase Project URL
+              URL Server Cloud
             </label>
             <div className="relative">
               <GlobeAltIcon className="w-4 h-4 text-[#898989] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -459,7 +459,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
           {/* Anon Public API Key */}
           <div>
             <label className="block text-xs font-bold text-[#25343F] dark:text-slate-200 mb-1.5">
-              Supabase Anon Public API Key
+              Public API Key Cloud
             </label>
             <div className="relative">
               <KeyIcon className="w-4 h-4 text-[#898989] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -512,8 +512,8 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 max-w-2xl w-full max-h-[85vh] flex flex-col space-y-4 shadow-2xl border border-[#BFC9D1]/30 dark:border-slate-800 animate-scale-up">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <h3 className="font-black text-base text-[#25343F] dark:text-white">Skrip SQL Tabel Supabase</h3>
-                <p className="text-xs text-[#898989]">Salin dan jalankan skrip ini di SQL Editor dashboard Supabase Anda.</p>
+                <h3 className="font-black text-base text-[#25343F] dark:text-white">Skrip SQL Database Cloud</h3>
+                <p className="text-xs text-[#898989]">Salin dan jalankan skrip ini di SQL Editor database Cloud Anda.</p>
               </div>
               <button
                 type="button"

@@ -106,7 +106,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
     setMatForm({
       sku: `MAT-${Math.floor(100 + Math.random() * 900)}`,
       name: '',
-      category: 'Bahan',
+      category: '',
       unit: 'pcs',
       currentStock: 50,
       minStock: 20,
@@ -651,11 +651,29 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Kategori Bahan Baku */}
                 <div>
-                  <label className="block font-bold text-[#25343F] mb-1">Kategori Bahan</label>
+                  <label className="block font-bold text-[#25343F] mb-1">
+                    Kategori Bahan <span className="text-[11px] font-normal text-[#898989]">(Pilih / Ketik Kustom)</span>
+                  </label>
                   <select
-                    value={['Kertas', 'Tinta', 'Stiker & Vinyl', 'MDF & Kayu', 'Akrilik', 'Kain & Tekstil', 'Laminasi & Finishing', 'Kemasan & Box', 'Aksesoris & Perlengkapan'].includes(matForm.category) ? matForm.category : 'custom'}
+                    value={[
+                      'Kertas & Karton',
+                      'Stiker & Vinyl',
+                      'Tinta & Toner',
+                      'Akrilik & Mika',
+                      'Kayu & MDF',
+                      'Plastik & Kemasan',
+                      'Kain & Tekstil',
+                      'Laminasi & Finishing',
+                      'Kemasan & Box',
+                      'Aksesoris & Hardware',
+                      'Perlengkapan & Alat',
+                      'Operasional',
+                      'Bahan Pokok',
+                      ...Array.from(new Set(materials.map(m => m.category).filter(Boolean)))
+                    ].includes(matForm.category) ? matForm.category : (matForm.category ? 'custom' : '')}
                     onChange={e => {
                       if (e.target.value === 'custom') {
                         setMatForm({ ...matForm, category: '' });
@@ -663,32 +681,97 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
                         setMatForm({ ...matForm, category: e.target.value });
                       }
                     }}
-                    className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl font-medium cursor-pointer text-xs sm:text-sm"
+                    className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer focus:outline-hidden focus:border-[#25343F]"
                   >
-                    <option value="Bahan">Bahan</option>
-                    <option value="Kemasan">Kemasan</option>
-                    <option value="Perlengkapan">Perlengkapan</option>
-                    <option value="Operasional">Operasional</option>
-                    <option value="Produksi">Produksi</option>
-                    <option value="Lainnya">Lainnya</option>
-                    <option value="custom">+ Ketik Kategori Lainnya...</option>
+                    <option value="">-- Pilih Kategori Bahan --</option>
+                    <optgroup label="Kategori Standar">
+                      <option value="Kertas & Karton">Kertas &amp; Karton</option>
+                      <option value="Stiker & Vinyl">Stiker &amp; Vinyl</option>
+                      <option value="Tinta & Toner">Tinta &amp; Toner</option>
+                      <option value="Akrilik & Mika">Akrilik &amp; Mika</option>
+                      <option value="Kayu & MDF">Kayu &amp; MDF</option>
+                      <option value="Plastik & Kemasan">Plastik &amp; Kemasan</option>
+                      <option value="Kain & Tekstil">Kain &amp; Tekstil</option>
+                      <option value="Laminasi & Finishing">Laminasi &amp; Finishing</option>
+                      <option value="Kemasan & Box">Kemasan &amp; Box</option>
+                      <option value="Aksesoris & Hardware">Aksesoris &amp; Hardware</option>
+                      <option value="Perlengkapan & Alat">Perlengkapan &amp; Alat</option>
+                      <option value="Operasional">Operasional</option>
+                      <option value="Bahan Pokok">Bahan Pokok</option>
+                    </optgroup>
+                    {materials.filter(m => m.category && ![
+                      'Kertas & Karton', 'Stiker & Vinyl', 'Tinta & Toner', 'Akrilik & Mika',
+                      'Kayu & MDF', 'Plastik & Kemasan', 'Kain & Tekstil', 'Laminasi & Finishing',
+                      'Kemasan & Box', 'Aksesoris & Hardware', 'Perlengkapan & Alat', 'Operasional', 'Bahan Pokok'
+                    ].includes(m.category)).length > 0 && (
+                      <optgroup label="Kategori Tersimpan Lainnya">
+                        {Array.from(new Set(materials.map(m => m.category).filter(c => c && ![
+                          'Kertas & Karton', 'Stiker & Vinyl', 'Tinta & Toner', 'Akrilik & Mika',
+                          'Kayu & MDF', 'Plastik & Kemasan', 'Kain & Tekstil', 'Laminasi & Finishing',
+                          'Kemasan & Box', 'Aksesoris & Hardware', 'Perlengkapan & Alat', 'Operasional', 'Bahan Pokok'
+                        ].includes(c)))).map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <option value="custom">✏️ + Ketik Kategori Kustom Baru...</option>
                   </select>
-                  {!['Bahan', 'Kemasan', 'Perlengkapan', 'Operasional', 'Produksi', 'Lainnya'].includes(matForm.category) && (
+
+                  {/* Input Kustom jika bukan dari daftar standar */}
+                  {(![
+                    'Kertas & Karton',
+                    'Stiker & Vinyl',
+                    'Tinta & Toner',
+                    'Akrilik & Mika',
+                    'Kayu & MDF',
+                    'Plastik & Kemasan',
+                    'Kain & Tekstil',
+                    'Laminasi & Finishing',
+                    'Kemasan & Box',
+                    'Aksesoris & Hardware',
+                    'Perlengkapan & Alat',
+                    'Operasional',
+                    'Bahan Pokok',
+                    ...Array.from(new Set(materials.map(m => m.category).filter(Boolean)))
+                  ].includes(matForm.category) || matForm.category === '') && (
                     <input
                       type="text"
-                      autoFocus
-                      required
                       value={matForm.category}
                       onChange={e => setMatForm({ ...matForm, category: e.target.value })}
-                      placeholder="Ketik kategori custom..."
-                      className="w-full mt-1.5 px-3 py-1.5 bg-[#EAEFEF] border border-[#BFC9D1]/25 rounded-lg text-xs"
+                      placeholder="Ketik nama kategori baru..."
+                      className="w-full mt-1.5 px-3 py-1.5 bg-[#EAEFEF] border border-[#BFC9D1]/25 rounded-lg text-xs font-medium focus:outline-hidden focus:border-[#25343F]"
                     />
                   )}
+
+                  {/* Quick suggestion tags */}
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {['Kertas', 'Stiker', 'Tinta', 'Akrilik', 'Plastik', 'Kemasan', 'Kayu', 'Kain'].map(quickCat => (
+                      <button
+                        key={quickCat}
+                        type="button"
+                        onClick={() => setMatForm({ ...matForm, category: quickCat })}
+                        className={`text-[10px] px-2 py-0.5 rounded-md font-semibold border transition-all cursor-pointer ${
+                          matForm.category === quickCat
+                            ? 'bg-[#25343F] text-white border-slate-900'
+                            : 'bg-white text-[#898989] border-[#BFC9D1]/30 hover:border-[#25343F] hover:text-[#25343F]'
+                        }`}
+                      >
+                        +{quickCat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Satuan Bahan */}
                 <div>
-                  <label className="block font-bold text-[#25343F] mb-1">Satuan</label>
+                  <label className="block font-bold text-[#25343F] mb-1">
+                    Satuan Stok <span className="text-[11px] font-normal text-[#898989]">(Pilih / Ketik Kustom)</span>
+                  </label>
                   <select
-                    value={['lembar', 'pcs', 'meter', 'roll', 'rim', 'box', 'pack', 'kg', 'gram', 'liter', 'ml', 'botol', 'set', 'lusin', 'paket'].includes(matForm.unit) ? matForm.unit : 'custom'}
+                    value={[
+                      'pcs', 'lembar', 'meter', 'roll', 'rim', 'kg', 'gram',
+                      'box', 'pack', 'liter', 'ml', 'botol', 'set', 'lusin', 'paket'
+                    ].includes(matForm.unit) ? matForm.unit : (matForm.unit ? 'custom' : '')}
                     onChange={e => {
                       if (e.target.value === 'custom') {
                         setMatForm({ ...matForm, unit: '' });
@@ -696,36 +779,55 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
                         setMatForm({ ...matForm, unit: e.target.value });
                       }
                     }}
-                    className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl font-medium cursor-pointer text-xs sm:text-sm"
+                    className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer focus:outline-hidden focus:border-[#25343F]"
                   >
-                    <option value="lembar">lembar</option>
-                    <option value="pcs">pcs (Buah/Item)</option>
-                    <option value="meter">meter (m / m²)</option>
-                    <option value="roll">roll / gulungan</option>
-                    <option value="rim">rim (500 lbr)</option>
+                    <option value="pcs">pcs (Buah / Item)</option>
+                    <option value="lembar">lembar (Lembar / Sheet)</option>
+                    <option value="meter">meter (Meter / m²)</option>
+                    <option value="roll">roll (Gulungan / Roll)</option>
+                    <option value="rim">rim (Rim / 500 lbr)</option>
+                    <option value="kg">kg (Kilogram)</option>
+                    <option value="gram">gram (Gram)</option>
                     <option value="box">box / dus</option>
                     <option value="pack">pack / bungkus</option>
-                    <option value="kg">kg (Kilogram)</option>
-                    <option value="gram">gram (gr)</option>
-                    <option value="liter">liter (L)</option>
+                    <option value="liter">liter (Liter)</option>
                     <option value="ml">ml (Mililiter)</option>
-                    <option value="botol">botol / kaleng</option>
-                    <option value="set">set</option>
+                    <option value="botol">botol</option>
+                    <option value="set">set (Pasang)</option>
                     <option value="lusin">lusin (12 pcs)</option>
                     <option value="paket">paket</option>
-                    <option value="custom">+ Ketik Satuan Lainnya...</option>
+                    <option value="custom">✏️ + Ketik Satuan Kustom Baru...</option>
                   </select>
-                  {!['lembar', 'pcs', 'meter', 'roll', 'rim', 'box', 'pack', 'kg', 'gram', 'liter', 'ml', 'botol', 'set', 'lusin', 'paket'].includes(matForm.unit) && (
+
+                  {/* Input Kustom jika bukan dari daftar standar */}
+                  {!['pcs', 'lembar', 'meter', 'roll', 'rim', 'kg', 'gram', 'box', 'pack', 'liter', 'ml', 'botol', 'set', 'lusin', 'paket'].includes(matForm.unit) && (
                     <input
                       type="text"
-                      autoFocus
                       required
                       value={matForm.unit}
                       onChange={e => setMatForm({ ...matForm, unit: e.target.value })}
-                      placeholder="Ketik nama satuan custom..."
-                      className="w-full mt-1.5 px-3 py-1.5 bg-[#EAEFEF] border border-[#BFC9D1]/25 rounded-lg text-xs"
+                      placeholder="Ketik nama satuan baru..."
+                      className="w-full mt-1.5 px-3 py-1.5 bg-[#EAEFEF] border border-[#BFC9D1]/25 rounded-lg text-xs font-medium focus:outline-hidden focus:border-[#25343F]"
                     />
                   )}
+
+                  {/* Quick suggestion unit tags */}
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {['pcs', 'lembar', 'meter', 'roll', 'rim', 'kg', 'box'].map(quickUnit => (
+                      <button
+                        key={quickUnit}
+                        type="button"
+                        onClick={() => setMatForm({ ...matForm, unit: quickUnit })}
+                        className={`text-[10px] px-2 py-0.5 rounded-md font-semibold border transition-all cursor-pointer ${
+                          matForm.unit === quickUnit
+                            ? 'bg-[#25343F] text-white border-slate-900'
+                            : 'bg-white text-[#898989] border-[#BFC9D1]/30 hover:border-[#25343F] hover:text-[#25343F]'
+                        }`}
+                      >
+                        {quickUnit}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

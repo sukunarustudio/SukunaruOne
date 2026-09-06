@@ -18,6 +18,8 @@ import { ViewType, BusinessSettings } from '../types';
 import { signOut, getSession, lockBusinessSession } from '../services/authService';
 import { pauseRealtime } from '../services/syncManager';
 import { useToast } from '../components/Toast';
+import { useLicense } from '../hooks/useLicense';
+import { fetchLatestLicense } from '../services/supabaseClient';
 
 interface ProfileViewProps {
   onNavigate: (view: ViewType) => void;
@@ -29,21 +31,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   settings,
 }) => {
   const { showToast } = useToast();
-  const [isActivated, setIsActivated] = useState(false);
-  const [licenseInfo, setLicenseInfo] = useState<any>(null);
+  const { isActivated, isPro, isTrial, isFree, plan, daysRemaining } = useLicense();
   const [authEmail, setAuthEmail] = useState<string | null>(null);
   const [authDisplayName, setAuthDisplayName] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('sukunaru_license_info');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setLicenseInfo(parsed);
-        setIsActivated(Boolean(parsed.isActivated));
-      }
-    } catch {}
+    // Auto sync latest license from cloud on mount
+    fetchLatestLicense().catch(() => {});
 
     // Load auth session
     getSession().then((session) => {
@@ -59,17 +54,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   }, []);
 
   const getLicenseBadge = () => {
-    if (!isActivated) return { text: 'AKTIF', desc: 'Masukkan Serial Key Lisensi', color: 'text-[#25343F]', dot: 'bg-[#25343F]', isPro: false };
-    if (licenseInfo?.licenseType === 'TRIAL_14_DAYS' || licenseInfo?.licenseType?.includes('TRIAL')) {
-      const activatedDate = licenseInfo.activatedAt ? new Date(licenseInfo.activatedAt) : new Date();
-      const elapsed = Math.floor((Date.now() - activatedDate.getTime()) / (1000 * 60 * 60 * 24));
-      const remaining = Math.max(0, 14 - (isNaN(elapsed) ? 0 : elapsed));
-      if (remaining === 0) {
-        return { text: 'TRIAL BERAKHIR', desc: 'Masa trial 14 hari telah habis', color: 'text-rose-600', dot: 'bg-rose-600', isPro: false };
-      }
-      return { text: `TRIAL (${remaining} HARI)`, desc: `Trial aktif, sisa ${remaining} hari lagi`, color: 'text-amber-600', dot: 'bg-amber-600', isPro: true };
+    if (!isActivated) {
+      return { text: 'BELUM AKTIF', desc: 'Masukkan Serial Key Lisensi', color: 'text-slate-600', dot: 'bg-slate-400', isPro: false };
     }
-    return { text: 'PRO LIFETIME', desc: 'Lisensi Pro Lifetime Aktif', color: 'text-emerald-600', dot: 'bg-emerald-600', isPro: true };
+    if (plan === 'PRO') {
+      return { text: 'PRO LIFETIME', desc: 'Lisensi Pro Lifetime Aktif', color: 'text-emerald-600', dot: 'bg-emerald-600', isPro: true };
+    }
+    if (isTrial) {
+      return { text: `TRIAL (${daysRemaining ?? 0} HARI)`, desc: `Masa percobaan sisa ${daysRemaining ?? 0} hari lagi`, color: 'text-amber-600', dot: 'bg-amber-600', isPro: true };
+    }
+    if (isFree) {
+      return { text: 'TRIAL BERAKHIR', desc: 'Masa trial telah habis (Mode Free)', color: 'text-rose-600', dot: 'bg-rose-600', isPro: false };
+    }
+    return { text: 'FREE MODE', desc: 'Fitur dasar aktif', color: 'text-slate-600', dot: 'bg-slate-400', isPro: false };
   };
 
   const handleSignOut = async () => {
@@ -130,7 +127,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {
           icon: CloudArrowUpIcon,
           label: 'Cadangan Data & Sinkronisasi Cloud',
-          desc: 'Backup cloud Supabase & cadangan lokal',
+          desc: 'Penyimpanan cadangan cloud & lokal',
           action: () => onNavigate('backup'),
           iconClass: 'bg-[#EAEFEF] text-[#FF6A00] border border-[#BFC9D1]/25 shadow-sm',
         },

@@ -53,6 +53,7 @@ import { ActivationView } from './views/ActivationView';
 import { BackupRestoreView } from './views/BackupRestoreView';
 import { CloudSyncView } from './views/CloudSyncView';
 import { OnboardingView } from './views/OnboardingView';
+import { PlanChangeFloatingNotification } from './components/PlanChangeFloatingNotification';
 import { ProGate } from './components/ProGate';
 import { initThemeSystem } from './services/themeManager';
 import { initSyncSystem } from './services/syncManager';
@@ -126,16 +127,35 @@ function MainAppContent() {
         setSessionLocked(false);
 
         // 1. Auto-restore license entitlement from Cloud
+        //    (auto-provisions license for new users if none exists)
         const licRes = await restoreUserLicenseSession(user);
+
+        // Check if this is a brand new signup
+        let isNewSignup = false;
+        try {
+          isNewSignup = sessionStorage.getItem('sukunaru_is_new_signup') === 'true';
+          if (isNewSignup) sessionStorage.removeItem('sukunaru_is_new_signup');
+        } catch {}
+
         if (licRes.found && licRes.valid) {
+          localStorage.setItem('sukunaru_onboarding_completed', 'true');
+          setIsOnboardingCompleted(true);
+
+          // Welcome toast for newly provisioned accounts
+          if (isNewSignup) {
+            showToast('Selamat datang! Trial 14 hari Anda telah dimulai 🎉', 'success');
+          }
+        } else if (!licRes.found && !licRes.valid) {
+          // Provisioning failed (e.g., offline) — still let user in (offline mode)
+          console.warn('[App] License provisioning failed — continuing without license:', licRes.message);
           localStorage.setItem('sukunaru_onboarding_completed', 'true');
           setIsOnboardingCompleted(true);
         } else if (licRes.found && !licRes.valid && licRes.message) {
           showToast(licRes.message, 'error');
         }
 
-        // 2. Check local vs cloud data presence ONLY during fresh login
-        if (isFreshLogin) {
+        // 2. Check local vs cloud data presence ONLY during fresh login (not new signup)
+        if (isFreshLogin && !isNewSignup) {
           const presence = await checkLocalAndCloudDataPresence();
           if (presence.hasLocalData && presence.hasCloudData) {
             setRecoveryPresence(presence);
@@ -150,7 +170,7 @@ function MainAppContent() {
             await refreshStatsAndSettings();
           }
         } else {
-          // Regular app startup / reload: start realtime & refresh stats without modal
+          // Regular app startup / reload / new signup: start realtime & refresh stats
           subscribeToRealtimeChanges(true);
           await refreshStatsAndSettings();
         }
@@ -162,6 +182,8 @@ function MainAppContent() {
     },
     [refreshStatsAndSettings, showToast]
   );
+
+
 
   // Check existing session on mount (app startup)
   useEffect(() => {
@@ -553,6 +575,9 @@ function MainAppContent() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#EAEFEF] text-[#25343F] font-sans antialiased">
+      {/* Persistent Floating Notification on Plan Change (requires manual X close) */}
+      <PlanChangeFloatingNotification onNavigate={handleNavigate} />
+
       {/* Persistent Left Sidebar (Desktop & Mobile Drawer) */}
       <Sidebar
         currentView={currentView}

@@ -59,10 +59,13 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
     try {
       const result = await signUp(trimmedEmail, password);
       if (result.success) {
+        // Flag as fresh sign-in so handleUserSessionRestoration
+        // knows to run auto-provisioning + initial sync
         try {
           sessionStorage.setItem('sukunaru_just_signed_in', 'true');
+          sessionStorage.setItem('sukunaru_is_new_signup', 'true');
         } catch {}
-        showToast('Akun berhasil dibuat! Selamat datang di BisnisUrang.', 'success');
+        showToast('Akun berhasil dibuat! Menyiapkan bisnis Anda...', 'success');
         onSignUpSuccess();
       } else {
         setErrorMessage(result.message);
@@ -71,6 +74,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#EAEFEF] dark:bg-[#0B0F17] flex flex-col justify-center items-center px-4 py-8 sm:px-6 transition-colors">
