@@ -84,35 +84,6 @@ export const SignInView: React.FC<SignInViewProps> = ({
           </p>
         </div>
 
-        {/* 14 Days Free Pro Promo Card */}
-        <div className="mb-6 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent dark:from-amber-500/15 dark:via-orange-500/15 border border-[#FF9B51]/30 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF6A00] to-[#FF9B51] text-white flex items-center justify-center shrink-0 shadow-sm">
-              <SparklesIcon className="w-5 h-5 text-white" />
-            </div>
-            <div className="min-w-0 text-left">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-black text-[#25343F] dark:text-white">
-                  Coba Fitur PRO 14 Hari!
-                </span>
-                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-[#FF6A00] text-white leading-none">
-                  GRATIS
-                </span>
-              </div>
-              <p className="text-[11px] text-[#898989] dark:text-slate-300 leading-tight mt-0.5">
-                Daftar akun baru &amp; nikmati semua fitur Pro tanpa biaya.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onNavigateToSignUp}
-            className="px-3 py-1.5 rounded-xl bg-[#FF6A00] hover:bg-[#e65c00] active:scale-95 text-white text-xs font-bold shrink-0 shadow-xs cursor-pointer transition"
-          >
-            Daftar
-          </button>
-        </div>
-
         {/* Error Alert */}
         {errorMessage && (
           <div className="mb-5 px-3.5 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-rose-600 dark:text-rose-300 text-xs font-medium flex items-center gap-2 animate-fade-in">
@@ -218,9 +189,9 @@ export const SignInView: React.FC<SignInViewProps> = ({
           </span>
         </div>
 
-        {/* Footer Link to Sign Up */}
-        <div className="text-center">
-          <p className="text-xs sm:text-sm text-[#898989] dark:text-slate-400">
+        {/* Footer Link to Sign Up with Pro 14 Days Highlight */}
+        <div className="text-center p-3 rounded-xl bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/40">
+          <p className="text-xs sm:text-sm text-[#25343F] dark:text-slate-200 font-medium">
             Belum punya akun?{' '}
             <button
               type="button"
@@ -230,8 +201,8 @@ export const SignInView: React.FC<SignInViewProps> = ({
               Daftar Sekarang
             </button>
           </p>
-          <p className="text-[11px] text-[#FF6A00] dark:text-[#FF9B51] font-semibold mt-1 flex items-center justify-center gap-1">
-            <span>✨</span>
+          <p className="text-[11px] text-[#FF6A00] dark:text-[#FF9B51] font-semibold mt-1 flex items-center justify-center gap-1.5">
+            <SparklesIcon className="w-3.5 h-3.5 shrink-0" />
             <span>Dapatkan akses Fitur PRO Gratis selama 14 hari</span>
           </p>
         </div>
