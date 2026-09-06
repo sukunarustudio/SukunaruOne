@@ -58,7 +58,7 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
 
   const appSpecs = [
     { label: 'Nama Aplikasi', value: 'BisnisUrang', icon: InformationCircleIcon },
-    { label: 'Versi Rilis', value: 'v1.0 Stable Release', icon: SparklesIcon },
+    { label: 'Versi Rilis', value: 'v2.0 Stable Release', icon: SparklesIcon },
     {
       label: 'Status Lisensi',
       value: getLicenseStatusText(),
@@ -87,7 +87,7 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
               Versi Aplikasi
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-              Informasi sistem, lisensi &amp; versi BisnisUrang v1.0
+              Informasi sistem, lisensi &amp; versi BisnisUrang v2.0
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl sm:text-2xl font-black text-[#25343F] tracking-tight">BisnisUrang</h2>
                 <span className="px-3 py-0.5 text-xs font-black bg-[#FF9B51] text-[#25343F] rounded-full shadow-xs">
-                  v1.0
+                  v2.0
                 </span>
               </div>
               <p className="text-xs font-semibold text-[#898989] mt-0.5">
@@ -198,14 +198,14 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
             <p className="text-[11px] text-emerald-300 font-mono font-bold">WA: 089519203345</p>
             <div className="pt-3 border-t border-slate-700 text-[10px] text-slate-400 flex items-center justify-between">
               <span>Hak Cipta © {currentYear} Sukunaru Studio</span>
-              <span className="font-mono font-black text-[#FF9B51]">v1.0</span>
+              <span className="font-mono font-black text-[#FF9B51]">v2.0</span>
             </div>
           </div>
 
           {/* Version Tag */}
           <div className="bg-white border border-[#BFC9D1]/25 rounded-3xl p-4.5 shadow-sm text-center space-y-1">
             <p className="text-[10px] font-extrabold text-[#898989] uppercase tracking-wider">Versi Rilis Saat Ini</p>
-            <p className="text-xl font-black text-[#25343F] tracking-tight">v1.0</p>
+            <p className="text-xl font-black text-[#25343F] tracking-tight">v2.0</p>
             <p className="text-[11px] text-[#898989] font-medium">Stable Release · {currentYear}</p>
           </div>
         </div>
