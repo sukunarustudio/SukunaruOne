@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   ShoppingCartIcon,
   CalculatorIcon,
@@ -81,12 +81,12 @@ const slides: SlideItem[] = [
     id: 'slide-trial-pro',
     badge: 'TRIAL PRO 14 HARI GRATIS',
     title: 'Coba Seluruh Fitur Pro Gratis 14 Hari',
-    subtitle: 'Daftarkan akun Anda sekarang dan langsung nikmati akses penuh tanpa komitmen untuk mengelola bisnis lebih maksimal sejak hari pertama.',
+    subtitle: 'Daftarkan akun Anda sekarang dan nikmati seluruh kemudahan fitur Pro untuk mengelola bisnis lebih praktis dan rapi.',
     icon: SparklesIcon,
     highlights: [
-      'Akses tanpa batas ke seluruh modul & fitur Pro',
-      'Realtime Cloud Sync untuk kolaborasi antar perangkat',
-      'Masa percobaan aktif otomatis tanpa memerlukan kartu kredit',
+      'Akses penuh ke seluruh modul & fitur Pro',
+      'Realtime Cloud Sync untuk kelola bisnis dari mana saja',
+      'Langsung aktif otomatis dan siap digunakan seketika',
     ],
   },
 ];
