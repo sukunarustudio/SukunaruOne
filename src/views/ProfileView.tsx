@@ -157,7 +157,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {
           icon: InformationCircleIcon,
           label: 'Versi Aplikasi',
-          desc: 'Lihat versi dan info build',
+          desc: 'v2.0.0 Stable Release',
+          badge: 'v2.0.0',
           action: () => onNavigate('app-info'),
           iconClass: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 shadow-sm',
         },
@@ -246,6 +247,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         {item.desc}
                       </div>
                     </div>
+                    {(item as any).badge && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF9B51]/15 text-[#FF9B51] border border-[#FF9B51]/30 shrink-0">
+                        {(item as any).badge}
+                      </span>
+                    )}
                     <ChevronRightIcon className="w-4 h-4 text-slate-300 group-hover:text-[#898989] transition-colors shrink-0" />
                   </button>
                 );
@@ -279,7 +285,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* App Version Footer */}
       <div className="pt-4 text-center text-xs text-[#898989] font-medium">
-        BisnisUrang v2.0 · Powered by Sukunaru Studio
+        BisnisUrang v2.0.0 · Powered by Sukunaru Studio
       </div>
     </div>
   );
