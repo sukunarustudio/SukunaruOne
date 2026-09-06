@@ -5,6 +5,8 @@ import {
   EyeIcon,
   EyeSlashIcon,
   SparklesIcon,
+  CheckCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { signIn } from '../../services/authService';
 import { useToast } from '../../components/Toast';
@@ -27,6 +29,13 @@ export const SignInView: React.FC<SignInViewProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [signupSuccessNotice, setSignupSuccessNotice] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('sukunaru_signup_success_banner') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const validateEmail = (val: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
@@ -83,6 +92,36 @@ export const SignInView: React.FC<SignInViewProps> = ({
             Kelola bisnis, jadi lebih mudah.
           </p>
         </div>
+
+        {/* Success Alert for Brand New Signup */}
+        {signupSuccessNotice && (
+          <div className="mb-5 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-200 animate-fade-in relative">
+            <button
+              type="button"
+              onClick={() => {
+                setSignupSuccessNotice(false);
+                try {
+                  sessionStorage.removeItem('sukunaru_signup_success_banner');
+                } catch {}
+              }}
+              className="absolute top-2.5 right-2.5 p-1 text-emerald-600 dark:text-emerald-400 hover:opacity-75 rounded-lg transition"
+              title="Tutup"
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+            <div className="flex items-start gap-3">
+              <CheckCircleIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div className="pr-4">
+                <h4 className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                  Selamat! Pendaftaran Berhasil 🎉
+                </h4>
+                <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1 leading-relaxed">
+                  Akun Anda telah aktif dengan <strong>Trial Fitur PRO 14 Hari Gratis</strong>. Silakan masuk untuk mulai mengelola bisnis Anda.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error Alert */}
         {errorMessage && (

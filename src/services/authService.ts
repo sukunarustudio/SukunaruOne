@@ -53,8 +53,9 @@ export async function signUp(
   displayName?: string
 ): Promise<SignUpResult> {
   try {
+    const trimmedEmail = email.trim().toLowerCase();
     const { data, error } = await getAuthClient().auth.signUp({
-      email: email.trim().toLowerCase(),
+      email: trimmedEmail,
       password,
       options: {
         data: {
@@ -72,6 +73,9 @@ export async function signUp(
     try {
       sessionStorage.setItem('sukunaru_is_new_signup', 'true');
       sessionStorage.setItem('sukunaru_just_signed_in', 'true');
+      sessionStorage.setItem('sukunaru_signup_success_banner', 'true');
+      localStorage.setItem('sukunaru_new_signup_welcome', 'true');
+      localStorage.removeItem('sukunaru_last_acknowledged_plan');
     } catch {}
 
     return {

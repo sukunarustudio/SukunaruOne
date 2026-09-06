@@ -30,10 +30,52 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
   useEffect(() => {
     if (!isActivated || !plan) return;
 
+    const isNewSignupPending =
+      localStorage.getItem('sukunaru_new_signup_welcome') === 'true' ||
+      sessionStorage.getItem('sukunaru_is_new_signup') === 'true';
+
     const lastAcknowledged = localStorage.getItem(STORAGE_LAST_PLAN_KEY);
 
-    // Initial setup: If first time running and last plan hasn't been recorded yet, record it quietly
+    // If new signup: always trigger congratulations notification!
+    if (isNewSignupPending) {
+      if (plan === 'TRIAL' || plan === 'FREE') {
+        setNotification({
+          isOpen: true,
+          plan: 'TRIAL',
+          title: 'Selamat! Pendaftaran Berhasil 🎉',
+          message: `Selamat, Anda telah mendapatkan akses Trial Fitur PRO selama ${daysRemaining ?? 14} hari penuh! Seluruh fitur PRO & Cloud Sync siap digunakan.`,
+        });
+        return;
+      } else if (plan === 'PRO') {
+        setNotification({
+          isOpen: true,
+          plan: 'PRO',
+          title: 'Selamat! Akun Pro Lifetime Aktif 🎉',
+          message: `Lisensi Anda (${licenseKey || 'Akun Anda'}) aktif permanen seumur hidup dengan Realtime Cloud Sync Multi-Device & seluruh fitur PRO.`,
+        });
+        return;
+      }
+    }
+
+    // If first activation / no acknowledged plan recorded yet
     if (!lastAcknowledged) {
+      if (plan === 'TRIAL') {
+        setNotification({
+          isOpen: true,
+          plan: 'TRIAL',
+          title: 'Selamat! Pendaftaran Berhasil 🎉',
+          message: `Selamat, Anda telah mendapatkan akses Trial Fitur PRO selama ${daysRemaining ?? 14} hari penuh! Seluruh fitur PRO & Cloud Sync siap digunakan.`,
+        });
+        return;
+      } else if (plan === 'PRO') {
+        setNotification({
+          isOpen: true,
+          plan: 'PRO',
+          title: 'Selamat! Akun Pro Lifetime Aktif 🎉',
+          message: `Lisensi Anda (${licenseKey || 'Akun Anda'}) aktif permanen seumur hidup dengan Realtime Cloud Sync Multi-Device & seluruh fitur PRO.`,
+        });
+        return;
+      }
       localStorage.setItem(STORAGE_LAST_PLAN_KEY, plan);
       return;
     }
@@ -66,6 +108,10 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
   }, [isActivated, plan, isTrial, daysRemaining, licenseKey]);
 
   const handleDismiss = () => {
+    localStorage.removeItem('sukunaru_new_signup_welcome');
+    try {
+      sessionStorage.removeItem('sukunaru_is_new_signup');
+    } catch {}
     if (plan) {
       localStorage.setItem(STORAGE_LAST_PLAN_KEY, plan);
     }

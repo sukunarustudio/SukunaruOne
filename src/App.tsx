@@ -126,14 +126,21 @@ function MainAppContent() {
         // Check if this is a brand new signup
         let isNewSignup = false;
         try {
-          isNewSignup = sessionStorage.getItem('sukunaru_is_new_signup') === 'true';
-          if (isNewSignup) sessionStorage.removeItem('sukunaru_is_new_signup');
+          isNewSignup =
+            sessionStorage.getItem('sukunaru_is_new_signup') === 'true' ||
+            localStorage.getItem('sukunaru_new_signup_welcome') === 'true';
+          if (isNewSignup) {
+            sessionStorage.removeItem('sukunaru_is_new_signup');
+          }
         } catch {}
 
         if (isNewSignup) {
           // Guarantee 100% clean local database for new signup
           const cleanRes = await localDb.resetToCleanNewUserState(user.email, user.user_metadata?.display_name);
           setSettings(cleanRes.settings);
+          // Flag for PlanChangeFloatingNotification to trigger persistent congratulations notification
+          localStorage.setItem('sukunaru_new_signup_welcome', 'true');
+          localStorage.removeItem('sukunaru_last_acknowledged_plan');
         }
 
         if (licRes.found && licRes.valid) {

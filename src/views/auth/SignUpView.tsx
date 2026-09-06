@@ -62,8 +62,11 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
         try {
           sessionStorage.setItem('sukunaru_just_signed_in', 'true');
           sessionStorage.setItem('sukunaru_is_new_signup', 'true');
+          sessionStorage.setItem('sukunaru_signup_success_banner', 'true');
+          localStorage.setItem('sukunaru_new_signup_welcome', 'true');
+          localStorage.removeItem('sukunaru_last_acknowledged_plan');
         } catch {}
-        showToast('Akun berhasil dibuat! Menyiapkan bisnis Anda...', 'success');
+        showToast('Akun berhasil dibuat! Selamat datang di BisnisUrang 🎉', 'success');
         onSignUpSuccess();
       } else {
         setErrorMessage(result.message);
