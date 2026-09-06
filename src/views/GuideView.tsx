@@ -271,7 +271,7 @@ export const GuideView: React.FC<GuideViewProps> = ({ onNavigate }) => {
               Panduan Penggunaan
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-              Panduan lengkap operasional fitur BisnisUrang v2.0
+              Panduan lengkap operasional fitur BisnisUrang v1.0
             </p>
           </div>
         </div>

@@ -219,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="w-1.5 h-1.5 rounded-full bg-[#25343F] animate-pulse" />
           <span className="text-[#898989] font-medium text-[11px]">System Ready</span>
         </div>
-        <span className="text-[10px] font-mono font-bold text-[#898989] bg-[#EAEFEF] px-1.5 py-0.5 rounded">v2.0.0</span>
+        <span className="text-[10px] font-mono font-bold text-[#898989] bg-[#EAEFEF] px-1.5 py-0.5 rounded">v1.0</span>
       </div>
     </div>
   );

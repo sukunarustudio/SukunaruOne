@@ -132,7 +132,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
           label: 'Versi Aplikasi',
           icon: InformationCircleIcon,
           iconBg: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25',
-          badge: 'v2.0.0',
+          badge: 'v1.0',
           badgeColor: 'bg-[#FF9B51]/15 text-[#FF9B51] border border-[#FF9B51]/30',
         },
       ],
@@ -230,7 +230,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
 
       {/* App Version Footer */}
       <div className="pt-4 text-center text-xs text-[#898989] font-medium">
-        BisnisUrang v2.0.0 · Powered by Sukunaru Studio
+        BisnisUrang v1.0 · Powered by Sukunaru Studio
       </div>
     </div>
   );

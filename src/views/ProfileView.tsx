@@ -157,8 +157,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {
           icon: InformationCircleIcon,
           label: 'Versi Aplikasi',
-          desc: 'v2.0.0 Stable Release',
-          badge: 'v2.0.0',
+          desc: 'v1.0 Stable Release',
+          badge: 'v1.0',
           action: () => onNavigate('app-info'),
           iconClass: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 shadow-sm',
         },
@@ -285,7 +285,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* App Version Footer */}
       <div className="pt-4 text-center text-xs text-[#898989] font-medium">
-        BisnisUrang v2.0.0 · Powered by Sukunaru Studio
+        BisnisUrang v1.0 · Powered by Sukunaru Studio
       </div>
     </div>
   );
