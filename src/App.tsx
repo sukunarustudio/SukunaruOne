@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { User } from '@supabase/supabase-js';
 import { api } from './services/api';
+import { localDb } from './services/localDb';
 import { ViewType, BusinessSettings } from './types';
 import { ToastProvider, useToast } from './components/Toast';
 import { Sidebar } from './components/Sidebar';
@@ -87,14 +88,6 @@ function MainAppContent() {
   const [authScreen, setAuthScreen] = useState<'sign-in' | 'sign-up' | 'forgot-password'>('sign-in');
   // Whether session is currently locked (e.g. after user logout)
   const [sessionLocked, setSessionLocked] = useState<boolean>(() => isSessionLocked());
-  // Whether user explicitly chose offline mode (skip auth)
-  const [offlineMode, setOfflineMode] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('sukunaru_offline_mode') === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   // Data Recovery Modal state (conflict resolution between local & cloud)
   const [recoveryPresence, setRecoveryPresence] = useState<DataPresenceInfo | null>(null);
@@ -136,6 +129,12 @@ function MainAppContent() {
           isNewSignup = sessionStorage.getItem('sukunaru_is_new_signup') === 'true';
           if (isNewSignup) sessionStorage.removeItem('sukunaru_is_new_signup');
         } catch {}
+
+        if (isNewSignup) {
+          // Guarantee 100% clean local database for new signup
+          const cleanRes = await localDb.resetToCleanNewUserState(user.email, user.user_metadata?.display_name);
+          setSettings(cleanRes.settings);
+        }
 
         if (licRes.found && licRes.valid) {
           localStorage.setItem('sukunaru_onboarding_completed', 'true');
@@ -215,8 +214,6 @@ function MainAppContent() {
         } catch {}
         await handleUserSessionRestoration(user, isFresh);
       } else {
-        localStorage.removeItem('sukunaru_offline_mode');
-        setOfflineMode(false);
         setSessionLocked(isSessionLocked());
       }
     });
@@ -487,13 +484,6 @@ function MainAppContent() {
     refreshStatsAndSettings();
   };
 
-  const handleContinueOffline = () => {
-    try {
-      localStorage.setItem('sukunaru_offline_mode', 'true');
-    } catch {}
-    setOfflineMode(true);
-  };
-
   // ── 1. Splash Screen Gate (Initial launch & session verification) ───────────
   const isAuthLoading = authUser === undefined;
   if (showSplash || isAuthLoading) {
@@ -509,7 +499,7 @@ function MainAppContent() {
   }
 
   // ── 2. Auth / Limited Mode Gate ────────────────────────────────────────────
-  const needsAuth = authUser === null && !offlineMode;
+  const needsAuth = authUser === null;
 
   if (needsAuth) {
     if (sessionLocked) {
@@ -523,7 +513,6 @@ function MainAppContent() {
             setSessionLocked(false);
             setAuthScreen('sign-up');
           }}
-          onContinueOffline={handleContinueOffline}
         />
       );
     }
@@ -536,7 +525,6 @@ function MainAppContent() {
             setAuthScreen('sign-in');
           }}
           onNavigateToSignIn={() => setAuthScreen('sign-in')}
-          onContinueOffline={handleContinueOffline}
         />
       );
     }
@@ -557,7 +545,6 @@ function MainAppContent() {
         }}
         onNavigateToSignUp={() => setAuthScreen('sign-up')}
         onNavigateToForgotPassword={() => setAuthScreen('forgot-password')}
-        onContinueOffline={handleContinueOffline}
       />
     );
   }

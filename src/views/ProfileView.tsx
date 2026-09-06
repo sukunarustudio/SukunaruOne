@@ -78,7 +78,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       const result = await signOut();
       if (result.success) {
         showToast('Berhasil keluar dari akun.', 'success');
-        localStorage.removeItem('sukunaru_offline_mode');
         window.location.reload();
       } else {
         showToast(result.message, 'error');

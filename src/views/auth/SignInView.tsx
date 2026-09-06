@@ -13,14 +13,12 @@ interface SignInViewProps {
   onSignInSuccess: () => void;
   onNavigateToSignUp: () => void;
   onNavigateToForgotPassword: () => void;
-  onContinueOffline: () => void;
 }
 
 export const SignInView: React.FC<SignInViewProps> = ({
   onSignInSuccess,
   onNavigateToSignUp,
   onNavigateToForgotPassword,
-  onContinueOffline,
 }) => {
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
@@ -203,17 +201,6 @@ export const SignInView: React.FC<SignInViewProps> = ({
             </button>
           </p>
         </div>
-      </div>
-
-      {/* Offline Mode Option */}
-      <div className="mt-5 text-center">
-        <button
-          type="button"
-          onClick={onContinueOffline}
-          className="text-xs text-[#898989] hover:text-[#25343F] dark:hover:text-slate-200 transition underline underline-offset-2 cursor-pointer"
-        >
-          Lanjutkan tanpa akun (mode offline)
-        </button>
       </div>
 
       <div className="mt-4 text-center">

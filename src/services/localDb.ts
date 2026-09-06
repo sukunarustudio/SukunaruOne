@@ -27,8 +27,8 @@ export interface LocalDatabaseSchema {
 
 const DEFAULT_INITIAL_DATA: LocalDatabaseSchema = {
   settings: {
-    businessName: "Nama Bisnis Anda",
-    tagline: "Tagline / Slogan Bisnis Anda",
+    businessName: "",
+    tagline: "",
     address: "",
     phone: "",
     whatsapp: "",
@@ -185,6 +185,52 @@ export const localDb = {
     const fresh = JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
     setLocalData(fresh);
     return { success: true, message: 'Data sampel berhasil diatur ulang.' };
+  },
+
+  async resetToCleanNewUserState(userEmail?: string, displayName?: string): Promise<{ success: boolean; settings: BusinessSettings }> {
+    const cleanSettings: BusinessSettings = {
+      businessName: displayName?.trim() || '',
+      tagline: '',
+      address: '',
+      phone: '',
+      whatsapp: '',
+      email: userEmail?.trim() || '',
+      receiptHeader: '',
+      receiptFooter: 'Terima kasih telah berbelanja!',
+      bankAccount: '',
+      currency: 'IDR',
+      invoicePrefix: 'INV-',
+      receiptPrefix: 'STR-',
+      defaultTaxPercent: 0,
+      defaultDiscountPercent: 0,
+      footerNotes: 'Terima kasih atas kepercayaan Anda!',
+    };
+
+    const cleanDb: LocalDatabaseSchema = {
+      settings: cleanSettings,
+      customers: [],
+      materials: [],
+      inventory_movements: [],
+      products: [],
+      orders: [],
+      transactions: [],
+      expenses: [],
+      financial_transactions: [],
+    };
+
+    setLocalData(cleanDb);
+
+    // Clean any lingering sync queues or sync timestamps from previous sessions
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('sukunaru_sync_queue_v1');
+        localStorage.removeItem('sukunaru_last_supabase_sync');
+        localStorage.removeItem('sukunaru_pre_recovery_local_backup');
+      } catch {}
+    }
+
+    emitDataMutation();
+    return { success: true, settings: cleanSettings };
   },
 
   // Stats

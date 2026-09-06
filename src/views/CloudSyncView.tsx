@@ -404,7 +404,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
               <KeyIcon className="w-4 h-4 text-[#FF6A00]" />
               <span className="text-xs font-bold text-[#25343F] dark:text-white">Akun Lisensi Aktif:</span>
               <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-[#BFC9D1]/40 dark:border-slate-700 text-[#FF6A00]">
-                {syncState.activeLicenseKey || 'SKNR-DEFAULT-OFFLINE'}
+                {syncState.activeLicenseKey || 'Belum Ada Lisensi Aktif'}
               </span>
             </div>
             <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800">

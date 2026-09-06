@@ -363,7 +363,10 @@ export async function uploadTenantFile(
   }
 
   try {
-    const cleanLicense = licenseKey.trim().toUpperCase() || 'SKNR-DEFAULT-OFFLINE';
+    const cleanLicense = licenseKey ? licenseKey.trim().toUpperCase() : '';
+    if (!cleanLicense || cleanLicense === 'SKNR-DEFAULT-OFFLINE') {
+      return { success: false, error: 'Lisensi tidak aktif untuk mengunggah file.' };
+    }
     // Path structured in folders per license key: e.g. "SKNR-S001-8DA2-T5C4/logos/logo_17251829.png"
     const ext = fileName.split('.').pop() || 'png';
     const cleanName = `${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${ext}`;
@@ -399,7 +402,8 @@ export async function listTenantBackups(licenseKey: string): Promise<Array<{ nam
   const client = getSupabaseClient();
   if (!client) return [];
   try {
-    const cleanLicense = licenseKey.trim().toUpperCase() || 'SKNR-DEFAULT-OFFLINE';
+    const cleanLicense = licenseKey ? licenseKey.trim().toUpperCase() : '';
+    if (!cleanLicense || cleanLicense === 'SKNR-DEFAULT-OFFLINE') return [];
     const { data, error } = await client.storage
       .from(TENANT_STORAGE_BUCKET)
       .list(`${cleanLicense}/backups`, {

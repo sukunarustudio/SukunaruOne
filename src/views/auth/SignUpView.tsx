@@ -12,13 +12,11 @@ import appLogo from '../../assets/app-logo.png';
 interface SignUpViewProps {
   onSignUpSuccess: () => void;
   onNavigateToSignIn: () => void;
-  onContinueOffline: () => void;
 }
 
 export const SignUpView: React.FC<SignUpViewProps> = ({
   onSignUpSuccess,
   onNavigateToSignIn,
-  onContinueOffline,
 }) => {
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
@@ -235,17 +233,6 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
             </button>
           </p>
         </div>
-      </div>
-
-      {/* Offline Mode Option */}
-      <div className="mt-5 text-center">
-        <button
-          type="button"
-          onClick={onContinueOffline}
-          className="text-xs text-[#898989] hover:text-[#25343F] dark:hover:text-slate-200 transition underline underline-offset-2 cursor-pointer"
-        >
-          Lanjutkan tanpa akun (mode offline)
-        </button>
       </div>
 
       <div className="mt-4 text-center">

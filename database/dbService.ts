@@ -38,21 +38,21 @@ export const DatabaseService = {
     const row = db.prepare('SELECT * FROM settings WHERE id = ?').get('default_settings') as any;
     if (!row) {
       const defaultSettings: BusinessSettings = {
-        businessName: 'SUKUNARU STUDIO',
-        tagline: 'Solusi Usaha & Layanan Kreatif',
-        phone: '081234567890',
-        whatsapp: '081234567890',
-        email: 'sukunarustudio@gmail.com',
-        address: 'Jl. Raya Utama No. 88, Indonesia',
-        receiptHeader: 'SUKUNARU STUDIO - Solusi Produk & Layanan Berkualitas',
-        receiptFooter: 'Terima kasih telah bertransaksi di Sukunaru Studio! Layanan & produk kami selalu siap melayani Anda.',
-        bankAccount: 'BCA: 123-456-7890 a.n Sukunaru Studio\nMandiri: 987-654-3210 a.n Sukunaru Studio',
+        businessName: '',
+        tagline: '',
+        phone: '',
+        whatsapp: '',
+        email: '',
+        address: '',
+        receiptHeader: '',
+        receiptFooter: 'Terima kasih telah berbelanja!',
+        bankAccount: '',
         currency: 'IDR',
         invoicePrefix: 'INV-',
         receiptPrefix: 'STR-',
         defaultTaxPercent: 0,
         defaultDiscountPercent: 0,
-        footerNotes: 'Terima kasih atas kepercayaan Anda bermitra bersama kami!',
+        footerNotes: 'Terima kasih atas kepercayaan Anda!',
       };
       const stmt = db.prepare(`
         INSERT OR REPLACE INTO settings (

@@ -4,13 +4,11 @@ import { LockClosedIcon, ArrowRightOnRectangleIcon, UserPlusIcon, ShieldCheckIco
 interface LimitedModeViewProps {
   onSignIn: () => void;
   onSignUp: () => void;
-  onContinueOffline?: () => void;
 }
 
 export const LimitedModeView: React.FC<LimitedModeViewProps> = ({
   onSignIn,
   onSignUp,
-  onContinueOffline,
 }) => {
   return (
     <div className="min-h-screen bg-[#EAEFEF] dark:bg-[#0B0F17] flex items-center justify-center p-4">
@@ -57,18 +55,6 @@ export const LimitedModeView: React.FC<LimitedModeViewProps> = ({
             <span>Buat Akun Baru</span>
           </button>
         </div>
-
-        {onContinueOffline && (
-          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={onContinueOffline}
-              className="text-xs text-[#898989] dark:text-slate-400 hover:text-[#25343F] dark:hover:text-white underline cursor-pointer transition-colors"
-            >
-              Lanjutkan Mode Offline Tanpa Akun
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -13,17 +13,20 @@ import {
 } from '../types';
 
 export function getActiveLicenseKey(): string {
-  if (typeof window === 'undefined') return 'SKNR-DEFAULT-OFFLINE';
+  if (typeof window === 'undefined') return '';
   try {
     const saved = localStorage.getItem('sukunaru_license_info');
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.licenseKey && typeof parsed.licenseKey === 'string') {
-        return parsed.licenseKey.trim().toUpperCase();
+        const key = parsed.licenseKey.trim().toUpperCase();
+        if (key && key !== 'SKNR-DEFAULT-OFFLINE') {
+          return key;
+        }
       }
     }
   } catch {}
-  return 'SKNR-DEFAULT-OFFLINE';
+  return '';
 }
 
 // ── Model Transformers with Multi-Tenant License Key ───────────
@@ -568,9 +571,9 @@ export async function flushSyncQueue(): Promise<void> {
   const licenseKey = getActiveLicenseKey();
   const client = getSupabaseClient();
 
-  if (!client) {
+  if (!client || !licenseKey) {
     isFlushingQueue = false;
-    currentSyncState.status = 'ERROR';
+    currentSyncState.status = !client ? 'ERROR' : 'CONNECTED';
     notifyListeners();
     return;
   }
@@ -644,7 +647,7 @@ export async function performInitialCloudSync(): Promise<{
   }
 
   const licenseKey = getActiveLicenseKey();
-  if (!licenseKey || licenseKey === 'SKNR-DEFAULT-OFFLINE') {
+  if (!licenseKey) {
     return { hasCloudData: false, pulled: 0, message: 'License Key tidak aktif.' };
   }
 
@@ -808,7 +811,7 @@ export async function checkLocalAndCloudDataPresence(): Promise<DataPresenceInfo
 
   const client = getSupabaseClient();
   const licenseKey = getActiveLicenseKey();
-  if (!client || !licenseKey || licenseKey === 'SKNR-DEFAULT-OFFLINE') {
+  if (!client || !licenseKey) {
     return result;
   }
 
@@ -1021,7 +1024,7 @@ export async function syncWithSupabase(): Promise<{
 
   try {
     // 0. Refresh license info from Cloud in background
-    if (licenseKey && licenseKey !== 'SKNR-DEFAULT-OFFLINE') {
+    if (licenseKey) {
       fetchLatestLicense(licenseKey).catch(() => {});
     }
 

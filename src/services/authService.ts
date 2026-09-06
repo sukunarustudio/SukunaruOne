@@ -5,6 +5,7 @@
 import { SupabaseClient, User, Session, AuthError } from '@supabase/supabase-js';
 import { getSupabaseClient, verifyLicenseInCloud } from './supabaseClient';
 import { resolvePlan } from '../hooks/useLicense';
+import { localDb } from './localDb';
 
 function getAuthClient(): SupabaseClient {
   const client = getSupabaseClient();
@@ -65,6 +66,13 @@ export async function signUp(
     if (error) {
       return { success: false, message: translateAuthError(error) };
     }
+
+    // Reset local database to pristine state for new user so no previous session data leaks
+    await localDb.resetToCleanNewUserState(trimmedEmail, displayName);
+    try {
+      sessionStorage.setItem('sukunaru_is_new_signup', 'true');
+      sessionStorage.setItem('sukunaru_just_signed_in', 'true');
+    } catch {}
 
     return {
       success: true,
@@ -240,6 +248,9 @@ export async function restoreUserLicenseSession(user: User): Promise<{
         localStorage.setItem('sukunaru_license_info', JSON.stringify(licenseData));
         localStorage.setItem('sukunaru_onboarding_completed', 'true');
         unlockBusinessSession();
+
+        // Ensure newly provisioned account starts with completely clean database
+        await localDb.resetToCleanNewUserState(user.email, displayName);
 
         return {
           found: true,

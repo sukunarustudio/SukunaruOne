@@ -173,6 +173,10 @@ export const api = {
     }
   },
 
+  async resetToCleanNewUserState(userEmail?: string, displayName?: string): Promise<{ success: boolean; settings: BusinessSettings }> {
+    return localDb.resetToCleanNewUserState(userEmail, displayName);
+  },
+
   // Stats
   async getStats(): Promise<DashboardStats & { lowStockItems: Material[] }> {
     if (isStandaloneOffline()) return localDb.getStats();
