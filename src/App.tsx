@@ -482,13 +482,14 @@ function MainAppContent() {
     }
   };
 
-  const handleOnboardingComplete = () => {
+  const handleOnboardingComplete = (targetScreen?: 'sign-in' | 'sign-up') => {
     try {
       localStorage.setItem('sukunaru_onboarding_completed', 'true');
     } catch {}
     setIsOnboardingCompleted(true);
-    setCurrentView('dashboard');
-    refreshStatsAndSettings();
+    if (targetScreen) {
+      setAuthScreen(targetScreen);
+    }
   };
 
   // ── 1. Splash Screen Gate (Initial launch & session verification) ───────────
@@ -505,7 +506,17 @@ function MainAppContent() {
     );
   }
 
-  // ── 2. Auth / Limited Mode Gate ────────────────────────────────────────────
+  // ── 2. First Launch Onboarding Gate (BEFORE Sign In / Sign Up) ───────────
+  // If first launch after install: display smooth Onboarding first
+  if (!isOnboardingCompleted) {
+    return (
+      <OnboardingView
+        onComplete={handleOnboardingComplete}
+      />
+    );
+  }
+
+  // ── 3. Auth / Limited Mode Gate ────────────────────────────────────────────
   const needsAuth = authUser === null;
 
   if (needsAuth) {
@@ -552,17 +563,6 @@ function MainAppContent() {
         }}
         onNavigateToSignUp={() => setAuthScreen('sign-up')}
         onNavigateToForgotPassword={() => setAuthScreen('forgot-password')}
-      />
-    );
-  }
-
-  // If first launch after install: display smooth First Launch Onboarding
-  if (!isOnboardingCompleted) {
-    return (
-      <OnboardingView
-        settings={settings}
-        onUpdateSettings={newSet => setSettings(newSet)}
-        onComplete={handleOnboardingComplete}
       />
     );
   }
