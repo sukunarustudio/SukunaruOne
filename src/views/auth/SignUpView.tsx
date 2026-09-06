@@ -66,7 +66,7 @@ export const SignUpView: React.FC<SignUpViewProps> = ({
           localStorage.setItem('sukunaru_new_signup_welcome', 'true');
           localStorage.removeItem('sukunaru_last_acknowledged_plan');
         } catch {}
-        showToast('Akun berhasil dibuat! Selamat datang di BisnisUrang 🎉', 'success');
+        showToast('Pendaftaran berhasil. Menyiapkan akun Anda...', 'success');
         onSignUpSuccess();
       } else {
         setErrorMessage(result.message);

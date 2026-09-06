@@ -175,7 +175,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
       if (found && found.isActive) {
         addToCart(found);
         playScanSuccessFeedback();
-        showToast(`✓ ${found.name} ditambahkan ke keranjang`, 'success');
+        showToast(`${found.name} ditambahkan ke keranjang`, 'success');
         return true;
       } else if (found && !found.isActive) {
         playScanErrorFeedback();

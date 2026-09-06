@@ -149,7 +149,7 @@ function MainAppContent() {
 
           // Welcome toast for newly provisioned accounts
           if (isNewSignup) {
-            showToast('Selamat datang! Trial 14 hari Anda telah dimulai 🎉', 'success');
+            showToast('Trial Fitur Pro 14 hari telah aktif.', 'success');
           }
         } else if (!licRes.found && !licRes.valid) {
           // Provisioning failed (e.g., offline) — still let user in (offline mode)
