@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   ChevronLeftIcon,
   ArrowRightIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { BusinessSettings } from '../types';
 import appLogo from '../assets/app-logo.png';
@@ -22,11 +23,24 @@ interface SlideItem {
   badge: string;
   title: string;
   subtitle: string;
-  icon: React.ComponentType<{ className?: string }>;
+  isWelcome?: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
   highlights: string[];
 }
 
 const slides: SlideItem[] = [
+  {
+    id: 'slide-welcome',
+    badge: 'SELAMAT DATANG',
+    title: 'Selamat Datang di BisnisUrang',
+    subtitle: 'Satu ekosistem terpadu untuk mengelola seluruh aktivitas operasional bisnis Anda dengan lebih rapi, terstruktur, dan efisien.',
+    isWelcome: true,
+    highlights: [
+      'Solusi terintegrasi dari kasir hingga pembukuan keuangan',
+      'Dirancang untuk UMKM, ritel, percetakan & workshop',
+      'Dapat diakses lancar di smartphone, tablet, dan komputer',
+    ],
+  },
   {
     id: 'slide-pos-orders',
     badge: 'KASIR & PESANAN',
@@ -63,6 +77,18 @@ const slides: SlideItem[] = [
       'Ekspor laporan bisnis ke format Excel dan PDF',
     ],
   },
+  {
+    id: 'slide-trial-pro',
+    badge: 'TRIAL PRO 14 HARI GRATIS',
+    title: 'Coba Seluruh Fitur Pro Gratis 14 Hari',
+    subtitle: 'Daftarkan akun Anda sekarang dan langsung nikmati akses penuh tanpa komitmen untuk mengelola bisnis lebih maksimal sejak hari pertama.',
+    icon: SparklesIcon,
+    highlights: [
+      'Akses tanpa batas ke seluruh modul & fitur Pro',
+      'Realtime Cloud Sync untuk kolaborasi antar perangkat',
+      'Masa percobaan aktif otomatis tanpa memerlukan kartu kredit',
+    ],
+  },
 ];
 
 export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) => {
@@ -88,6 +114,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
 
   const activeSlide = slides[currentSlide];
   const IconComponent = activeSlide.icon;
+  const isLastSlide = currentSlide === slides.length - 1;
 
   return (
     <div className="min-h-screen bg-[#EAEFEF] dark:bg-[#0B0F17] flex flex-col justify-between px-4 py-6 sm:px-6 sm:py-8 transition-colors">
@@ -107,13 +134,15 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSkip}
-          className="text-xs font-semibold text-[#898989] hover:text-[#25343F] dark:text-slate-400 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer"
-        >
-          Lewati
-        </button>
+        {!isLastSlide && (
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="text-xs font-semibold text-[#898989] hover:text-[#25343F] dark:text-slate-400 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer"
+          >
+            Lewati
+          </button>
+        )}
       </header>
 
       {/* Main Slide Card (Clean fade transition, zero carousel jitter) */}
@@ -141,13 +170,27 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
             key={activeSlide.id}
             className="animate-in fade-in duration-300 flex flex-col items-center text-center"
           >
-            {/* Elegant Icon Badge */}
-            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/20 flex items-center justify-center text-[#FF6A00] dark:text-[#FF9B51] shadow-xs mb-5">
-              <IconComponent className="w-8 h-8 stroke-[1.8]" />
-            </div>
+            {/* Visual Icon / Logo Container */}
+            {activeSlide.isWelcome ? (
+              <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-md border border-[#BFC9D1]/40 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 mb-5 flex items-center justify-center">
+                <img src={appLogo} alt="BisnisUrang" className="w-full h-full object-cover rounded-xl" />
+              </div>
+            ) : IconComponent ? (
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-xs mb-5 ${
+                isLastSlide
+                  ? 'bg-gradient-to-br from-orange-500/20 to-amber-500/20 text-[#FF6A00] dark:text-[#FF9B51] border border-[#FF6A00]/30 ring-4 ring-orange-500/10'
+                  : 'bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/20 text-[#FF6A00] dark:text-[#FF9B51]'
+              }`}>
+                <IconComponent className="w-8 h-8 stroke-[1.8]" />
+              </div>
+            ) : null}
 
             {/* Category Tag */}
-            <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md bg-[#25343F]/5 dark:bg-slate-800 text-[#25343F] dark:text-slate-300 border border-[#25343F]/10 dark:border-slate-700/60 mb-2">
+            <span className={`text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md mb-2 ${
+              isLastSlide
+                ? 'bg-orange-500/15 text-[#FF6A00] dark:text-[#FF9B51] border border-orange-500/30'
+                : 'bg-[#25343F]/5 dark:bg-slate-800 text-[#25343F] dark:text-slate-300 border border-[#25343F]/10 dark:border-slate-700/60'
+            }`}>
               {activeSlide.badge}
             </span>
 
@@ -166,12 +209,24 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
               {activeSlide.highlights.map((highlight, hIdx) => (
                 <div
                   key={hIdx}
-                  className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 flex items-start gap-2.5"
+                  className={`p-3 rounded-xl flex items-start gap-2.5 transition-colors ${
+                    isLastSlide
+                      ? 'bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/40'
+                      : 'bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800'
+                  }`}
                 >
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                    isLastSlide
+                      ? 'bg-orange-500/15 text-[#FF6A00] dark:text-[#FF9B51]'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  }`}>
                     <CheckIcon className="w-3.5 h-3.5 stroke-[2.5]" />
                   </div>
-                  <span className="text-xs font-medium text-[#25343F] dark:text-slate-200 leading-relaxed">
+                  <span className={`text-xs font-medium leading-relaxed ${
+                    isLastSlide
+                      ? 'text-[#25343F] dark:text-slate-200 font-semibold'
+                      : 'text-[#25343F] dark:text-slate-200'
+                  }`}>
                     {highlight}
                   </span>
                 </div>
@@ -183,7 +238,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
 
       {/* Footer Controls */}
       <footer className="w-full max-w-md mx-auto space-y-3">
-        {currentSlide < slides.length - 1 ? (
+        {!isLastSlide ? (
           <div className="flex items-center gap-2.5">
             {currentSlide > 0 && (
               <button
@@ -210,9 +265,9 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
             <button
               type="button"
               onClick={() => onComplete('sign-up')}
-              className="w-full h-12 px-5 rounded-xl bg-[#FF6A00] hover:bg-[#e65c00] active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-sm transition inline-flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full h-12 px-5 rounded-xl bg-[#FF6A00] hover:bg-[#e65c00] active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/20 transition inline-flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Mulai Sekarang (Daftar Akun)</span>
+              <span>Daftar Sekarang &amp; Klaim Pro 14 Hari</span>
               <ArrowRightIcon className="w-4 h-4 stroke-[2.2]" />
             </button>
 
