@@ -120,6 +120,11 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 
 export async function signOut(): Promise<{ success: boolean; message: string }> {
   try {
+    try {
+      await localDb.resetToCleanLoggedOutState();
+    } catch (e) {
+      console.warn('[SignOut Local Clean Warning]:', e);
+    }
     const { error } = await getAuthClient().auth.signOut();
     if (error) {
       return { success: false, message: translateAuthError(error) };

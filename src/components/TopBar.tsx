@@ -6,7 +6,6 @@ interface TopBarProps {
   currentView: ViewType;
   onNavigate: (view: ViewType) => void;
   onOpenSearch: () => void;
-  onResetSampleData: () => void;
   settings: BusinessSettings;
   isSidebarCollapsed: boolean;
   onToggleSidebar: () => void;
@@ -17,7 +16,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   currentView,
   onNavigate,
   onOpenSearch,
-  onResetSampleData,
   settings,
   isSidebarCollapsed,
   onToggleSidebar,

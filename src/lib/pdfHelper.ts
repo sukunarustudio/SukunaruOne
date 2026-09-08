@@ -212,6 +212,28 @@ export function printIsolatedElement(
       return false;
     }
 
+    // On Native Android / APK: WebView does not support window.print().
+    // Export high-res PDF and trigger native Android system print/share sheet.
+    if (Capacitor.isNativePlatform()) {
+      const pdfFormat =
+        paperSize === '58mm'
+          ? [58, 0]
+          : paperSize === '80mm'
+          ? [80, 0]
+          : paperSize === 'auto'
+          ? 'a5'
+          : (paperSize as any);
+
+      downloadElementAsPdf(targetElement, {
+        filename: `${title}.pdf`,
+        format: pdfFormat,
+        orientation: orientation,
+      }).catch(err => {
+        console.error('[Native Android Print Error]:', err);
+      });
+      return true;
+    }
+
     const isThermalReceipt = paperSize === '58mm' || paperSize === '80mm';
     const thermalWidthCss = paperSize === '58mm' ? '58mm' : '80mm';
     const isA5 = paperSize === 'a5';

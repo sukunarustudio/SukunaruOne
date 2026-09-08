@@ -471,17 +471,6 @@ function MainAppContent() {
     };
   }, [handleNavigate, showToast]);
 
-  const handleResetSampleData = async () => {
-    try {
-      await api.resetSampleData();
-      showToast('Data berhasil di-reset ke sample default!', 'success');
-      await refreshStatsAndSettings();
-      handleNavigate('dashboard');
-    } catch (err: any) {
-      showToast(err.message || 'Gagal mereset data', 'error');
-    }
-  };
-
   const handleOnboardingComplete = (targetScreen?: 'sign-in' | 'sign-up') => {
     try {
       localStorage.setItem('sukunaru_onboarding_completed', 'true');
@@ -591,7 +580,6 @@ function MainAppContent() {
           currentView={currentView}
           onNavigate={handleNavigate}
           onOpenSearch={() => setIsSearchOpen(true)}
-          onResetSampleData={handleResetSampleData}
           settings={settings}
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={toggleSidebarCollapse}
@@ -713,7 +701,6 @@ function MainAppContent() {
             <SettingsView
               settings={settings}
               onUpdateSettings={newSet => setSettings(newSet)}
-              onResetSampleData={handleResetSampleData}
               onRefreshDashboard={refreshStatsAndSettings}
               onNavigate={view => handleNavigate(view as ViewType)}
               previousView={previousView}
@@ -732,7 +719,6 @@ function MainAppContent() {
               onNavigate={handleNavigate}
               onUpdateSettings={setSettings}
               onRefreshDashboard={refreshStatsAndSettings}
-              onResetSampleData={handleResetSampleData}
               previousView={previousView}
             />
           )}

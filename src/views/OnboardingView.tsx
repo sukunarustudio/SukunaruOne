@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ShoppingCartIcon,
   CalculatorIcon,
@@ -93,6 +93,8 @@ const slides: SlideItem[] = [
 
 export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) => {
   const [currentSlide, setCurrentSlide] = useState<number>(0);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
@@ -112,12 +114,41 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
     onComplete('sign-in');
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+
+    // Detect horizontal swipe if deltaX exceeds 40px and is primarily horizontal
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      if (deltaX < 0) {
+        // Swipe left -> Next slide
+        handleNext();
+      } else {
+        // Swipe right -> Prev slide
+        handlePrev();
+      }
+    }
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
   const activeSlide = slides[currentSlide];
   const IconComponent = activeSlide.icon;
   const isLastSlide = currentSlide === slides.length - 1;
 
   return (
-    <div className="min-h-screen bg-[#EAEFEF] dark:bg-[#0B0F17] flex flex-col justify-between px-4 py-6 sm:px-6 sm:py-8 transition-colors">
+    <div
+      className="min-h-screen bg-[#EAEFEF] dark:bg-[#0B0F17] flex flex-col justify-between px-4 py-6 sm:px-6 sm:py-8 transition-colors select-none"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Top Header */}
       <header className="w-full max-w-md mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -145,7 +176,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
         )}
       </header>
 
-      {/* Main Slide Card (Clean fade transition, zero carousel jitter) */}
+      {/* Main Slide Card (Clean fade transition, touch swipe enabled) */}
       <main className="w-full max-w-md mx-auto my-auto py-4">
         <div className="bg-white dark:bg-[#151D2A] rounded-3xl border border-[#BFC9D1]/30 dark:border-slate-800 shadow-sm p-6 sm:p-8 relative overflow-hidden transition-all">
           {/* Progress Indicators */}

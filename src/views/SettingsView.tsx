@@ -28,7 +28,6 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 interface SettingsViewProps {
   settings: BusinessSettings;
   onUpdateSettings: (newSettings: BusinessSettings) => void;
-  onResetSampleData?: () => void;
   onRefreshDashboard?: () => void;
   onNavigate?: (view: string) => void;
   previousView?: string;
@@ -37,7 +36,6 @@ interface SettingsViewProps {
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
   onUpdateSettings,
-  onResetSampleData,
   onRefreshDashboard,
   onNavigate,
   previousView = 'dashboard',
@@ -52,7 +50,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [isClearingTransactions, setIsClearingTransactions] = useState(false);
   const [isClearTransactionsConfirmOpen, setIsClearTransactionsConfirmOpen] = useState(false);
-  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   const handleClearAllTransactions = async () => {
     try {
@@ -235,10 +232,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 font-bold text-rose-900 text-xs sm:text-sm">
               <TrashIcon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span>Hapus Semua Riwayat Transaksi</span>
+              <span>Hapus Riwayat Data</span>
             </div>
             <p className="text-[11px] text-[#898989] mt-1 leading-relaxed">
-              Hapus invoice, struk kasir & arus kas. Data produk, bahan, dan pelanggan tetap tersimpan.
+              Hapus seluruh riwayat transaksi, pesanan, produk, dan bahan baku (Lokal &amp; Cloud). Akun, lisensi, dan profil bisnis tetap aman.
             </p>
           </div>
           <button
@@ -249,51 +246,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             Hapus Riwayat
           </button>
         </div>
-
-        {/* Reset Sample */}
-        {onResetSampleData && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#EAEFEF]/60 rounded-xl border border-[#BFC9D1]/30">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 font-bold text-[#25343F] text-xs sm:text-sm">
-                <ArrowPathIcon className="w-3.5 h-3.5 text-[#0284C7] shrink-0" />
-                <span>Muat Ulang Data Sampel Default</span>
-              </div>
-              <p className="text-[11px] text-[#898989] mt-1 leading-relaxed">
-                Kembalikan database ke template awal untuk demo.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsResetConfirmOpen(true)}
-              className="px-4 py-2 bg-[#25343F] hover:bg-[#1b262f] text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer active:scale-95 transition-colors shadow-sm"
-            >
-              Reset Sample
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Confirm Dialogs */}
       <ConfirmDialog
         isOpen={isClearTransactionsConfirmOpen}
-        title="Hapus Semua Riwayat Transaksi?"
-        message="Tindakan ini akan mengosongkan seluruh riwayat pesanan, struk kasir, pengeluaran, dan arus kas. Data bahan dan produk tetap tersimpan."
+        title="Hapus Semua Riwayat Data?"
+        message="Tindakan ini akan mengosongkan seluruh riwayat transaksi, pesanan, produk, dan bahan baku baik di perangkat ini maupun di Supabase Cloud. Akun, lisensi, dan profil bisnis Anda tetap aman."
         confirmLabel={isClearingTransactions ? 'Menghapus...' : 'Ya, Hapus Semua'}
         isDanger={true}
         onConfirm={handleClearAllTransactions}
         onCancel={() => setIsClearTransactionsConfirmOpen(false)}
-      />
-      <ConfirmDialog
-        isOpen={isResetConfirmOpen}
-        title="Reset ke Data Sampel Default?"
-        message="Seluruh data saat ini akan digantikan dengan data contoh awal."
-        confirmLabel="Ya, Reset Sekarang"
-        isDanger={false}
-        onConfirm={() => {
-          setIsResetConfirmOpen(false);
-          if (onResetSampleData) onResetSampleData();
-        }}
-        onCancel={() => setIsResetConfirmOpen(false)}
       />
     </div>
   );

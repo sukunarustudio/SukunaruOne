@@ -479,8 +479,10 @@ export const api = {
           try {
             await client.from('transactions').delete().eq('license_key', licenseKey);
             await client.from('orders').delete().eq('license_key', licenseKey);
+            await client.from('products').delete().eq('license_key', licenseKey);
+            await client.from('materials').delete().eq('license_key', licenseKey);
             await client.from('financial_transactions').delete().eq('license_key', licenseKey);
-            if (options.resetExpenses) {
+            if (options.resetExpenses !== false) {
               await client.from('expenses').delete().eq('license_key', licenseKey);
             }
 

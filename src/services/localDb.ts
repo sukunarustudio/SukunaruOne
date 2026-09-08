@@ -233,6 +233,54 @@ export const localDb = {
     return { success: true, settings: cleanSettings };
   },
 
+  async resetToCleanLoggedOutState(): Promise<{ success: boolean }> {
+    const cleanSettings: BusinessSettings = {
+      businessName: '',
+      tagline: '',
+      address: '',
+      phone: '',
+      whatsapp: '',
+      email: '',
+      receiptHeader: '',
+      receiptFooter: 'Terima kasih telah berbelanja!',
+      bankAccount: '',
+      currency: 'IDR',
+      invoicePrefix: 'INV-',
+      receiptPrefix: 'STR-',
+      defaultTaxPercent: 0,
+      defaultDiscountPercent: 0,
+      footerNotes: 'Terima kasih atas kepercayaan Anda!',
+    };
+
+    const cleanDb: LocalDatabaseSchema = {
+      settings: cleanSettings,
+      customers: [],
+      materials: [],
+      inventory_movements: [],
+      products: [],
+      orders: [],
+      transactions: [],
+      expenses: [],
+      financial_transactions: [],
+    };
+
+    setLocalData(cleanDb);
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('sukunaru_sync_queue_v1');
+        localStorage.removeItem('sukunaru_last_supabase_sync');
+        localStorage.removeItem('sukunaru_pre_recovery_local_backup');
+        localStorage.removeItem('sukunaru_license_info');
+        localStorage.removeItem('sukunaru_last_acknowledged_plan');
+        localStorage.removeItem('sukunaru_new_signup_welcome');
+      } catch {}
+    }
+
+    emitDataMutation();
+    return { success: true };
+  },
+
   // Stats
   async getStats(): Promise<DashboardStats & { lowStockItems: Material[] }> {
     const db = getLocalData();
@@ -815,14 +863,16 @@ export const localDb = {
     const db = getLocalData();
     const trxCount = db.transactions.length;
     const ordCount = db.orders.length;
-    const expCount = options.resetExpenses ? db.expenses.length : 0;
+    const expCount = options.resetExpenses !== false ? db.expenses.length : 0;
     const finCount = db.financial_transactions.length;
 
     db.transactions = [];
     db.orders = [];
+    db.products = [];
+    db.materials = [];
     db.financial_transactions = [];
-    if (options.resetExpenses) db.expenses = [];
-    if (options.resetMovements) db.inventory_movements = [];
+    db.inventory_movements = [];
+    if (options.resetExpenses !== false) db.expenses = [];
 
     // Reset customer transaction statistics
     if (Array.isArray(db.customers)) {
@@ -840,7 +890,7 @@ export const localDb = {
     setLocalData(db);
     return {
       success: true,
-      message: 'Semua riwayat transaksi berhasil dihapus.',
+      message: 'Semua riwayat transaksi, pesanan, produk, dan bahan baku berhasil dihapus.',
       deletedCounts: {
         transactions: trxCount,
         orders: ordCount,

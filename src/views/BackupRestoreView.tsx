@@ -33,7 +33,6 @@ interface BackupRestoreViewProps {
   onNavigate?: (view: ViewType) => void;
   onUpdateSettings?: (settings: BusinessSettings) => void;
   onRefreshDashboard?: () => void;
-  onResetSampleData?: () => void;
   previousView?: ViewType;
 }
 
@@ -41,7 +40,6 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
   onNavigate,
   onUpdateSettings,
   onRefreshDashboard,
-  onResetSampleData,
   previousView = 'profile',
 }) => {
   const { showToast } = useToast();
@@ -53,7 +51,6 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
   const [isRestoring, setIsRestoring] = useState(false);
   const [isClearingTransactions, setIsClearingTransactions] = useState(false);
   const [isClearTransactionsConfirmOpen, setIsClearTransactionsConfirmOpen] = useState(false);
-  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   // --- CLOUD BACKUP SNAPSHOTS STATE ---
   const [isCreatingCloudBackup, setIsCreatingCloudBackup] = useState(false);

@@ -351,7 +351,7 @@ function finTransactionFromSupabase(row: any): FinancialTransaction {
 function settingsToSupabase(s: BusinessSettings, licenseKey: string) {
   return {
     license_key: licenseKey,
-    business_name: s.businessName || 'BisnisUrang Studio',
+    business_name: s.businessName || '',
     tagline: s.tagline || null,
     phone: s.phone || null,
     whatsapp: s.whatsapp || null,
@@ -374,14 +374,14 @@ function settingsToSupabase(s: BusinessSettings, licenseKey: string) {
 
 function settingsFromSupabase(row: any): BusinessSettings {
   return {
-    businessName: row.business_name || 'BisnisUrang Studio',
+    businessName: row.business_name || '',
     tagline: row.tagline || '',
     phone: row.phone || '',
     whatsapp: row.whatsapp || '',
     email: row.email || '',
     address: row.address || '',
     receiptHeader: row.receipt_header || '',
-    receiptFooter: row.receipt_footer || '',
+    receiptFooter: row.receipt_footer || 'Terima kasih telah berbelanja!',
     bankAccount: row.bank_account || '',
     logoUrl: row.logo_url || undefined,
     currency: row.currency || 'IDR',
@@ -389,7 +389,7 @@ function settingsFromSupabase(row: any): BusinessSettings {
     receiptPrefix: row.receipt_prefix || 'STR-',
     defaultTaxPercent: Number(row.default_tax_percent) || 0,
     defaultDiscountPercent: Number(row.default_discount_percent) || 0,
-    footerNotes: row.footer_notes || '',
+    footerNotes: row.footer_notes || 'Terima kasih atas kepercayaan Anda!',
     historyClearedAt: row.history_cleared_at || undefined,
   };
 }
@@ -440,7 +440,7 @@ function saveSyncQueue(queue: SyncQueueItem[]): void {
 
 export function clearSyncQueueForHistory(): void {
   const queue = getSyncQueue();
-  const historyTables = new Set(['transactions', 'orders', 'expenses', 'financial_transactions', 'inventory_movements']);
+  const historyTables = new Set(['transactions', 'orders', 'products', 'materials', 'expenses', 'financial_transactions', 'inventory_movements']);
   const filtered = queue.filter(item => !historyTables.has(item.table));
   saveSyncQueue(filtered);
 }
@@ -816,12 +816,20 @@ export async function checkLocalAndCloudDataPresence(): Promise<DataPresenceInfo
   }
 
   try {
-    const [pRes, oRes, tRes, cRes] = await Promise.all([
+    const [pRes, oRes, tRes, cRes, mRes, sRes] = await Promise.all([
       client.from('products').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
       client.from('orders').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
       client.from('transactions').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
       client.from('customers').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
+      client.from('materials').select('id', { count: 'exact', head: true }).eq('license_key', licenseKey),
+      client.from('business_settings').select('business_name, logo_url, phone, whatsapp, email, tagline, address').eq('license_key', licenseKey).limit(1),
     ]);
+
+    const hasCloudSettings = Boolean(
+      sRes.data &&
+      sRes.data.length > 0 &&
+      (sRes.data[0].business_name || sRes.data[0].logo_url || sRes.data[0].whatsapp || sRes.data[0].phone || sRes.data[0].address)
+    );
 
     result.cloudCounts = {
       products: pRes.count || 0,
@@ -834,7 +842,9 @@ export async function checkLocalAndCloudDataPresence(): Promise<DataPresenceInfo
       (pRes.count || 0) > 0 ||
       (oRes.count || 0) > 0 ||
       (tRes.count || 0) > 0 ||
-      (cRes.count || 0) > 0;
+      (cRes.count || 0) > 0 ||
+      (mRes.count || 0) > 0 ||
+      hasCloudSettings;
   } catch (err) {
     console.warn('[Check Cloud Data Error]:', err);
   }
@@ -1066,14 +1076,6 @@ export async function syncWithSupabase(): Promise<{
     }
 
     // ── 1. SYNC SETTINGS ──────────────────────────────────────
-    // Only push settings if businessName has been customized (not default)
-    const isDefaultSettings = rawLocal.settings.businessName === 'Nama Bisnis Anda';
-    if (rawLocal.settings && !isDefaultSettings) {
-      const setPayload = settingsToSupabase(rawLocal.settings, licenseKey);
-      await client.from('business_settings').upsert(setPayload);
-      pushed++;
-    }
-
     const { data: remoteSettings } = await client
       .from('business_settings')
       .select('*')
@@ -1095,6 +1097,8 @@ export async function syncWithSupabase(): Promise<{
         // Refresh rawLocal in memory so subsequent push logic in this function doesn't push deleted transactions!
         rawLocal.transactions = [];
         rawLocal.orders = [];
+        rawLocal.products = [];
+        rawLocal.materials = [];
         rawLocal.financial_transactions = [];
         rawLocal.expenses = [];
         rawLocal.inventory_movements = [];
@@ -1102,6 +1106,11 @@ export async function syncWithSupabase(): Promise<{
 
       await localDb.updateSettings(settingsFromSupabase(rSet));
       pulled++;
+    } else if (rawLocal.settings && rawLocal.settings.businessName && rawLocal.settings.businessName !== 'Nama Bisnis Anda') {
+      // Only push new settings if cloud has no settings record at all and local has customized name
+      const setPayload = settingsToSupabase(rawLocal.settings, licenseKey);
+      await client.from('business_settings').upsert(setPayload);
+      pushed++;
     }
 
     // ── 2. SYNC CUSTOMERS ────────────────────────────────────

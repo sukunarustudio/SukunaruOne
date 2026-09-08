@@ -1288,20 +1288,23 @@ export const DatabaseService = {
       db.prepare('DELETE FROM order_items').run();
       db.prepare('DELETE FROM orders').run();
 
-      // 3. Delete Expenses
+      // 3. Delete Products & Product Components
+      db.prepare('DELETE FROM product_materials').run();
+      db.prepare('DELETE FROM products').run();
+
+      // 4. Delete Inventory & Materials
+      db.prepare('DELETE FROM inventory_movements').run();
+      db.prepare('DELETE FROM materials').run();
+
+      // 5. Delete Expenses
       if (resetExpenses) {
         db.prepare('DELETE FROM expenses').run();
       }
 
-      // 4. Delete Financial Cashflow Entries
+      // 6. Delete Financial Cashflow Entries
       db.prepare('DELETE FROM financial_transactions').run();
 
-      // 5. Reset Inventory Movements
-      if (resetMovements) {
-        db.prepare("DELETE FROM inventory_movements WHERE referenceType IN ('POS', 'ORDER', 'RESTOCK', 'MANUAL')").run();
-      }
-
-      // 6. Reset Customer spend & order counters (keep customer master data intact)
+      // 7. Reset Customer spend & order counters (keep customer master data intact)
       db.prepare('UPDATE customers SET totalSpent = 0, totalOrders = 0, lastTransactionDate = NULL').run();
     });
 
@@ -1309,7 +1312,7 @@ export const DatabaseService = {
 
     return {
       success: true,
-      message: 'Semua data transaksi kasir, pesanan, dan arus kas berhasil dihapus dan direset.',
+      message: 'Semua riwayat transaksi, pesanan, produk, dan bahan baku berhasil dihapus.',
       deletedCounts: {
         transactions: trxCount,
         orders: orderCount,

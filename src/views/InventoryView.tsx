@@ -108,9 +108,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
       name: '',
       category: '',
       unit: 'pcs',
-      currentStock: 50,
-      minStock: 20,
-      unitCost: 1000,
+      currentStock: 0,
+      minStock: 0,
+      unitCost: 0,
       supplier: '',
       supplierContact: '',
     });
@@ -837,9 +837,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
                   <input
                     type="number"
                     min="0"
-                    value={matForm.currentStock}
+                    step="any"
+                    placeholder="0"
+                    value={matForm.currentStock === 0 ? '' : matForm.currentStock}
                     onChange={e =>
-                      setMatForm({ ...matForm, currentStock: parseFloat(e.target.value) || 0 })
+                      setMatForm({ ...matForm, currentStock: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                     }
                     className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl font-bold"
                   />
@@ -849,21 +851,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
                   <input
                     type="number"
                     min="0"
-                    value={matForm.minStock}
+                    step="any"
+                    placeholder="0"
+                    value={matForm.minStock === 0 ? '' : matForm.minStock}
                     onChange={e =>
-                      setMatForm({ ...matForm, minStock: parseFloat(e.target.value) || 0 })
+                      setMatForm({ ...matForm, minStock: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })
                     }
                     className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl font-bold text-[#c45e00]"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-[#25343F] mb-1">Harga Beli / Satuan</label>
+                  <label className="block font-bold text-[#25343F] mb-1">Harga Beli / Satuan (Rp)</label>
                   <input
                     type="number"
                     min="0"
-                    value={matForm.unitCost}
+                    placeholder="0"
+                    value={matForm.unitCost === 0 ? '' : matForm.unitCost}
                     onChange={e =>
-                      setMatForm({ ...matForm, unitCost: parseInt(e.target.value, 10) || 0 })
+                      setMatForm({ ...matForm, unitCost: e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0 })
                     }
                     className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl font-bold text-[#25343F]"
                   />
@@ -958,8 +963,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
                   min="0.1"
                   step="any"
                   required
-                  value={adjustQuantity || ''}
-                  onChange={e => setAdjustQuantity(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  value={adjustQuantity === 0 ? '' : adjustQuantity}
+                  onChange={e => setAdjustQuantity(e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl text-base font-bold text-[#25343F]"
                 />
               </div>
@@ -973,8 +979,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
                       <input
                         type="number"
                         min="0"
-                        value={adjustUnitPrice || ''}
-                        onChange={e => setAdjustUnitPrice(parseInt(e.target.value, 10) || 0)}
+                        placeholder="0"
+                        value={adjustUnitPrice === 0 ? '' : adjustUnitPrice}
+                        onChange={e => setAdjustUnitPrice(e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                         className="w-full px-2.5 py-1.5 bg-white border border-[#BFC9D1]/25 rounded-lg font-bold text-[#25343F]"
                       />
                     </div>

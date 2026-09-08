@@ -70,11 +70,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   const handleSignOut = async () => {
-    if (!window.confirm('Keluar dari akun BisnisUrang? Data lokal Anda tetap aman di perangkat ini.')) return;
+    if (!window.confirm('Keluar dari akun BisnisUrang? Data akun dan bisnis Anda tersimpan aman di Cloud.')) return;
     setIsSigningOut(true);
     try {
       pauseRealtime();
       lockBusinessSession();
+      try {
+        await localDb.resetToCleanLoggedOutState();
+      } catch {}
       const result = await signOut();
       if (result.success) {
         showToast('Berhasil keluar dari akun.', 'success');
