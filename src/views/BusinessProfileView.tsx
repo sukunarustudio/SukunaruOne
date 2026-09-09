@@ -1,8 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { BuildingStorefrontIcon, DocumentCheckIcon, CameraIcon, ArrowPathIcon, TrashIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import {
+  BuildingStorefrontIcon,
+  DocumentCheckIcon,
+  CameraIcon,
+  ArrowPathIcon,
+  TrashIcon,
+  ArrowLeftIcon,
+  AdjustmentsHorizontalIcon,
+} from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import { BusinessSettings, ViewType } from '../types';
 import { useToast } from '../components/Toast';
+import { ImageCropperModal } from '../components/ImageCropperModal';
 
 interface BusinessProfileViewProps {
   settings: BusinessSettings;
@@ -21,9 +30,14 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isDeletingLogo, setIsDeletingLogo] = useState(false);
 
+  // Manual Crop / Edit State
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string>('');
+  const [isCropperSaving, setIsCropperSaving] = useState(false);
+
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -40,18 +54,55 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
       return;
     }
 
+    const reader = new FileReader();
+    reader.onload = (loadEvt) => {
+      const result = loadEvt.target?.result as string;
+      if (result) {
+        setCropImageSrc(result);
+        setIsCropperOpen(true);
+      }
+    };
+    reader.readAsDataURL(file);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
+
+  const handleCropperChangeFile = (file: File) => {
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      showToast('Format gambar tidak didukung. Gunakan JPG, PNG, atau WebP.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (loadEvt) => {
+      const result = loadEvt.target?.result as string;
+      if (result) {
+        setCropImageSrc(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveCroppedLogo = async (croppedDataUrl: string, croppedFile: File) => {
     try {
+      setIsCropperSaving(true);
       setIsUploadingLogo(true);
-      const res = await api.uploadBusinessLogo(file);
+      const res = await api.uploadBusinessLogo(croppedFile);
       setFormData(prev => ({ ...prev, logoUrl: res.logoUrl }));
       onUpdateSettings(res.settings);
-      showToast('Foto profil / logo bisnis berhasil diunggah!', 'success');
+      setIsCropperOpen(false);
+      showToast('Foto profil bisnis 1:1 berhasil disimpan!', 'success');
     } catch (err: any) {
       showToast(err.message || 'Gagal mengunggah foto profil bisnis', 'error');
     } finally {
+      setIsCropperSaving(false);
       setIsUploadingLogo(false);
-      if (logoInputRef.current) logoInputRef.current.value = '';
     }
+  };
+
+  const handleOpenExistingPhotoCropper = () => {
+    if (!formData.logoUrl) return;
+    setCropImageSrc(formData.logoUrl);
+    setIsCropperOpen(true);
   };
 
   const handleDeleteLogo = async () => {
@@ -165,7 +216,7 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
             <input
               ref={logoInputRef}
               type="file"
@@ -174,11 +225,24 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
               onChange={handleLogoChange}
             />
 
+            {formData.logoUrl && (
+              <button
+                type="button"
+                disabled={isUploadingLogo || isCropperSaving}
+                onClick={handleOpenExistingPhotoCropper}
+                className="px-3.5 py-2 bg-white hover:bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-colors cursor-pointer disabled:opacity-50 active:scale-95"
+                title="Sesuaikan Posisi & Zoom Foto"
+              >
+                <AdjustmentsHorizontalIcon className="w-3.5 h-3.5 text-[#FF9B51]" />
+                <span>Sesuaikan (1:1)</span>
+              </button>
+            )}
+
             <button
               type="button"
-              disabled={isUploadingLogo}
+              disabled={isUploadingLogo || isCropperSaving}
               onClick={() => logoInputRef.current?.click()}
-              className="flex-1 sm:flex-none px-3.5 py-2 bg-white hover:bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2 bg-white hover:bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-colors cursor-pointer disabled:opacity-50 active:scale-95"
             >
               {isUploadingLogo ? (
                 <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-[#898989]" />
@@ -191,9 +255,9 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
             {formData.logoUrl && (
               <button
                 type="button"
-                disabled={isDeletingLogo || isUploadingLogo}
+                disabled={isDeletingLogo || isUploadingLogo || isCropperSaving}
                 onClick={handleDeleteLogo}
-                className="px-3.5 py-2 bg-[#FF9B51]/8 hover:bg-[#FF9B51]/15 text-[#c45e00] border border-[#FF9B51]/40 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-3.5 py-2 bg-[#FF9B51]/8 hover:bg-[#FF9B51]/15 text-[#c45e00] border border-[#FF9B51]/40 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 active:scale-95"
                 title="Hapus Logo"
               >
                 {isDeletingLogo ? (
@@ -286,6 +350,17 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
           />
         </div>
       </form>
+
+      {/* Manual 1:1 Image Cropper & Editor Modal */}
+      <ImageCropperModal
+        isOpen={isCropperOpen}
+        imageSrc={cropImageSrc}
+        title="Sesuaikan Foto Profil Bisnis (1:1)"
+        onClose={() => setIsCropperOpen(false)}
+        onSave={handleSaveCroppedLogo}
+        isSaving={isCropperSaving}
+        onChangeImageFile={handleCropperChangeFile}
+      />
     </div>
   );
 };

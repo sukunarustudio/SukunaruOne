@@ -107,6 +107,50 @@ export function fileToDataUrl(file: File, maxDimension = 600, quality = 0.85): P
   });
 }
 
+// Helper: Convert, center-crop, and compress image to 1:1 square base64 Data URL
+export function squareImageToDataUrl(fileOrBlob: Blob | File, targetDimension = 512, quality = 0.88): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (fileOrBlob.type.includes('svg')) {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(fileOrBlob);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetDimension;
+        canvas.height = targetDimension;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, targetDimension, targetDimension);
+
+        const format = fileOrBlob.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const dataUrl = canvas.toDataURL(format, quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => resolve(e.target?.result as string);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = error => reject(error);
+    reader.readAsDataURL(fileOrBlob);
+  });
+}
+
 export function reconcileFinancialTransactions(db: LocalDatabaseSchema): boolean {
   if (!db) return false;
   let changed = false;
@@ -320,7 +364,7 @@ export const localDb = {
   },
 
   async uploadBusinessLogo(file: File): Promise<{ success: boolean; logoUrl: string; settings: BusinessSettings }> {
-    const dataUrl = await fileToDataUrl(file);
+    const dataUrl = await squareImageToDataUrl(file, 512, 0.88);
     const db = getLocalData();
     db.settings.logoUrl = dataUrl;
     setLocalData(db);

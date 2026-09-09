@@ -44,9 +44,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [formData, setFormData] = useState<BusinessSettings>({ ...settings });
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [isDeletingLogo, setIsDeletingLogo] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [isClearingTransactions, setIsClearingTransactions] = useState(false);
   const [isClearTransactionsConfirmOpen, setIsClearTransactionsConfirmOpen] = useState(false);
@@ -62,52 +59,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       showToast(err.message || 'Gagal menghapus transaksi', 'error');
     } finally {
       setIsClearingTransactions(false);
-    }
-  };
-
-  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      showToast('Format gambar tidak didukung. Gunakan JPG, PNG, atau WebP.', 'error');
-      if (logoInputRef.current) logoInputRef.current.value = '';
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('Ukuran foto terlalu besar. Maksimal 10MB.', 'error');
-      if (logoInputRef.current) logoInputRef.current.value = '';
-      return;
-    }
-
-    try {
-      setIsUploadingLogo(true);
-      const res = await api.uploadBusinessLogo(file);
-      setFormData(prev => ({ ...prev, logoUrl: res.logoUrl }));
-      onUpdateSettings(res.settings);
-      showToast('Foto profil / logo bisnis berhasil diunggah!', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Gagal mengunggah foto profil bisnis', 'error');
-    } finally {
-      setIsUploadingLogo(false);
-      if (logoInputRef.current) logoInputRef.current.value = '';
-    }
-  };
-
-  // Handle Delete Business Logo
-  const handleDeleteLogo = async () => {
-    try {
-      setIsDeletingLogo(true);
-      const res = await api.deleteBusinessLogo();
-      setFormData(prev => ({ ...prev, logoUrl: '' }));
-      onUpdateSettings(res.settings);
-      showToast('Foto profil bisnis berhasil dihapus.', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Gagal menghapus foto profil', 'error');
-    } finally {
-      setIsDeletingLogo(false);
     }
   };
 
