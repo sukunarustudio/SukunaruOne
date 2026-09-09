@@ -62,13 +62,13 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const id = Date.now().toString() + Math.random().toString(36).substring(2, 6);
 
     setToasts(prev => {
-      // Limit to max 3 concurrent toasts to prevent screen clutter
-      const filtered = prev.length >= 3 ? prev.slice(prev.length - 2) : prev;
+      // Limit to max 2 concurrent toasts to prevent screen clutter
+      const filtered = prev.length >= 2 ? prev.slice(prev.length - 1) : prev;
       return [...filtered, { id, message: cleanMsg, type, createdAt: Date.now() }];
     });
 
     // Dynamic duration based on message length & type
-    const duration = type === 'error' ? 3200 : cleanMsg.length > 45 ? 2800 : 2000;
+    const duration = type === 'error' ? 3000 : cleanMsg.length > 45 ? 2600 : 1900;
 
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
@@ -79,10 +79,10 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     <ToastContext.Provider value={{ showToast }}>
       {children}
 
-      {/* Floating Unobtrusive Toast Container (Top Center on mobile, Top Right on desktop) */}
+      {/* Floating Low-Opacity Minimal Toast Container */}
       <div
         id="toast-container"
-        className="fixed top-3.5 sm:top-5 right-0 left-0 sm:left-auto sm:right-6 z-[100] flex flex-col items-center sm:items-end gap-2 pointer-events-none px-4 sm:px-0 max-w-full"
+        className="fixed top-3 sm:top-5 right-0 left-0 sm:left-auto sm:right-6 z-[100] flex flex-col items-center sm:items-end gap-1.5 pointer-events-none px-4 sm:px-0 max-w-full"
         aria-live="polite"
       >
         {toasts.map(toast => {
@@ -95,47 +95,35 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               key={toast.id}
               id={`toast-${toast.id}`}
               role="alert"
-              className={`pointer-events-auto flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl shadow-lg border backdrop-blur-xl text-xs font-semibold select-none transition-all duration-200 animate-in fade-in slide-in-from-top-3 max-w-[92vw] sm:max-w-sm ${
-                isSuccess
-                  ? 'bg-[#1E293B]/95 text-slate-100 border-emerald-500/30 shadow-emerald-950/20'
-                  : isError
-                  ? 'bg-[#1E293B]/95 text-slate-100 border-rose-500/30 shadow-rose-950/20'
-                  : 'bg-[#1E293B]/95 text-slate-100 border-sky-500/30 shadow-sky-950/20'
-              }`}
+              className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full shadow-md backdrop-blur-md bg-black/40 dark:bg-black/50 border border-white/15 text-white text-[12px] font-medium select-none transition-all duration-200 animate-in fade-in slide-in-from-top-2 max-w-[92vw] sm:max-w-md"
             >
-              {/* Icon Indicator */}
-              <div className="shrink-0">
+              {/* Minimal Clean Dot/Icon Indicator */}
+              <div className="shrink-0 flex items-center justify-center">
                 {isSuccess && (
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <CheckCircleIcon className="w-4 h-4 text-emerald-400" />
-                  </div>
+                  <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-400 drop-shadow-xs" />
                 )}
                 {isError && (
-                  <div className="w-5 h-5 rounded-full bg-rose-500/20 flex items-center justify-center">
-                    <ExclamationCircleIcon className="w-4 h-4 text-rose-400" />
-                  </div>
+                  <ExclamationCircleIcon className="w-3.5 h-3.5 text-rose-400 drop-shadow-xs" />
                 )}
                 {isInfo && (
-                  <div className="w-5 h-5 rounded-full bg-sky-500/20 flex items-center justify-center">
-                    <InformationCircleIcon className="w-4 h-4 text-sky-400" />
-                  </div>
+                  <InformationCircleIcon className="w-3.5 h-3.5 text-sky-400 drop-shadow-xs" />
                 )}
               </div>
 
-              {/* Message */}
-              <span className="leading-snug tracking-tight line-clamp-2 text-[12.5px] font-medium text-slate-200">
+              {/* Message text */}
+              <span className="leading-snug tracking-tight text-white/95 truncate">
                 {toast.message}
               </span>
 
-              {/* Close Button */}
+              {/* Minimal Close 'x' */}
               <button
                 id={`btn-close-toast-${toast.id}`}
                 onClick={() => removeToast(toast.id)}
-                className="text-slate-400 hover:text-white transition-colors ml-1 p-1 rounded-lg hover:bg-white/10 cursor-pointer shrink-0 active:scale-95"
+                className="text-white/60 hover:text-white transition-colors ml-0.5 p-0.5 rounded-full hover:bg-white/10 cursor-pointer shrink-0 active:scale-90"
                 title="Tutup notifikasi"
                 aria-label="Tutup notifikasi"
               >
-                <XMarkIcon className="w-3.5 h-3.5" />
+                <XMarkIcon className="w-3 h-3 stroke-[2]" />
               </button>
             </div>
           );

@@ -135,10 +135,10 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
       className="fixed top-4 left-1/2 -translate-x-1/2 z-[90] w-[94vw] max-w-xl animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto select-none"
       role="alert"
     >
-      <div className="relative rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-700/80 bg-[#141B26]/98 backdrop-blur-xl text-white transition-all shadow-black/60">
+      <div className="relative rounded-2xl p-4 sm:p-5 shadow-2xl border border-white/10 bg-black/60 backdrop-blur-xl text-white transition-all shadow-black/40">
         <div className="flex items-start justify-between gap-3.5">
-          {/* Refined Icon Container - Clean dark badge, no toy neon green box */}
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-800/90 border border-slate-700/80 shadow-sm">
+          {/* Refined Icon Container - Clean glass badge */}
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white/10 border border-white/15 shadow-sm">
             {isProPlan ? (
               <ShieldCheckIcon className="w-5 h-5 stroke-[1.8] text-amber-400" />
             ) : isTrialPlan ? (
@@ -189,7 +189,7 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="h-8 px-3.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 transition-colors cursor-pointer"
+                className="h-8 px-3.5 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 text-white/90 hover:text-white border border-white/15 transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -200,7 +200,7 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
           <button
             type="button"
             onClick={handleDismiss}
-            className="w-7 h-7 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-slate-700/50"
+            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-white/15"
             title="Tutup notifikasi"
             aria-label="Tutup notifikasi"
           >
