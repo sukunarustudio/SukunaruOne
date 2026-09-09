@@ -743,6 +743,8 @@ export async function performInitialCloudSync(): Promise<{
       pulled += remoteFinTrx.length;
     }
 
+    localDb.reconcileFinancialTransactions();
+
     const nowIso = new Date().toISOString();
     localStorage.setItem(LAST_SYNC_KEY, nowIso);
     currentSyncState.lastSyncAt = nowIso;
@@ -1242,6 +1244,8 @@ export async function syncWithSupabase(): Promise<{
       localDb.mergeFinancialTransactions(remoteFinTrx.map(finTransactionFromSupabase));
       pulled += remoteFinTrx.length;
     }
+
+    localDb.reconcileFinancialTransactions();
 
     // Update timestamp & state
     const nowIso = new Date().toISOString();

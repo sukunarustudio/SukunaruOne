@@ -107,6 +107,152 @@ export function fileToDataUrl(file: File, maxDimension = 600, quality = 0.85): P
   });
 }
 
+export function reconcileFinancialTransactions(db: LocalDatabaseSchema): boolean {
+  if (!db) return false;
+  let changed = false;
+  if (!Array.isArray(db.financial_transactions)) {
+    db.financial_transactions = [];
+    changed = true;
+  }
+
+  const existingMap = new Map<string, FinancialTransaction>();
+  db.financial_transactions.forEach(f => {
+    if (f.id) existingMap.set(f.id, f);
+    if (f.referenceId) existingMap.set(`${f.referenceType || 'GENERIC'}_${f.referenceId}_${f.type}`, f);
+  });
+
+  // 1. Reconcile from POS Transactions
+  if (Array.isArray(db.transactions)) {
+    db.transactions.forEach(t => {
+      const totAmt = Number(t.totalAmount) || 0;
+      if (totAmt <= 0) return;
+
+      const dateStr = t.date ? t.date.split('T')[0] : new Date().toISOString().split('T')[0];
+
+      // Check for base income entry
+      const incomeKey = `POS_${t.id}_INCOME`;
+      const hasIncome = existingMap.has(incomeKey) ||
+        db.financial_transactions.some(f => (f.referenceId === t.id || f.referenceNumber === t.receiptNumber) && f.type === 'INCOME');
+
+      if (!hasIncome) {
+        const newFin: FinancialTransaction = {
+          id: `fin_auto_pos_${t.id}`,
+          date: dateStr,
+          type: 'INCOME',
+          category: 'Penjualan Kasir',
+          description: `Transaksi Kasir #${t.receiptNumber} - ${t.customerName || 'Pelanggan Umum'}`,
+          amount: totAmt,
+          referenceNumber: t.receiptNumber,
+          referenceType: 'POS',
+          referenceId: t.id,
+          paymentMethod: t.paymentMethod || 'CASH',
+          notes: Array.isArray(t.items) ? `Item: ${t.items.map(i => `${i.productName} (${i.quantity})`).join(', ')}` : '',
+          createdAt: dateStr,
+        };
+        db.financial_transactions.unshift(newFin);
+        existingMap.set(incomeKey, newFin);
+        changed = true;
+      }
+
+      // Check for refund entry if refunded
+      if (t.status === 'REFUNDED') {
+        const refundKey = `POS_REFUND_${t.id}_EXPENSE`;
+        const hasRefund = existingMap.has(refundKey) ||
+          db.financial_transactions.some(f => (f.referenceId === t.id || f.referenceNumber === t.receiptNumber) && f.type === 'EXPENSE');
+
+        if (!hasRefund) {
+          const refundDate = t.refundedAt ? t.refundedAt.split('T')[0] : dateStr;
+          const newRefundFin: FinancialTransaction = {
+            id: `fin_auto_ref_${t.id}`,
+            date: refundDate,
+            type: 'EXPENSE',
+            category: 'Refund Penjualan',
+            description: `Refund Transaksi Kasir #${t.receiptNumber} - ${t.customerName || 'Pelanggan Umum'}`,
+            amount: totAmt,
+            referenceNumber: t.receiptNumber,
+            referenceType: 'POS_REFUND' as any,
+            referenceId: t.id,
+            paymentMethod: t.paymentMethod || 'CASH',
+            notes: `Alasan: ${t.refundReason || 'Pembatalan transaksi kasir'}`,
+            createdAt: refundDate,
+          };
+          db.financial_transactions.unshift(newRefundFin);
+          existingMap.set(refundKey, newRefundFin);
+          changed = true;
+        }
+      }
+    });
+  }
+
+  // 2. Reconcile from Orders (DP / Pelunasan)
+  if (Array.isArray(db.orders)) {
+    db.orders.forEach(o => {
+      if (o.status === 'BATAL') return;
+      const paidAmt = Number(o.paidAmount) || 0;
+      if (paidAmt <= 0) return;
+
+      const dateStr = o.orderDate ? o.orderDate.split('T')[0] : new Date().toISOString().split('T')[0];
+      const orderKey = `ORDER_${o.id}_INCOME`;
+      const hasOrderFin = existingMap.has(orderKey) ||
+        db.financial_transactions.some(f => (f.referenceId === o.id || f.referenceNumber === o.orderNumber) && f.type === 'INCOME');
+
+      if (!hasOrderFin) {
+        const newFin: FinancialTransaction = {
+          id: `fin_auto_ord_${o.id}`,
+          date: dateStr,
+          type: 'INCOME',
+          category: o.paymentStatus === 'LUNAS' ? 'Pelunasan Pesanan' : 'DP Pesanan',
+          description: `Pesanan SPK #${o.orderNumber} - ${o.customerName || 'Pelanggan'}`,
+          amount: paidAmt,
+          referenceNumber: o.orderNumber,
+          referenceType: 'ORDER',
+          referenceId: o.id,
+          paymentMethod: o.payments?.[0]?.paymentMethod || 'CASH',
+          notes: `Pesanan SPK`,
+          createdAt: dateStr,
+        };
+        db.financial_transactions.unshift(newFin);
+        existingMap.set(orderKey, newFin);
+        changed = true;
+      }
+    });
+  }
+
+  // 3. Reconcile from Expenses
+  if (Array.isArray(db.expenses)) {
+    db.expenses.forEach(e => {
+      const amt = Number(e.amount) || 0;
+      if (amt <= 0) return;
+
+      const dateStr = e.date ? e.date.split('T')[0] : new Date().toISOString().split('T')[0];
+      const expKey = `EXPENSE_${e.id}_EXPENSE`;
+      const hasExpFin = existingMap.has(expKey) ||
+        db.financial_transactions.some(f => f.referenceId === e.id && f.type === 'EXPENSE');
+
+      if (!hasExpFin) {
+        const newFin: FinancialTransaction = {
+          id: `fin_auto_exp_${e.id}`,
+          date: dateStr,
+          type: 'EXPENSE',
+          category: e.category || 'Operasional',
+          description: e.description || 'Pengeluaran',
+          amount: amt,
+          referenceType: 'EXPENSE',
+          referenceId: e.id,
+          paymentMethod: e.paymentMethod || 'CASH',
+          notes: e.notes || '',
+          createdAt: dateStr,
+        };
+        db.financial_transactions.unshift(newFin);
+        existingMap.set(expKey, newFin);
+        changed = true;
+      }
+    });
+  }
+
+  return changed;
+}
+
 function getLocalData(): LocalDatabaseSchema {
   if (typeof window === 'undefined') {
     return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
@@ -118,7 +264,7 @@ function getLocalData(): LocalDatabaseSchema {
       return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
     }
     const data = JSON.parse(raw);
-    return {
+    const clean: LocalDatabaseSchema = {
       settings: data.settings || DEFAULT_INITIAL_DATA.settings,
       customers: Array.isArray(data.customers) ? data.customers : DEFAULT_INITIAL_DATA.customers,
       materials: Array.isArray(data.materials) ? data.materials : DEFAULT_INITIAL_DATA.materials,
@@ -129,6 +275,12 @@ function getLocalData(): LocalDatabaseSchema {
       expenses: Array.isArray(data.expenses) ? data.expenses : [],
       financial_transactions: Array.isArray(data.financial_transactions) ? data.financial_transactions : [],
     };
+    if (reconcileFinancialTransactions(clean)) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+      } catch {}
+    }
+    return clean;
   } catch (err) {
     console.error('Failed to parse local DB from localStorage:', err);
     return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
@@ -145,6 +297,7 @@ export function emitDataMutation(): void {
 function setLocalData(data: LocalDatabaseSchema): void {
   if (typeof window === 'undefined') return;
   try {
+    reconcileFinancialTransactions(data);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     emitDataMutation();
   } catch (err) {
@@ -1651,6 +1804,15 @@ export const localDb = {
   // Backup & Restore
   async getBackupData(): Promise<any> {
     return getLocalData();
+  },
+
+  reconcileFinancialTransactions(): boolean {
+    const db = getLocalData();
+    const changed = reconcileFinancialTransactions(db);
+    if (changed) {
+      setLocalData(db);
+    }
+    return changed;
   },
 
   async restoreDatabase(backupData: any): Promise<{ success: boolean; message: string }> {

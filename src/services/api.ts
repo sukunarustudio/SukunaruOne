@@ -409,6 +409,14 @@ export const api = {
   async createTransaction(data: any): Promise<Transaction> {
     const created = await localDb.createTransaction(data);
     enqueueSyncMutation('transactions', 'UPSERT', created.id, created);
+    
+    // Also enqueue the matching financial transaction for this POS transaction
+    const finList = await localDb.getFinancialTransactions();
+    const matchingFin = finList.find(f => f.referenceId === created.id);
+    if (matchingFin) {
+      enqueueSyncMutation('financial_transactions', 'UPSERT', matchingFin.id, matchingFin);
+    }
+
     if (!isStandaloneOffline()) {
       requestApi<Transaction>('/api/transactions', {
         method: 'POST',
@@ -448,6 +456,11 @@ export const api = {
 
     // Sync updated transaction & financial reversal to cloud
     enqueueSyncMutation('transactions', 'UPSERT', result.transaction.id, result.transaction);
+    const finList = await localDb.getFinancialTransactions();
+    const refundFin = finList.find(f => f.referenceId === result.transaction.id && f.type === 'EXPENSE');
+    if (refundFin) {
+      enqueueSyncMutation('financial_transactions', 'UPSERT', refundFin.id, refundFin);
+    }
     
     // Notify all UI listeners to refresh their state
     if (typeof window !== 'undefined') {
@@ -542,6 +555,13 @@ export const api = {
   async createOrder(data: any): Promise<Order> {
     const created = await localDb.createOrder(data);
     enqueueSyncMutation('orders', 'UPSERT', created.id, created);
+    if (created.paidAmount > 0) {
+      const finList = await localDb.getFinancialTransactions();
+      const matchingFin = finList.find(f => f.referenceId === created.id);
+      if (matchingFin) {
+        enqueueSyncMutation('financial_transactions', 'UPSERT', matchingFin.id, matchingFin);
+      }
+    }
     if (!isStandaloneOffline()) {
       requestApi<Order>('/api/orders', {
         method: 'POST',
@@ -574,6 +594,11 @@ export const api = {
   ): Promise<Order> {
     const updated = await localDb.addOrderPayment(id, data);
     enqueueSyncMutation('orders', 'UPSERT', updated.id, updated);
+    const finList = await localDb.getFinancialTransactions();
+    const matchingFin = finList.find(f => f.referenceId === updated.id);
+    if (matchingFin) {
+      enqueueSyncMutation('financial_transactions', 'UPSERT', matchingFin.id, matchingFin);
+    }
     if (!isStandaloneOffline()) {
       requestApi<Order>(`/api/orders/${id}/payment`, {
         method: 'POST',
@@ -654,6 +679,11 @@ export const api = {
   async createExpense(data: Partial<Expense>): Promise<Expense> {
     const created = await localDb.createExpense(data);
     enqueueSyncMutation('expenses', 'UPSERT', created.id, created);
+    const finList = await localDb.getFinancialTransactions();
+    const matchingFin = finList.find(f => f.referenceId === created.id);
+    if (matchingFin) {
+      enqueueSyncMutation('financial_transactions', 'UPSERT', matchingFin.id, matchingFin);
+    }
     if (!isStandaloneOffline()) {
       requestApi<Expense>('/api/expenses', {
         method: 'POST',
@@ -728,6 +758,12 @@ export const api = {
   ): Promise<{ success: boolean; material: Material; movement: InventoryMovement }> {
     const res = await localDb.restockMaterial(id, data);
     enqueueSyncMutation('materials', 'UPSERT', res.material.id, res.material);
+    if (data.recordExpense) {
+      const expList = await localDb.getExpenses();
+      if (expList.length > 0) enqueueSyncMutation('expenses', 'UPSERT', expList[0].id, expList[0]);
+      const finList = await localDb.getFinancialTransactions();
+      if (finList.length > 0) enqueueSyncMutation('financial_transactions', 'UPSERT', finList[0].id, finList[0]);
+    }
     if (!isStandaloneOffline()) {
       requestApi<{ success: boolean; material: Material; movement: InventoryMovement }>(
         `/api/materials/${id}/restock`,
