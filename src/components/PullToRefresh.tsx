@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface PullToRefreshProps {
@@ -8,6 +8,7 @@ interface PullToRefreshProps {
   threshold?: number;
   maxPullDistance?: number;
   className?: string;
+  isRefreshing?: boolean;
 }
 
 export const PullToRefresh: React.FC<PullToRefreshProps> = ({
@@ -17,10 +18,11 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   threshold = 60,
   maxPullDistance = 110,
   className = '',
+  isRefreshing: externalIsRefreshing,
 }) => {
   const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [internalIsRefreshing, setInternalIsRefreshing] = useState(false);
   const [hasTriggeredHaptic, setHasTriggeredHaptic] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,6 +31,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   const canPullRef = useRef<boolean>(false);
   const isRefreshingRef = useRef<boolean>(false);
 
+  const isRefreshing = externalIsRefreshing !== undefined ? externalIsRefreshing : internalIsRefreshing;
   isRefreshingRef.current = isRefreshing;
 
   // Helper to find the nearest scrollable parent element
@@ -127,7 +130,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
     setIsPulling(false);
 
     if (pullDistance >= threshold) {
-      setIsRefreshing(true);
+      setInternalIsRefreshing(true);
       setPullDistance(44); // Resting position for spinner
 
       try {
@@ -137,7 +140,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       } finally {
         // Smoothly close the refresh indicator
         setTimeout(() => {
-          setIsRefreshing(false);
+          setInternalIsRefreshing(false);
           setPullDistance(0);
         }, 300);
       }
@@ -174,7 +177,13 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       <div
         className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex justify-center"
         style={{
-          transform: `translateY(${Math.max(pullDistance - 20, isRefreshing ? 24 : -44)}px)`,
+          transform: `translateY(${
+            isRefreshing
+              ? 20
+              : pullDistance > 0
+              ? Math.max(pullDistance - 20, 0)
+              : -48
+          }px)`,
           opacity: pullDistance > 6 || isRefreshing ? 1 : 0,
           transition: isPulling
             ? 'opacity 0.15s ease'
@@ -192,14 +201,14 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
           style={{
             width: 36,
             height: 36,
-            transform: `scale(${0.8 + progress * 0.2})`,
+            transform: `scale(${isRefreshing ? 1 : 0.8 + progress * 0.2})`,
             transition: isPulling ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}
         >
           <ArrowPathIcon
             className={`w-[18px] h-[18px] stroke-[2.5] ${
               isRefreshing
-                ? 'animate-spin'
+                ? 'animate-spin text-[#FF9B51]'
                 : ''
             }`}
             style={{

@@ -494,7 +494,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
         </div>
       )}
 
-      <PullToRefresh onRefresh={() => loadData(true)}>
+      <PullToRefresh onRefresh={() => loadData(true)} isRefreshing={refreshing}>
         <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
 
       {isPro && isTrial && daysRemaining !== null && daysRemaining <= 5 && (
@@ -539,17 +539,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
             <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-[#EAEFEF] border border-[#BFC9D1]/40 rounded text-[#898989]">
               ⌘K
             </kbd>
-          </button>
-
-          {/* Refresh Data & Cloud Sync */}
-          <button
-            type="button"
-            onClick={() => loadData(true)}
-            disabled={refreshing}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white border border-[#BFC9D1]/30 hover:border-[#FF9B51] text-[#898989] hover:text-[#25343F] flex items-center justify-center shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-            title="Muat ulang data & sinkronisasi cloud"
-          >
-            <ArrowPathIcon className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#FF9B51]' : ''}`} />
           </button>
         </div>
       </div>
