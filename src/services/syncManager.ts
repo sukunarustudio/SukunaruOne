@@ -445,6 +445,10 @@ export function clearSyncQueueForHistory(): void {
   saveSyncQueue(filtered);
 }
 
+export function clearAllSyncQueue(): void {
+  saveSyncQueue([]);
+}
+
 export function enqueueSyncMutation(table: string, action: 'UPSERT' | 'DELETE', recordId: string, payload?: any): void {
   const queue = getSyncQueue();
   // Filter out any older pending action for this specific record in this table

@@ -27,6 +27,8 @@ import {
   SyncState,
   getActiveLicenseKey,
   subscribeToRealtimeChanges,
+  applyLocalToCloudWithConfirmation,
+  clearAllSyncQueue,
 } from '../services/syncManager';
 
 interface BackupRestoreViewProps {
@@ -111,9 +113,20 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
         showToast(res.error || 'Gagal mengunduh file cadangan cloud', 'error');
         return;
       }
+      clearAllSyncQueue();
       const restoreRes = await api.restoreDatabase(res.data);
-      showToast(restoreRes.message || 'Database berhasil dipulihkan dari Cloud!', 'success');
       if (res.data.settings && onUpdateSettings) onUpdateSettings(res.data.settings);
+
+      // Push restored data to Supabase cloud tables so next sync stays consistent
+      if (isSupabaseConfigured()) {
+        try {
+          await applyLocalToCloudWithConfirmation();
+        } catch (syncErr) {
+          console.warn('[Restore] Failed to push restored data to cloud tables:', syncErr);
+        }
+      }
+
+      showToast(restoreRes.message || 'Database berhasil dipulihkan dari Cloud!', 'success');
       if (onRefreshDashboard) onRefreshDashboard();
       setSelectedCloudBackupToRestore(null);
     } catch (err: any) {
@@ -165,9 +178,20 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
       setIsRestoring(true);
       const text = await file.text();
       const parsed = JSON.parse(text);
+      clearAllSyncQueue();
       const res = await api.restoreDatabase(parsed);
-      showToast(res.message || 'Database berhasil dipulihkan!', 'success');
       if (parsed.settings && onUpdateSettings) onUpdateSettings(parsed.settings);
+
+      // Push restored data to Supabase cloud tables so next sync stays consistent
+      if (isSupabaseConfigured()) {
+        try {
+          await applyLocalToCloudWithConfirmation();
+        } catch (syncErr) {
+          console.warn('[Restore] Failed to push restored data to cloud tables:', syncErr);
+        }
+      }
+
+      showToast(res.message || 'Database berhasil dipulihkan!', 'success');
       if (onRefreshDashboard) onRefreshDashboard();
     } catch (err: any) {
       showToast(err.message || 'Format file backup tidak valid', 'error');
