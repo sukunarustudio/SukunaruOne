@@ -143,6 +143,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   useEffect(() => {
     loadData();
 
+    // Auto-sync from cloud on initial app open (background, no toast)
+    if (isSupabaseConfigured()) {
+      syncWithSupabase()
+        .then((res) => {
+          if (res.success) {
+            // Re-read local data after cloud sync completes
+            loadData(false);
+          }
+        })
+        .catch(() => {
+          // Offline or sync error — silently ignore on startup
+        });
+    }
+
     const handleFocus = () => {
       loadData(false);
     };

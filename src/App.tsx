@@ -237,22 +237,7 @@ function MainAppContent() {
     return () => clearTimeout(timer);
   }, []);
 
-  const [currentView, setCurrentView] = useState<ViewType>(() => {
-    try {
-      const saved = localStorage.getItem('sukunaru_current_view');
-      const validViews: ViewType[] = [
-        'dashboard', 'pos', 'orders', 'customers', 'products',
-        'hpp', 'inventory', 'finance', 'expenses', 'invoices',
-        'sales-report', 'profit-report', 'stock-report', 'settings',
-        'appearance', 'cloud-sync', 'app-info', 'menu', 'guide', 'contact', 'support', 'profile', 'business-profile',
-        'activation', 'backup'
-      ];
-      if (saved && validViews.includes(saved as ViewType)) {
-        return saved as ViewType;
-      }
-    } catch {}
-    return 'dashboard';
-  });
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [targetRecordId, setTargetRecordId] = useState<string | undefined>(undefined);
   const [settings, setSettings] = useState<BusinessSettings>(defaultSettings);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);

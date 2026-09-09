@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { ArrowPathIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void> | void;
@@ -15,7 +15,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   children,
   disabled = false,
   threshold = 60,
-  maxPullDistance = 95,
+  maxPullDistance = 110,
   className = '',
 }) => {
   const [pullDistance, setPullDistance] = useState(0);
@@ -93,7 +93,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       setIsPulling(true);
 
       // Apply rubber-band damping physics formula
-      const dampedDistance = Math.min(Math.pow(deltaY, 0.85) * 1.5, maxPullDistance);
+      const dampedDistance = Math.min(Math.pow(deltaY, 0.82) * 1.2, maxPullDistance);
       setPullDistance(dampedDistance);
 
       // Light haptic feedback on reaching the threshold
@@ -128,7 +128,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
 
     if (pullDistance >= threshold) {
       setIsRefreshing(true);
-      setPullDistance(48); // Fixed comfortable resting height while refreshing
+      setPullDistance(44); // Resting position for spinner
 
       try {
         await onRefresh();
@@ -158,6 +158,9 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   const progress = Math.min(pullDistance / threshold, 1);
   const isThresholdReached = pullDistance >= threshold;
 
+  // Icon rotation: rotates progressively as user pulls, spins when refreshing
+  const iconRotation = isRefreshing ? 0 : progress * 540;
+
   return (
     <div
       ref={containerRef}
@@ -167,67 +170,49 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       onTouchCancel={handleTouchCancel}
       className={`relative w-full ${className}`}
     >
-      {/* ── Pull to Refresh Indicator ── */}
+      {/* ── Floating Circular Arrow Indicator (does NOT shift page content) ── */}
       <div
-        className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex items-center justify-center overflow-hidden"
+        className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex justify-center"
         style={{
-          height: `${Math.max(pullDistance, isRefreshing ? 48 : 0)}px`,
-          opacity: pullDistance > 8 || isRefreshing ? 1 : 0,
-          transition: isPulling ? 'none' : 'height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease',
+          transform: `translateY(${Math.max(pullDistance - 20, isRefreshing ? 24 : -44)}px)`,
+          opacity: pullDistance > 6 || isRefreshing ? 1 : 0,
+          transition: isPulling
+            ? 'opacity 0.15s ease'
+            : 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease',
         }}
       >
         <div
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#151D28] border border-[#BFC9D1]/40 dark:border-slate-700 shadow-md shadow-black/10"
+          className={`flex items-center justify-center rounded-full shadow-lg shadow-black/10 ${
+            isRefreshing
+              ? 'bg-white dark:bg-[#151D28] border border-[#FF9B51]/40'
+              : isThresholdReached
+                ? 'bg-white dark:bg-[#151D28] border border-[#FF9B51]/40'
+                : 'bg-white dark:bg-[#1a2332] border border-[#BFC9D1]/40 dark:border-slate-700'
+          }`}
           style={{
-            transform: `scale(${0.75 + progress * 0.25})`,
-            transition: isPulling ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            width: 36,
+            height: 36,
+            transform: `scale(${0.8 + progress * 0.2})`,
+            transition: isPulling ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
           }}
         >
-          {isRefreshing ? (
-            <>
-              <ArrowPathIcon
-                className="w-4 h-4 animate-spin stroke-[2.5]"
-                style={{ color: 'var(--color-accent)' }}
-              />
-              <span className="text-[11.5px] font-bold text-[#25343F] dark:text-white tracking-tight">
-                Memperbarui data...
-              </span>
-            </>
-          ) : (
-            <>
-              <div
-                className="w-4 h-4 flex items-center justify-center transition-transform duration-200"
-                style={{
-                  transform: `rotate(${isThresholdReached ? 180 : progress * 180}deg)`,
-                  color: isThresholdReached ? 'var(--color-accent)' : '#898989',
-                }}
-              >
-                <ArrowDownIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-              </div>
-              <span
-                className={`text-[11px] font-bold tracking-tight transition-colors ${
-                  isThresholdReached
-                    ? 'text-[var(--color-accent)]'
-                    : 'text-[#898989] dark:text-slate-400'
-                }`}
-              >
-                {isThresholdReached ? 'Lepaskan untuk memuat ulang' : 'Tarik ke bawah...'}
-              </span>
-            </>
-          )}
+          <ArrowPathIcon
+            className={`w-[18px] h-[18px] stroke-[2.5] ${
+              isRefreshing
+                ? 'animate-spin'
+                : ''
+            }`}
+            style={{
+              color: isRefreshing || isThresholdReached ? '#FF9B51' : '#898989',
+              transform: isRefreshing ? undefined : `rotate(${iconRotation}deg)`,
+              transition: isPulling ? 'color 0.15s ease' : 'transform 0.2s ease, color 0.15s ease',
+            }}
+          />
         </div>
       </div>
 
-      {/* ── Content Area with Elastic Pull Translation ── */}
-      <div
-        style={{
-          transform: pullDistance > 0 ? `translate3d(0, ${pullDistance * 0.55}px, 0)` : undefined,
-          transition: isPulling ? 'none' : pullDistance > 0 ? 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)' : undefined,
-          willChange: isPulling ? 'transform' : undefined,
-        }}
-      >
-        {children}
-      </div>
+      {/* ── Content Area — NO translation, stays fixed ── */}
+      {children}
     </div>
   );
 };
