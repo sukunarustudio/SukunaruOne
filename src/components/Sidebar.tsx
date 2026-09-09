@@ -28,8 +28,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { isPro } = useLicense();
   const proViews: ViewType[] = ['orders', 'finance', 'sales-report', 'profit-report', 'stock-report'];
+  const lastDashboardClickRef = React.useRef<number>(0);
 
   const handleNav = (v: ViewType) => {
+    const now = Date.now();
+    if (v === 'dashboard') {
+      if (now - lastDashboardClickRef.current < 500) {
+        // Double click shortcut on Beranda
+        window.dispatchEvent(new CustomEvent('sukunaru:refresh_dashboard_manual'));
+        lastDashboardClickRef.current = 0;
+      } else if (currentView === 'dashboard') {
+        const scrollEl = document.getElementById('main-content-scrollable');
+        if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      lastDashboardClickRef.current = now;
+    }
     if (typeof onNavigate === 'function') {
       onNavigate(v);
     }

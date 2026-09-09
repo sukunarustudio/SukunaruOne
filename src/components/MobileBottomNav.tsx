@@ -66,6 +66,30 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
   const { isPro } = useLicense();
   const proViews: ViewType[] = ['orders'];
+  const lastDashboardClickRef = React.useRef<number>(0);
+
+  const handleNavClick = (id: ViewType) => {
+    const now = Date.now();
+    if (id === 'dashboard') {
+      if (now - lastDashboardClickRef.current < 500) {
+        // Double tap shortcut on Beranda: trigger full dashboard refresh & sync!
+        window.dispatchEvent(new CustomEvent('sukunaru:refresh_dashboard_manual'));
+        try {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate(30);
+          }
+        } catch {}
+        lastDashboardClickRef.current = 0;
+        return;
+      } else if (currentView === 'dashboard') {
+        // Single tap while already on dashboard: scroll smoothly to top
+        const scrollEl = document.getElementById('main-content-scrollable');
+        if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      lastDashboardClickRef.current = now;
+    }
+    onNavigate(id);
+  };
 
   return (
     <nav
@@ -83,7 +107,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             key={item.id}
             type="button"
             id={`btn-mobile-nav-${item.id}`}
-            onClick={() => onNavigate(item.id)}
+            onClick={() => handleNavClick(item.id)}
             className="flex flex-col items-center justify-center flex-1 py-0.5 cursor-pointer active:scale-95 transition-all group"
           >
             {/* Pill Container behind Icon */}

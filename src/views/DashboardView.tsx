@@ -166,14 +166,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
       loadData(false);
     };
 
+    // Manual Refresh shortcut (e.g. double tap/click on Beranda nav button)
+    const handleManualShortcutRefresh = () => {
+      const scrollEl = document.getElementById('main-content-scrollable');
+      if (scrollEl) {
+        scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      loadData(true);
+    };
+
     window.addEventListener('focus', handleFocus);
     window.addEventListener('sukunaru:sync_completed', handleLiveAutoRefresh);
     window.addEventListener('sukunaru:data_mutation', handleLiveAutoRefresh);
+    window.addEventListener('sukunaru:refresh_dashboard_manual', handleManualShortcutRefresh);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('sukunaru:sync_completed', handleLiveAutoRefresh);
       window.removeEventListener('sukunaru:data_mutation', handleLiveAutoRefresh);
+      window.removeEventListener('sukunaru:refresh_dashboard_manual', handleManualShortcutRefresh);
     };
   }, []);
 
