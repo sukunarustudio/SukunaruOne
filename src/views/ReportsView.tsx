@@ -1529,14 +1529,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <p className="text-[#898989] font-medium">Dibuat / Disiapkan Oleh:</p>
             <div>
               <div className="w-36 border-b border-slate-400 mx-auto" />
-              <p className="font-bold text-[#25343F] mt-1">Bagian Administrasi / Kasir</p>
+              <p className="font-medium text-[#898989] mt-1 text-[11px]">( ........................................ )</p>
             </div>
           </div>
           <div className="space-y-12">
             <p className="text-[#898989] font-medium">Diperiksa &amp; Disetujui Oleh:</p>
             <div>
               <div className="w-36 border-b border-slate-400 mx-auto" />
-              <p className="font-bold text-[#25343F] mt-1">{settings?.businessName || 'Owner / Pimpinan Usaha'}</p>
+              <p className="font-medium text-[#898989] mt-1 text-[11px]">( ........................................ )</p>
             </div>
           </div>
         </div>
