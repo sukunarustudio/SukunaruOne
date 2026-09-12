@@ -3,7 +3,7 @@ import { ThemeSettings, ThemeMode, ThemePreset } from '../types';
 export const THEME_STORAGE_KEY = 'sukunaru_theme_settings';
 
 export const ACCENT_PRESETS = [
-  { label: 'Sukunaru Orange', hex: '#FF9B51' },
+  { label: 'BisnisUrang Orange', hex: '#FF9B51' },
   { label: 'Royal Blue', hex: '#0890FE' },
   { label: 'Emerald Green', hex: '#10B981' },
   { label: 'Royal Purple', hex: '#8B5CF6' },
@@ -32,7 +32,7 @@ export interface HeroPresetItem {
 export const HERO_PRESETS: HeroPresetItem[] = [
   {
     id: 'orange',
-    label: '1. Orange — Default SKNR',
+    label: '1. BisnisUrang Orange',
     primary: '#FF6A00',
     gradient: 'linear-gradient(135deg, #FF8A1F 0%, #FF5A0A 50%, #D93600 100%)',
     glow: '#FFD166',
@@ -140,8 +140,8 @@ export const HERO_PRESETS: HeroPresetItem[] = [
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'default',
-    name: 'Default Sukunaru',
-    description: 'Vibrant orange, warm & premium khas studio percetakan',
+    name: 'BisnisUrang Default',
+    description: 'Vibrant orange, hangat & modern khas Bisnis Urang',
     accentColor: '#FF6A00',
     mode: 'system',
     heroLightStart: '#FF8A1F',
