@@ -46,6 +46,7 @@ import {
   CloudArrowUpIcon as CloudArrowUpSolid,
   SparklesIcon as SparklesSolid,
   InformationCircleIcon as InformationCircleSolid,
+  Cog6ToothIcon as Cog6ToothSolid,
 } from '@heroicons/react/24/solid';
 import { api } from '../services/api';
 import {
@@ -728,57 +729,63 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
               {[
                 {
                   label: 'Hitung HPP',
-                  icon: <CalculatorSolid className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
-                  bg: 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20',
+                  icon: <CalculatorSolid className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-amber-500" />,
+                  bg: 'bg-amber-500/10 hover:bg-amber-500/15 active:bg-amber-500/20 border-amber-500/20',
                   onClick: () => goTo('hpp'),
                 },
                 {
                   label: 'Pelanggan',
-                  icon: <UsersSolid className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
-                  bg: 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20',
+                  icon: <UsersSolid className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-purple-500" />,
+                  bg: 'bg-purple-500/10 hover:bg-purple-500/15 active:bg-purple-500/20 border-purple-500/20',
                   onClick: () => goTo('customers'),
                 },
                 {
                   label: 'Katalog',
-                  icon: <CubeSolid className="w-4 h-4 sm:w-5 sm:h-5 text-sky-500" />,
-                  bg: 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20',
+                  icon: <CubeSolid className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-sky-500" />,
+                  bg: 'bg-sky-500/10 hover:bg-sky-500/15 active:bg-sky-500/20 border-sky-500/20',
                   onClick: () => goTo('products'),
                 },
                 {
                   label: 'Laporan',
-                  icon: <ArrowTrendingUpSolid className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500" />,
-                  bg: 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20',
+                  icon: <ArrowTrendingUpSolid className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-rose-500" />,
+                  bg: 'bg-rose-500/10 hover:bg-rose-500/15 active:bg-rose-500/20 border-rose-500/20',
                   onClick: () => goTo('sales-report'),
                 },
                 {
                   label: 'Cloud Sync',
-                  icon: <CloudArrowUpSolid className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
-                  bg: 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20',
+                  icon: <CloudArrowUpSolid className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-blue-500" />,
+                  bg: 'bg-blue-500/10 hover:bg-blue-500/15 active:bg-blue-500/20 border-blue-500/20',
                   onClick: () => goTo('backup'),
                 },
                 {
                   label: 'Tema Visual',
-                  icon: <SparklesSolid className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />,
-                  bg: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20',
+                  icon: <SparklesSolid className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-emerald-500" />,
+                  bg: 'bg-emerald-500/10 hover:bg-emerald-500/15 active:bg-emerald-500/20 border-emerald-500/20',
                   onClick: () => goTo('appearance'),
                 },
                 {
                   label: 'Info Versi',
-                  icon: <InformationCircleSolid className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
-                  bg: 'bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20',
+                  icon: <InformationCircleSolid className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-indigo-500" />,
+                  bg: 'bg-indigo-500/10 hover:bg-indigo-500/15 active:bg-indigo-500/20 border-indigo-500/20',
                   onClick: () => goTo('app-info'),
+                },
+                {
+                  label: 'Pengaturan',
+                  icon: <Cog6ToothSolid className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-slate-500 dark:text-slate-300" />,
+                  bg: 'bg-slate-500/10 hover:bg-slate-500/15 active:bg-slate-500/20 border-slate-500/20',
+                  onClick: () => goTo('settings'),
                 },
               ].map(tool => (
                 <button
                   key={tool.label}
                   type="button"
                   onClick={tool.onClick}
-                  className={`apple-press p-2 sm:p-2.5 rounded-2xl border ${tool.bg} flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer transition-all shadow-2xs`}
+                  className={`apple-press p-2.5 sm:p-3 rounded-2xl border ${tool.bg} flex flex-col items-center justify-center gap-2 text-center cursor-pointer transition-all shadow-2xs group min-h-[82px] sm:min-h-[88px]`}
                 >
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white dark:bg-slate-800 shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 group-active:scale-95 transition-transform">
                     {tool.icon}
                   </div>
-                  <span className="text-[10px] sm:text-[11px] font-bold text-[#25343F] dark:text-white leading-tight tracking-tight text-center w-full truncate">
+                  <span className="text-[11px] sm:text-xs font-bold text-[#25343F] dark:text-white leading-tight tracking-tight text-center w-full truncate">
                     {tool.label}
                   </span>
                 </button>
