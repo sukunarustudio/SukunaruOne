@@ -72,11 +72,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     const now = Date.now();
     if (id === 'dashboard') {
       if (now - lastDashboardClickRef.current < 500) {
-        // Double tap shortcut on Beranda: trigger full dashboard refresh & sync!
+        // Double tap shortcut on Beranda: trigger full dashboard refresh & sync with haptic pulse
         window.dispatchEvent(new CustomEvent('sukunaru:refresh_dashboard_manual'));
         try {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            navigator.vibrate(30);
+            navigator.vibrate(25);
           }
         } catch {}
         lastDashboardClickRef.current = 0;
@@ -92,15 +92,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   };
 
   return (
-    <div
-      id="mobile-bottom-navigation-container"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-3 pointer-events-none"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 10px)' }}
+    <nav
+      id="mobile-bottom-navigation"
+      aria-label="Navigasi Utama"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 w-full bg-white/85 dark:bg-[#0B0F17]/85 backdrop-blur-2xl border-t border-black/[0.08] dark:border-white/[0.08] select-none transition-colors duration-200"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 2px)' }}
     >
-      <nav
-        id="mobile-bottom-navigation"
-        className="pointer-events-auto mx-auto max-w-md bg-white/85 dark:bg-[#0F172A]/85 backdrop-blur-2xl border border-black/[0.06] dark:border-white/[0.09] px-2 py-1.5 rounded-3xl flex items-center justify-around shadow-[0_8px_32px_rgba(0,0,0,0.12)] select-none transition-all"
-      >
+      <div className="grid grid-cols-5 h-[52px] sm:h-[56px] max-w-lg mx-auto px-1">
         {navItems.map(item => {
           const isActive = currentView === item.id;
           const Icon = isActive ? item.solidIcon : item.outlineIcon;
@@ -112,66 +110,60 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               type="button"
               id={`btn-mobile-nav-${item.id}`}
               onClick={() => handleNavClick(item.id)}
-              className="flex flex-col items-center justify-center flex-1 py-1 cursor-pointer active:scale-90 transition-transform duration-150 group"
+              className="flex flex-col items-center justify-center h-full w-full py-1 cursor-pointer active:scale-90 active:opacity-70 transition-all duration-150 group touch-manipulation"
             >
-              {/* Pill Container behind Icon */}
-              <div className="relative">
-                <div
-                  className={`w-12 h-7.5 rounded-full flex items-center justify-center transition-all duration-200 ${
-                    isActive
-                      ? 'bg-[#FF9B51]/15 text-[#FF9B51] shadow-xs'
-                      : 'bg-transparent text-[#898989] group-hover:text-[#25343F]'
-                  }`}
-                >
-                  {item.id === 'profile' ? (
-                    settings?.logoUrl ? (
-                      <img
-                        src={settings.logoUrl}
-                        alt={settings.businessName || 'Profil'}
-                        className={`w-5.5 h-5.5 rounded-full object-cover transition-all duration-200 ${
-                          isActive
-                            ? 'ring-2 ring-[#FF9B51] scale-105 shadow-xs'
-                            : 'ring-1 ring-slate-300/80'
-                        }`}
-                      />
-                    ) : (
-                      <div
-                        className={`w-5.5 h-5.5 rounded-full flex items-center justify-center font-black text-[9px] uppercase transition-all duration-200 ${
-                          isActive
-                            ? 'bg-[#FF9B51] text-white ring-2 ring-[#FF9B51] scale-105 shadow-xs'
-                            : 'bg-[#898989] text-white ring-1 ring-slate-300'
-                        }`}
-                      >
-                        {settings?.businessName ? settings.businessName.slice(0, 2) : 'SK'}
-                      </div>
-                    )
-                  ) : (
-                    <Icon
-                      className={`w-5.5 h-5.5 transition-transform duration-200 ${
-                        isActive ? 'scale-105 text-[#FF9B51]' : 'text-[#898989]'
+              {/* Icon Container with Badge */}
+              <div className="relative flex items-center justify-center">
+                {item.id === 'profile' ? (
+                  settings?.logoUrl ? (
+                    <img
+                      src={settings.logoUrl}
+                      alt={settings.businessName || 'Profil'}
+                      className={`w-[22px] h-[22px] rounded-full object-cover transition-all duration-200 ${
+                        isActive
+                          ? 'ring-2 ring-[#FF9B51] ring-offset-1 dark:ring-offset-[#0B0F17] scale-105'
+                          : 'opacity-85 grayscale-30 ring-1 ring-black/10 dark:ring-white/20'
                       }`}
                     />
-                  )}
-                </div>
+                  ) : (
+                    <div
+                      className={`w-[22px] h-[22px] rounded-full flex items-center justify-center font-bold text-[9px] uppercase transition-all duration-200 ${
+                        isActive
+                          ? 'bg-[#FF9B51] text-white ring-2 ring-[#FF9B51] ring-offset-1 dark:ring-offset-[#0B0F17] scale-105'
+                          : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {settings?.businessName ? settings.businessName.slice(0, 2) : 'SK'}
+                    </div>
+                  )
+                ) : (
+                  <Icon
+                    className={`w-[23px] h-[23px] transition-all duration-200 ${
+                      isActive
+                        ? 'text-[#FF9B51] scale-105'
+                        : 'text-[#8E8E93] dark:text-slate-400 group-hover:text-[#25343F] dark:group-hover:text-white'
+                    }`}
+                  />
+                )}
 
-                {/* Lock Badge if feature is locked */}
+                {/* Apple-style Red Badge / Lock Badge */}
                 {isLocked ? (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FF9B51] text-white flex items-center justify-center border-1.5 border-white shadow-xs pointer-events-none">
+                  <span className="absolute -top-1.5 -right-2.5 w-3.5 h-3.5 rounded-full bg-[#FF9B51] text-white flex items-center justify-center border-2 border-white dark:border-[#0B0F17] shadow-xs pointer-events-none">
                     <LockClosedIcon className="w-2 h-2" />
                   </span>
                 ) : item.badge !== undefined ? (
-                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#FF4267] text-white text-[9px] font-black flex items-center justify-center border-1.5 border-white shadow-xs pointer-events-none animate-in zoom-in-50">
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FF3B30] text-white text-[9.5px] font-black tracking-tight flex items-center justify-center border-2 border-white dark:border-[#0B0F17] shadow-xs pointer-events-none animate-in zoom-in-50">
                     {item.badge}
                   </span>
                 ) : null}
               </div>
 
-              {/* Label below Icon */}
+              {/* Apple-style Label */}
               <span
-                className={`text-[10px] mt-0.5 leading-tight tracking-tight transition-colors ${
+                className={`text-[10px] sm:text-[10.5px] mt-1 leading-none tracking-tight transition-colors duration-200 ${
                   isActive
-                    ? 'text-[#25343F] dark:text-white font-extrabold'
-                    : 'text-[#898989] font-semibold group-hover:text-[#25343F]'
+                    ? 'text-[#FF9B51] font-bold'
+                    : 'text-[#8E8E93] dark:text-slate-400 font-medium group-hover:text-[#25343F] dark:group-hover:text-white'
                 }`}
               >
                 {item.label}
@@ -179,7 +171,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             </button>
           );
         })}
-      </nav>
-    </div>
+      </div>
+    </nav>
   );
 };
