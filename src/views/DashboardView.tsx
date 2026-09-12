@@ -45,8 +45,7 @@ import {
   ArrowTrendingUpIcon as ArrowTrendingUpSolid,
   CloudArrowUpIcon as CloudArrowUpSolid,
   SparklesIcon as SparklesSolid,
-  Cog6ToothIcon as Cog6ToothSolid,
-  CheckCircleIcon as CheckCircleSolid,
+  InformationCircleIcon as InformationCircleSolid,
 } from '@heroicons/react/24/solid';
 import { api } from '../services/api';
 import {
@@ -765,16 +764,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                   onClick: () => goTo('appearance'),
                 },
                 {
-                  label: 'Pengaturan',
-                  icon: <Cog6ToothSolid className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-300" />,
-                  bg: 'bg-slate-500/10 hover:bg-slate-500/20 border-slate-500/20',
-                  onClick: () => goTo('settings'),
-                },
-                {
-                  label: 'Aktivasi',
-                  icon: <CheckCircleSolid className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />,
-                  bg: 'bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/20',
-                  onClick: () => goTo('activation'),
+                  label: 'Info Versi',
+                  icon: <InformationCircleSolid className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
+                  bg: 'bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20',
+                  onClick: () => goTo('app-info'),
                 },
               ].map(tool => (
                 <button
