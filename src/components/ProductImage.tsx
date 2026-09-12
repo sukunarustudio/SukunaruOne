@@ -13,8 +13,18 @@ import { api, resolveApiUrl } from '../services/api';
 export const resolveProductImageUrl = (imagePath?: string | null): string | null => {
   if (!imagePath || typeof imagePath !== 'string') return null;
   const path = imagePath.trim();
-  if (!path || path === '__pending__' || path === 'pending') {
+  if (!path || path === '__pending__' || path === 'pending' || path === 'null' || path === 'undefined') {
     return null;
+  }
+  // Raw base64 string without data: header
+  if (path.startsWith('/9j/')) {
+    return `data:image/jpeg;base64,${path}`;
+  }
+  if (path.startsWith('iVBORw0KGgo')) {
+    return `data:image/png;base64,${path}`;
+  }
+  if (path.startsWith('UklGR')) {
+    return `data:image/webp;base64,${path}`;
   }
   // Data URLs, Blob URLs, or external web URLs
   if (
@@ -65,14 +75,20 @@ export const ProductImage: React.FC<ProductImageProps> = ({
   className = '',
   rounded = 'rounded-lg',
 }) => {
+  const [triedFallback, setTriedFallback] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const srcPath = preferFull ? (imagePath || thumbnailPath) : (thumbnailPath || imagePath);
-  const src = resolveProductImageUrl(srcPath);
+
+  const primaryPath = preferFull ? (imagePath || thumbnailPath) : (thumbnailPath || imagePath);
+  const fallbackPath = preferFull ? thumbnailPath : imagePath;
+
+  const currentPath = triedFallback && fallbackPath && fallbackPath !== primaryPath ? fallbackPath : primaryPath;
+  const src = resolveProductImageUrl(currentPath);
 
   // Reset error state if image path changes
   useEffect(() => {
     setHasError(false);
-  }, [srcPath]);
+    setTriedFallback(false);
+  }, [thumbnailPath, imagePath]);
 
   const sizeClass = SIZE_CLASSES[size] ?? SIZE_CLASSES.md;
   const iconClass = ICON_CLASSES[size] ?? ICON_CLASSES.md;
@@ -88,7 +104,11 @@ export const ProductImage: React.FC<ProductImageProps> = ({
           className="w-full h-full object-cover"
           loading="lazy"
           onError={() => {
-            setHasError(true);
+            if (!triedFallback && fallbackPath && fallbackPath !== primaryPath) {
+              setTriedFallback(true);
+            } else {
+              setHasError(true);
+            }
           }}
         />
       ) : (

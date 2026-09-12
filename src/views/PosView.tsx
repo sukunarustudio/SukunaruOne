@@ -187,6 +187,93 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
     }
   };
 
+  const mergeSellableProducts = (stockList: any[] = [], prodList: any[] = []): any[] => {
+    const map = new Map<string, any>();
+
+    // 1. Process catalog products (from Produk Bisnis)
+    for (const p of prodList) {
+      if (p.isActive === false) continue;
+      const item = {
+        ...p,
+        id: p.id,
+        name: p.name,
+        sku: p.sku || '',
+        category: p.category || 'Umum',
+        unit: p.unit || 'pcs',
+        sellingPrice: Number(p.sellingPrice) || 0,
+        costPrice: Number(p.costPrice) || 0,
+        imagePath: p.imagePath || undefined,
+        thumbnailPath: p.thumbnailPath || p.imagePath || undefined,
+        barcode: p.barcode || undefined,
+        barcodeType: p.barcodeType || 'CODE128',
+        isActive: true,
+      };
+      map.set(item.id, item);
+      if (item.sku) map.set(`sku:${item.sku.toLowerCase()}`, item);
+    }
+
+    // 2. Process stock items (from Stok Barang)
+    for (const s of stockList) {
+      if (s.isActive === false) continue;
+      // Exclude raw materials unless they have a selling price > 0
+      if (s.itemType === 'RAW_MATERIAL' && (!s.sellingPrice || Number(s.sellingPrice) <= 0)) {
+        continue;
+      }
+
+      const existing = map.get(s.id) || (s.sku ? map.get(`sku:${s.sku.toLowerCase()}`) : null);
+      if (existing) {
+        const merged = {
+          ...existing,
+          ...s,
+          id: existing.id || s.id,
+          name: s.name || existing.name,
+          sku: s.sku || existing.sku || '',
+          category: s.category || existing.category || 'Umum',
+          unit: s.baseUnit || s.unit || existing.unit || 'pcs',
+          sellingPrice: s.sellingPrice !== undefined && Number(s.sellingPrice) > 0 ? Number(s.sellingPrice) : existing.sellingPrice,
+          costPrice: s.costPrice !== undefined && Number(s.costPrice) > 0 ? Number(s.costPrice) : (s.purchasePrice !== undefined ? Number(s.purchasePrice) : existing.costPrice),
+          imagePath: s.imagePath || existing.imagePath || undefined,
+          thumbnailPath: s.thumbnailPath || existing.thumbnailPath || s.imagePath || existing.imagePath || undefined,
+          barcode: s.barcode || existing.barcode || undefined,
+          barcodeType: s.barcodeType || existing.barcodeType || 'CODE128',
+          priceTiers: s.priceTiers || existing.priceTiers,
+          unitConversions: s.unitConversions || existing.unitConversions,
+          isActive: true,
+        };
+        map.set(merged.id, merged);
+      } else {
+        const item = {
+          ...s,
+          id: s.id,
+          name: s.name,
+          sku: s.sku || '',
+          category: s.category || 'Umum',
+          unit: s.baseUnit || s.unit || 'pcs',
+          sellingPrice: Number(s.sellingPrice) || 0,
+          costPrice: Number(s.costPrice) || Number(s.purchasePrice) || 0,
+          imagePath: s.imagePath || undefined,
+          thumbnailPath: s.thumbnailPath || s.imagePath || undefined,
+          barcode: s.barcode || undefined,
+          barcodeType: s.barcodeType || 'CODE128',
+          priceTiers: s.priceTiers,
+          unitConversions: s.unitConversions,
+          isActive: true,
+        };
+        map.set(item.id, item);
+      }
+    }
+
+    const result: any[] = [];
+    const seenIds = new Set<string>();
+    for (const item of map.values()) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        result.push(item);
+      }
+    }
+    return result;
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -197,14 +284,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
         api.getCurrentShift().catch(() => null),
       ]);
 
-      // Prioritize unified stock_items that are sellable, fallback to products
-      let finalProducts: any[] = [];
-      if (stockList && stockList.length > 0) {
-        finalProducts = stockList.filter(s => s.isActive !== false && (s.itemType !== 'RAW_MATERIAL' || s.sellingPrice > 0));
-      } else {
-        finalProducts = prodList.filter(p => p.isActive);
-      }
-
+      const finalProducts = mergeSellableProducts(stockList, prodList);
       setProducts(finalProducts);
       setCustomers(custList);
       setCurrentShift(activeShift);
@@ -224,12 +304,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
         api.getCustomers().catch(() => []),
         api.getCurrentShift().catch(() => null),
       ]).then(([stockList, prodList, custList, activeShift]) => {
-        let finalProducts: any[] = [];
-        if (stockList && stockList.length > 0) {
-          finalProducts = stockList.filter(s => s.isActive !== false && (s.itemType !== 'RAW_MATERIAL' || s.sellingPrice > 0));
-        } else {
-          finalProducts = prodList.filter(p => p.isActive);
-        }
+        const finalProducts = mergeSellableProducts(stockList, prodList);
         setProducts(finalProducts);
         setCustomers(custList);
         setCurrentShift(activeShift);

@@ -36,6 +36,7 @@ import {
   ArrowPathIcon,
   InformationCircleIcon,
   MinusIcon,
+  ReceiptPercentIcon,
 } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 import {
@@ -110,6 +111,33 @@ const POPULAR_CATEGORIES = [
   'Jasa & Desain',
   'Kecantikan & Herbal',
   'ATK / Alat Tulis',
+];
+
+const POPULAR_SERVICE_UNITS = [
+  { value: 'kali', label: 'Kali (per Order / Transaksi)' },
+  { value: 'jam', label: 'Jam (per Jam)' },
+  { value: 'sesi', label: 'Sesi (per Sesi)' },
+  { value: 'hari', label: 'Hari (per Hari)' },
+  { value: 'bulan', label: 'Bulan (per Bulan)' },
+  { value: 'proyek', label: 'Proyek (per Project / Paket)' },
+  { value: 'orang', label: 'Orang (per Pax / Orang)' },
+  { value: 'titik', label: 'Titik (per Lokasi / Titik)' },
+  { value: 'unit', label: 'Unit (per Unit Barang)' },
+  { value: 'lembar', label: 'Lembar' },
+  { value: 'meter', label: 'Meter' },
+  { value: 'pcs', label: 'Pcs' },
+  { value: 'custom', label: '✍️ Satuan Lainnya (Ketik Manual)...' },
+];
+
+const POPULAR_SERVICE_CATEGORIES = [
+  'Jasa',
+  'Layanan',
+  'Desain Grafis',
+  'Servis & Reparasi',
+  'Konsultasi',
+  'Ongkos Kirim',
+  'Tenaga Kerja',
+  'Kustom',
 ];
 
 // ── SUB-COMPONENT: LIVE BARCODE SVG PREVIEW ──
@@ -187,13 +215,15 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
   const [formBarcodeType, setFormBarcodeType] = useState<BarcodeFormat>('CODE128');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Unit Selector Custom state
+  // Unit & Category Selector Custom state
   const [isCustomUnit, setIsCustomUnit] = useState(false);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   // Dynamic Sub-items in Form
   const [unitConversions, setUnitConversions] = useState<UnitConversion[]>([]);
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
   const [components, setComponents] = useState<ItemComponent[]>([]);
+  const [targetMarkupPercent, setTargetMarkupPercent] = useState<number | ''>(30);
 
   // Restock Modal State
   const [isRestockOpen, setIsRestockOpen] = useState(false);
@@ -383,6 +413,12 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
     };
   }, [items]);
 
+  // Dynamic Available Categories
+  const availableCategories = useMemo(() => {
+    const fromItems = items.map(i => i.category).filter((c): c is string => Boolean(c && c.trim()));
+    return Array.from(new Set([...POPULAR_CATEGORIES, ...fromItems]));
+  }, [items]);
+
   // Auto SKU Generator
   const handleGenerateSku = () => {
     const prefix = formData.itemType === 'RAW_MATERIAL' ? 'MAT' : formData.itemType === 'PRODUCED' ? 'PRD' : formData.itemType === 'SERVICE' ? 'SRV' : 'SKU';
@@ -396,15 +432,16 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
   const handleOpenCreateForm = (presetType: ItemType = 'GOODS') => {
     const prefix = presetType === 'RAW_MATERIAL' ? 'MAT' : presetType === 'PRODUCED' ? 'PRD' : presetType === 'SERVICE' ? 'SRV' : 'SKU';
     const rand = Math.floor(10000 + Math.random() * 90000);
+    const isSrv = presetType === 'SERVICE';
     setFormData({
       itemType: presetType,
       name: '',
       sku: `${prefix}-${rand}`,
-      category: 'Umum',
-      baseUnit: 'pcs',
-      trackStock: presetType !== 'SERVICE',
-      currentStock: presetType === 'SERVICE' ? 0 : 5,
-      minStock: presetType === 'SERVICE' ? 0 : 2,
+      category: isSrv ? 'Jasa' : 'Umum',
+      baseUnit: isSrv ? 'kali' : 'pcs',
+      trackStock: !isSrv,
+      currentStock: 0,
+      minStock: 0,
       purchasePrice: 0,
       sellingPrice: 0,
       costPrice: 0,
@@ -420,26 +457,84 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
     });
     setFormBarcodeType('CODE128');
     setIsCustomUnit(false);
+    setIsCustomCategory(false);
     setUnitConversions([]);
     setPriceTiers([]);
     setComponents([]);
     setImageFile(null);
     setImagePreview(null);
+    setTargetMarkupPercent(isSrv ? '' : 30);
     setIsFormOpen(true);
   };
 
   // Open Edit Form
   const handleOpenEditForm = (item: StockItem) => {
     setFormData({ ...item });
-    const isStandard = POPULAR_UNITS.some(u => u.value === (item.baseUnit || 'pcs'));
+    const isSrv = item.itemType === 'SERVICE';
+    const isStandard = isSrv
+      ? POPULAR_SERVICE_UNITS.some(u => u.value === (item.baseUnit || 'kali'))
+      : POPULAR_UNITS.some(u => u.value === (item.baseUnit || 'pcs'));
     setIsCustomUnit(!isStandard);
+    setIsCustomCategory(false);
     setFormBarcodeType((item.barcodeType as BarcodeFormat) || 'CODE128');
     setUnitConversions(item.unitConversions || []);
     setPriceTiers(item.priceTiers || []);
     setComponents(item.components || []);
     setImageFile(null);
     setImagePreview(item.thumbnailPath || item.imagePath || null);
+
+    const isProduced = item.itemType === 'PRODUCED';
+    const cost = isProduced && (item.costPrice || 0) > 0 ? (item.costPrice || 0) : (item.purchasePrice || item.costPrice || 0);
+    const sell = item.sellingPrice || 0;
+    if (!isSrv && cost > 0 && sell > 0) {
+      const pct = Math.round(((sell - cost) / cost) * 100);
+      setTargetMarkupPercent(pct);
+    } else {
+      setTargetMarkupPercent('');
+    }
+
     setIsFormOpen(true);
+  };
+
+  // Helper: Apply percentage to determine selling price
+  const handleApplyPercent = (pct: number) => {
+    setTargetMarkupPercent(pct);
+    const isProduced = formData.itemType === 'PRODUCED';
+    const cost = isProduced && calculatedBOMCost > 0
+      ? calculatedBOMCost
+      : (Number(formData.purchasePrice) || Number(formData.costPrice) || 0);
+
+    if (cost > 0) {
+      const calculatedSell = Math.round(cost * (1 + pct / 100));
+      setFormData(prev => ({
+        ...prev,
+        sellingPrice: calculatedSell,
+      }));
+    }
+  };
+
+  // Helper: Handle custom percentage input change
+  const handleCustomPercentChange = (valStr: string) => {
+    if (valStr === '') {
+      setTargetMarkupPercent('');
+      return;
+    }
+    const pct = parseFloat(valStr);
+    setTargetMarkupPercent(isNaN(pct) ? '' : pct);
+    if (!isNaN(pct)) {
+      const isProduced = formData.itemType === 'PRODUCED';
+      const cost = isProduced && calculatedBOMCost > 0
+        ? calculatedBOMCost
+        : (Number(formData.purchasePrice) || Number(formData.costPrice) || 0);
+
+      if (cost > 0) {
+        const calculatedSell = Math.round(cost * (1 + pct / 100));
+        setFormData(prev => ({
+          ...prev,
+          sellingPrice: calculatedSell,
+        }));
+      }
+    }
   };
 
   // Calculate BOM Cost for PRODUCED Items
@@ -855,32 +950,6 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
             <MagnifyingGlassIcon className="w-4 h-4 stroke-[2.2]" />
           </button>
 
-          {/* Barcode Scanner Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setBarcodeTargetMode('search');
-              setIsBarcodeScannerOpen(true);
-            }}
-            className="p-2 bg-white dark:bg-slate-800 text-[#25343F] dark:text-white border border-[#BFC9D1]/30 hover:bg-[#EAEFEF] rounded-xl transition-all cursor-pointer active:scale-95"
-            title="Scan Barcode Cepat"
-          >
-            <QrCodeIcon className="w-4 h-4 stroke-[2]" />
-          </button>
-
-          {/* Cetak Label Barcode Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedItem(null);
-              setIsBarcodePrintOpen(true);
-            }}
-            className="p-2 bg-white dark:bg-slate-800 text-[#25343F] dark:text-white border border-[#BFC9D1]/30 hover:bg-[#EAEFEF] rounded-xl transition-all cursor-pointer active:scale-95"
-            title="Cetak Label Barcode / Rak"
-          >
-            <PrinterIcon className="w-4 h-4 stroke-[2]" />
-          </button>
-
           {/* Three Dots Menu */}
           <div className="relative" ref={topMenuRef}>
             <button
@@ -893,66 +962,31 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
             </button>
 
             {isTopMenuOpen && (
-              <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-slate-900 border border-[#BFC9D1]/30 rounded-2xl shadow-xl py-1.5 z-40 text-xs animate-in fade-in zoom-in-95 duration-100 divide-y divide-slate-100 dark:divide-slate-800">
-                <div className="py-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTopMenuOpen(false);
-                      handleOpenCreateForm('GOODS');
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-[#25343F] dark:text-white hover:bg-[#EAEFEF] dark:hover:bg-slate-800 font-bold flex items-center gap-2 cursor-pointer"
-                  >
-                    <BuildingStorefrontIcon className="w-4 h-4 text-[#FF9B51]" />
-                    <span>+ Barang Retail</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTopMenuOpen(false);
-                      handleOpenCreateForm('RAW_MATERIAL');
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-[#25343F] dark:text-white hover:bg-[#EAEFEF] dark:hover:bg-slate-800 font-bold flex items-center gap-2 cursor-pointer"
-                  >
-                    <CubeIcon className="w-4 h-4 text-emerald-500" />
-                    <span>+ Bahan Baku</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTopMenuOpen(false);
-                      handleOpenCreateForm('PRODUCED');
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-[#25343F] dark:text-white hover:bg-[#EAEFEF] dark:hover:bg-slate-800 font-bold flex items-center gap-2 cursor-pointer"
-                  >
-                    <WrenchScrewdriverIcon className="w-4 h-4 text-blue-500" />
-                    <span>+ Hasil Produksi (BOM)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTopMenuOpen(false);
-                      handleOpenCreateForm('SERVICE');
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-[#25343F] dark:text-white hover:bg-[#EAEFEF] dark:hover:bg-slate-800 font-bold flex items-center gap-2 cursor-pointer"
-                  >
-                    <TagIcon className="w-4 h-4 text-purple-500" />
-                    <span>+ Jasa / Layanan</span>
-                  </button>
-                </div>
-                <div className="py-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTopMenuOpen(false);
-                      fetchData();
-                    }}
-                    className="w-full px-3.5 py-2 text-left text-[#898989] hover:text-[#25343F] hover:bg-[#EAEFEF] dark:hover:bg-slate-800 font-medium flex items-center gap-2 cursor-pointer"
-                  >
-                    <ArrowPathIcon className="w-4 h-4" />
-                    <span>Segarkan Data</span>
-                  </button>
-                </div>
+              <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-slate-900 border border-[#BFC9D1]/30 rounded-2xl shadow-xl py-1 z-40 text-xs animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTopMenuOpen(false);
+                    setBarcodeTargetMode('search');
+                    setIsBarcodeScannerOpen(true);
+                  }}
+                  className="w-full px-3.5 py-2.5 text-left text-[#25343F] dark:text-white hover:bg-[#EAEFEF] dark:hover:bg-slate-800 font-semibold flex items-center gap-2.5 cursor-pointer transition-colors"
+                >
+                  <QrCodeIcon className="w-4 h-4 text-[#FF9B51]" />
+                  <span>Scan Barcode / QR</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTopMenuOpen(false);
+                    setSelectedItem(null);
+                    setIsBarcodePrintOpen(true);
+                  }}
+                  className="w-full px-3.5 py-2.5 text-left text-[#25343F] dark:text-white hover:bg-[#EAEFEF] dark:hover:bg-slate-800 font-semibold flex items-center gap-2.5 cursor-pointer transition-colors"
+                >
+                  <PrinterIcon className="w-4 h-4 text-[#25343F] dark:text-slate-300" />
+                  <span>Cetak Label Barcode</span>
+                </button>
               </div>
             )}
           </div>
@@ -1079,29 +1113,27 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
               </span>
             </div>
 
-            {/* Bahan & Produksi */}
+            {/* Bahan Baku */}
             <div className="bg-white dark:bg-slate-800 p-3 sm:p-3.5 rounded-2xl border border-[#BFC9D1]/25 shadow-md flex flex-col justify-between">
               <span className="text-[10px] sm:text-[11px] font-bold text-[#898989] uppercase tracking-wider">
-                Bahan &amp; Produksi
+                Bahan Baku
               </span>
               <p className="text-base sm:text-lg font-black text-[#25343F] dark:text-white tabular-nums leading-tight mt-0.5">
-                {metrics.rawCount + metrics.producedCount} <span className="text-xs font-semibold text-[#898989]">Item</span>
+                {metrics.rawCount} <span className="text-xs font-semibold text-[#898989]">Item</span>
               </p>
               <span className="text-[10px] text-[#898989] font-medium mt-0.5">
-                {metrics.rawCount} Bahan · {metrics.producedCount} Hasil
+                Stok mentah &amp; material
               </span>
             </div>
           </div>
 
-          {/* ── STOCK TYPE SUB-PILLS (5 CLEAN ITEMS) ── */}
+          {/* ── STOCK TYPE SUB-PILLS (3 CLEAN ITEMS: SEMUA, RETAIL, BAHAN BAKU) ── */}
           <div className="flex items-center justify-between gap-2 py-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
               {[
                 { id: 'all', label: 'Semua' },
                 { id: 'GOODS', label: 'Retail' },
                 { id: 'RAW_MATERIAL', label: 'Bahan Baku' },
-                { id: 'PRODUCED', label: 'Produksi' },
-                { id: 'SERVICE', label: 'Jasa' },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1659,38 +1691,19 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
                     <label className="block font-bold text-[#25343F] dark:text-slate-200 mb-1.5">
                       Jenis Barang *
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {[
                         {
                           id: 'GOODS' as ItemType,
                           title: 'Barang Retail',
                           desc: 'Jual Langsung di POS',
-                          icon: BuildingStorefrontIcon,
-                          color: '#FF9B51',
                         },
                         {
                           id: 'RAW_MATERIAL' as ItemType,
                           title: 'Bahan Baku',
                           desc: 'Stok Mentah Produksi',
-                          icon: CubeIcon,
-                          color: '#10B981',
-                        },
-                        {
-                          id: 'PRODUCED' as ItemType,
-                          title: 'Hasil Produksi',
-                          desc: 'Dari Resep (BOM)',
-                          icon: WrenchScrewdriverIcon,
-                          color: '#3B82F6',
-                        },
-                        {
-                          id: 'SERVICE' as ItemType,
-                          title: 'Jasa & Layanan',
-                          desc: 'Layanan Tanpa Stok',
-                          icon: TagIcon,
-                          color: '#8B5CF6',
                         },
                       ].map(typeCard => {
-                        const Icon = typeCard.icon;
                         const isSelected = (formData.itemType || 'GOODS') === typeCard.id;
                         return (
                           <button
@@ -1703,25 +1716,19 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
                                 trackStock: typeCard.id !== 'SERVICE',
                               });
                             }}
-                            className={`p-2.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                            className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                               isSelected
-                                ? 'bg-[#25343F] text-white border-[#25343F] shadow-md scale-[1.02]'
+                                ? 'bg-[#25343F] text-white border-[#25343F] shadow-md scale-[1.01]'
                                 : 'bg-white dark:bg-slate-800 text-[#25343F] dark:text-slate-200 border-[#BFC9D1]/35 hover:bg-[#EAEFEF] dark:hover:bg-slate-700'
                             }`}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <Icon
-                                className="w-4 h-4"
-                                style={{ color: isSelected ? '#FF9B51' : typeCard.color }}
-                              />
-                              {isSelected && <CheckCircleIcon className="w-4 h-4 text-[#FF9B51]" />}
-                            </div>
                             <div>
                               <p className="font-bold text-xs leading-tight">{typeCard.title}</p>
                               <p className={`text-[9.5px] mt-0.5 leading-tight ${isSelected ? 'text-slate-300' : 'text-[#898989]'}`}>
                                 {typeCard.desc}
                               </p>
                             </div>
+                            {isSelected && <CheckCircleIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />}
                           </button>
                         );
                       })}
@@ -1747,42 +1754,51 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Kategori */}
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block font-bold text-[#25343F] dark:text-slate-200 text-xs">
-                          Kategori
-                        </label>
-                      </div>
-                      <input
-                        type="text"
-                        list="category-suggestions"
-                        value={formData.category || ''}
-                        onChange={e => setFormData({ ...formData, category: e.target.value })}
-                        placeholder="Pilih atau ketik kategori..."
-                        className="w-full h-9 px-3 bg-white dark:bg-slate-800 border border-[#BFC9D1]/40 rounded-xl font-medium text-xs text-[#25343F] dark:text-white focus:outline-hidden focus:border-[#25343F] shadow-xs"
-                      />
-                      <datalist id="category-suggestions">
-                        {POPULAR_CATEGORIES.map(cat => (
-                          <option key={cat} value={cat} />
-                        ))}
-                      </datalist>
-
-                      {/* Quick Category Chips */}
-                      <div className="flex items-center gap-1 flex-wrap mt-1.5">
-                        {['Umum', 'Makanan', 'Minuman', 'Bahan Baku', 'Kemasan'].map(tag => (
+                      <label className="block font-bold text-[#25343F] dark:text-slate-200 text-xs mb-1">
+                        Kategori
+                      </label>
+                      {!isCustomCategory ? (
+                        <select
+                          value={formData.category || 'Umum'}
+                          onChange={e => {
+                            if (e.target.value === 'custom') {
+                              setIsCustomCategory(true);
+                              setFormData({ ...formData, category: '' });
+                            } else {
+                              setFormData({ ...formData, category: e.target.value });
+                            }
+                          }}
+                          className="w-full h-9 px-3 bg-white dark:bg-slate-800 border border-[#BFC9D1]/40 rounded-xl font-medium text-xs text-[#25343F] dark:text-white focus:outline-hidden focus:border-[#25343F] shadow-xs cursor-pointer"
+                        >
+                          {availableCategories.map(cat => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                          <option value="custom">✍️ Kategori Baru (Ketik Manual)...</option>
+                        </select>
+                      ) : (
+                        <div className="flex gap-1.5">
+                          <input
+                            autoFocus
+                            type="text"
+                            value={formData.category || ''}
+                            onChange={e => setFormData({ ...formData, category: e.target.value })}
+                            placeholder="Ketik nama kategori..."
+                            className="w-full h-9 px-3 bg-white dark:bg-slate-800 border border-[#BFC9D1]/40 rounded-xl font-medium text-xs text-[#25343F] dark:text-white focus:outline-hidden focus:border-[#25343F] shadow-xs"
+                          />
                           <button
-                            key={tag}
                             type="button"
-                            onClick={() => setFormData({ ...formData, category: tag })}
-                            className={`px-2 py-0.5 rounded-md text-[9.5px] font-semibold transition-colors cursor-pointer ${
-                              formData.category === tag
-                                ? 'bg-[#25343F] text-white'
-                                : 'bg-[#EAEFEF] dark:bg-slate-700 text-[#898989] hover:text-[#25343F]'
-                            }`}
+                            onClick={() => {
+                              setIsCustomCategory(false);
+                              setFormData({ ...formData, category: 'Umum' });
+                            }}
+                            className="h-9 px-2.5 bg-[#EAEFEF] dark:bg-slate-700 hover:bg-slate-200 text-[#25343F] dark:text-white rounded-xl text-[10.5px] font-bold shrink-0 cursor-pointer"
                           >
-                            {tag}
+                            Pilihan
                           </button>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* SKU / Kode Barang */}
@@ -1950,7 +1966,12 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
                           onChange={e => {
                             const raw = e.target.value.replace(/\D/g, '');
                             const val = raw ? Number(raw) : 0;
-                            setFormData({ ...formData, purchasePrice: val, costPrice: val });
+                            if (typeof targetMarkupPercent === 'number' && targetMarkupPercent > 0 && val > 0) {
+                              const newSell = Math.round(val * (1 + targetMarkupPercent / 100));
+                              setFormData({ ...formData, purchasePrice: val, costPrice: val, sellingPrice: newSell });
+                            } else {
+                              setFormData({ ...formData, purchasePrice: val, costPrice: val });
+                            }
                           }}
                           placeholder="0"
                           className={`w-full h-10 pl-10 pr-3.5 border border-[#BFC9D1]/40 rounded-xl font-mono font-bold text-xs tabular-nums text-[#25343F] dark:text-white focus:outline-hidden focus:border-[#25343F] shadow-xs ${
@@ -1979,6 +2000,16 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
                               const raw = e.target.value.replace(/\D/g, '');
                               const val = raw ? Number(raw) : 0;
                               setFormData({ ...formData, sellingPrice: val });
+                              const isProduced = formData.itemType === 'PRODUCED';
+                              const cost = isProduced && calculatedBOMCost > 0
+                                ? calculatedBOMCost
+                                : (Number(formData.purchasePrice) || Number(formData.costPrice) || 0);
+                              if (cost > 0 && val > 0) {
+                                const pct = Math.round(((val - cost) / cost) * 100);
+                                setTargetMarkupPercent(pct);
+                              } else if (val === 0) {
+                                setTargetMarkupPercent('');
+                              }
                             }}
                             placeholder="0"
                             className="w-full h-10 pl-10 pr-3.5 bg-white dark:bg-slate-800 border border-[#BFC9D1]/40 rounded-xl font-mono font-bold text-xs tabular-nums text-[#25343F] dark:text-white focus:outline-hidden focus:border-[#25343F] shadow-xs"
@@ -1988,6 +2019,91 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
                       </div>
                     )}
                   </div>
+
+                  {/* ── OPSI PERSEN UNTUK MENENTUKAN HARGA JUAL (KHUSUS RETAIL GOODS & HASIL PRODUKSI PRODUCED) ── */}
+                  {(formData.itemType === 'GOODS' || formData.itemType === 'PRODUCED') && (
+                    <div className="p-3.5 bg-[#EAEFEF]/60 dark:bg-slate-700/40 rounded-2xl border border-[#BFC9D1]/30 dark:border-slate-600 space-y-2.5">
+                      <div className="flex items-center justify-between flex-wrap gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <ReceiptPercentIcon className="w-4 h-4 text-[#FF9B51]" />
+                          <label className="font-bold text-[#25343F] dark:text-white text-xs">
+                            Opsi Persentase Keuntungan (Markup %)
+                          </label>
+                        </div>
+                        <span className="text-[10px] text-[#898989]">
+                          Harga Jual = HPP + (% &times; HPP)
+                        </span>
+                      </div>
+
+                      {/* Preset Chips + Custom Input */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {[10, 20, 30, 50, 75, 100].map(pct => {
+                          const isSelected = targetMarkupPercent === pct;
+                          return (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => handleApplyPercent(pct)}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                                isSelected
+                                  ? 'bg-[#25343F] text-white border border-[#25343F]'
+                                  : 'bg-white dark:bg-slate-800 text-[#25343F] dark:text-slate-200 border border-[#BFC9D1]/40 hover:bg-[#FF9B51]/20 hover:text-[#c45e00]'
+                              }`}
+                            >
+                              +{pct}%
+                            </button>
+                          );
+                        })}
+
+                        {/* Custom Input */}
+                        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-[#BFC9D1]/40 shadow-xs">
+                          <span className="text-[11px] font-bold text-[#898989]">+</span>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            placeholder="Kustom"
+                            value={targetMarkupPercent === '' ? '' : targetMarkupPercent}
+                            onChange={e => handleCustomPercentChange(e.target.value)}
+                            className="w-14 text-xs font-mono font-bold text-[#25343F] dark:text-white text-center focus:outline-hidden"
+                          />
+                          <span className="text-[11px] font-bold text-[#898989]">%</span>
+                        </div>
+                      </div>
+
+                      {/* Live Breakdown / Helper */}
+                      {(() => {
+                        const cost = formData.itemType === 'PRODUCED' && calculatedBOMCost > 0
+                          ? calculatedBOMCost
+                          : (Number(formData.purchasePrice) || Number(formData.costPrice) || 0);
+
+                        if (cost <= 0) {
+                          return (
+                            <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                              💡 Masukkan {formData.itemType === 'PRODUCED' ? 'resep bahan baku / biaya produksi di Bagian 4' : 'Harga Beli Pokok (HPP)'} terlebih dahulu untuk menghitung harga jual otomatis dari persentase.
+                            </p>
+                          );
+                        }
+
+                        if (typeof targetMarkupPercent === 'number' && targetMarkupPercent > 0) {
+                          const profitAmount = Math.round((cost * targetMarkupPercent) / 100);
+                          const resultPrice = cost + profitAmount;
+                          return (
+                            <div className="text-[10.5px] text-[#25343F] dark:text-slate-200 font-medium flex items-center justify-between flex-wrap gap-1 pt-1.5 border-t border-slate-200/60 dark:border-slate-600">
+                              <span>
+                                💡 Modal: <strong>{formatRupiah(cost)}</strong> + Laba {targetMarkupPercent}% (<strong>{formatRupiah(profitAmount)}</strong>)
+                              </span>
+                              <span className="font-bold text-[#25343F] dark:text-white">
+                                👉 Harga Jual Otomatis: <strong className="text-[#FF9B51]">{formatRupiah(resultPrice)}</strong>
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return null;
+                      })()}
+                    </div>
+                  )}
 
                   {/* Live Profit & Margin Indicator */}
                   {formData.itemType !== 'RAW_MATERIAL' && (formProfitInfo.sell > 0 || formProfitInfo.cost > 0) && (
@@ -2530,9 +2646,22 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
                       </div>
                     </div>
 
-                    <div className="p-3 bg-[#25343F] text-white rounded-xl flex items-center justify-between text-xs shadow-sm">
-                      <span className="font-bold">Total HPP Produksi (Auto):</span>
-                      <span className="font-mono font-black text-sm text-[#FF9B51]">{formatRupiah(calculatedBOMCost)}</span>
+                    <div className="p-3 bg-[#25343F] text-white rounded-xl flex items-center justify-between text-xs shadow-sm flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold">Total HPP Produksi (Auto):</span>
+                        <span className="font-mono font-black text-sm text-[#FF9B51]">{formatRupiah(calculatedBOMCost)}</span>
+                      </div>
+                      {calculatedBOMCost > 0 && typeof targetMarkupPercent === 'number' && targetMarkupPercent > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleApplyPercent(targetMarkupPercent)}
+                          className="px-2.5 py-1 bg-[#FF9B51] hover:bg-[#ff8c3a] text-[#25343F] rounded-lg font-bold text-[10.5px] cursor-pointer transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                          title="Terapkan harga jual berdasarkan persentase laba di atas"
+                        >
+                          <ReceiptPercentIcon className="w-3.5 h-3.5" />
+                          <span>Terapkan Laba +{targetMarkupPercent}% ({formatRupiah(Math.round(calculatedBOMCost * (1 + targetMarkupPercent / 100)))})</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

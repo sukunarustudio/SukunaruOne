@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CubeIcon, PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, Square3Stack3DIcon, TagIcon, ReceiptPercentIcon, EyeIcon, AdjustmentsHorizontalIcon, ArrowsUpDownIcon, XMarkIcon, EllipsisVerticalIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, SparklesIcon, InformationCircleIcon, ArrowLeftIcon, QrCodeIcon, PrinterIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
-import { Product, Material, ProductComponent, ProductType } from '../types';
+import { Product, Material, ProductComponent, ProductType, StockItem } from '../types';
 import { formatRupiah } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -117,9 +117,38 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
   const loadData = async () => {
     try {
       setLoading(true);
-      const [prodList, matList] = await Promise.all([api.getProducts(), api.getMaterials()]);
+      const [prodList, matList, stockList] = await Promise.all([
+        api.getProducts(),
+        api.getMaterials(),
+        api.getStockItems(),
+      ]);
       setProducts(prodList);
-      setMaterials(matList);
+
+      // Merge: convert stock items (RAW_MATERIAL / GOODS) into Material format
+      // so BOM selector can see items from both legacy materials AND unified stock_items
+      const stockAsMaterials: Material[] = (stockList || [])
+        .filter((si: StockItem) => si.itemType === 'RAW_MATERIAL' || si.itemType === 'GOODS')
+        .map((si: StockItem): Material => ({
+          id: si.id,
+          name: si.name,
+          sku: si.sku || '',
+          category: si.category || 'Umum',
+          unit: si.baseUnit || 'pcs',
+          currentStock: si.currentStock || 0,
+          minStock: si.minStock || 0,
+          purchasePrice: si.purchasePrice || 0,
+          unitCost: si.costPrice || si.purchasePrice || 0,
+          supplier: si.supplier || '',
+          supplierContact: si.supplierContact || '',
+          notes: si.description || '',
+          createdAt: si.createdAt,
+          updatedAt: si.updatedAt,
+        }));
+
+      // Deduplicate: stock items take priority over legacy materials with same ID
+      const stockIds = new Set(stockAsMaterials.map(m => m.id));
+      const legacyOnly = matList.filter(m => !stockIds.has(m.id));
+      setMaterials([...stockAsMaterials, ...legacyOnly]);
     } catch (err: any) {
       showToast(err.message || 'Gagal memuat katalog produk', 'error');
     } finally {
@@ -132,7 +161,29 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
     const handleRefresh = () => {
       // Background reload data without resetting form/filter state
       api.getProducts().then(p => setProducts(p)).catch(() => {});
-      api.getMaterials().then(m => setMaterials(m)).catch(() => {});
+      Promise.all([api.getMaterials(), api.getStockItems()]).then(([matList, stockList]) => {
+        const stockAsMaterials: Material[] = (stockList || [])
+          .filter((si: StockItem) => si.itemType === 'RAW_MATERIAL' || si.itemType === 'GOODS')
+          .map((si: StockItem): Material => ({
+            id: si.id,
+            name: si.name,
+            sku: si.sku || '',
+            category: si.category || 'Umum',
+            unit: si.baseUnit || 'pcs',
+            currentStock: si.currentStock || 0,
+            minStock: si.minStock || 0,
+            purchasePrice: si.purchasePrice || 0,
+            unitCost: si.costPrice || si.purchasePrice || 0,
+            supplier: si.supplier || '',
+            supplierContact: si.supplierContact || '',
+            notes: si.description || '',
+            createdAt: si.createdAt,
+            updatedAt: si.updatedAt,
+          }));
+        const stockIds = new Set(stockAsMaterials.map(m => m.id));
+        const legacyOnly = matList.filter(m => !stockIds.has(m.id));
+        setMaterials([...stockAsMaterials, ...legacyOnly]);
+      }).catch(() => {});
     };
     window.addEventListener('sukunaru:sync_completed', handleRefresh);
     window.addEventListener('sukunaru:data_mutation', handleRefresh);
