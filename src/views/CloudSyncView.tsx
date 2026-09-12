@@ -102,6 +102,59 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS stock_items (
+  id TEXT PRIMARY KEY,
+  license_key TEXT NOT NULL,
+  name TEXT NOT NULL,
+  sku TEXT,
+  category TEXT,
+  item_type TEXT DEFAULT 'GOODS',
+  track_stock BOOLEAN DEFAULT TRUE,
+  current_stock NUMERIC DEFAULT 0,
+  min_stock NUMERIC DEFAULT 0,
+  base_unit TEXT DEFAULT 'PCS',
+  purchase_price NUMERIC DEFAULT 0,
+  selling_price NUMERIC DEFAULT 0,
+  cost_price NUMERIC DEFAULT 0,
+  price_tiers JSONB DEFAULT '[]'::jsonb,
+  unit_conversions JSONB DEFAULT '[]'::jsonb,
+  components JSONB DEFAULT '[]'::jsonb,
+  labor_cost NUMERIC DEFAULT 0,
+  machine_cost NUMERIC DEFAULT 0,
+  other_cost NUMERIC DEFAULT 0,
+  barcode TEXT,
+  barcode_type TEXT,
+  description TEXT,
+  image_path TEXT,
+  thumbnail_path TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  supplier TEXT,
+  supplier_contact TEXT,
+  product_type TEXT,
+  has_variants BOOLEAN DEFAULT FALSE,
+  variants JSONB DEFAULT '[]'::jsonb,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS stock_movements (
+  id TEXT PRIMARY KEY,
+  license_key TEXT NOT NULL,
+  item_id TEXT,
+  item_name TEXT,
+  variant_id TEXT,
+  type TEXT NOT NULL,
+  quantity NUMERIC NOT NULL,
+  previous_stock NUMERIC DEFAULT 0,
+  new_stock NUMERIC DEFAULT 0,
+  reference_type TEXT,
+  reference_id TEXT,
+  notes TEXT,
+  date TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -326,21 +379,21 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-4 animate-fade-in pb-24">
       {/* ── STICKY TOP HEADER ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
             onClick={() => onNavigate(previousView)}
-            className="h-9 w-9 rounded-xl bg-white hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-md"
+            className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
             title="Kembali"
           >
-            <ArrowLeftIcon className="w-4 h-4" />
+            <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
+            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
               Pengaturan Sinkronisasi Cloud
             </h1>
-            <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
+            <p className="text-xs sm:text-[13px] text-[#898989] dark:text-slate-400 font-medium mt-0.5 truncate hidden sm:block">
               Arsitektur Offline-First (Tetap cepat offline, otomatis sync ke cloud saat online)
             </p>
           </div>
@@ -350,7 +403,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
           type="button"
           onClick={handleManualSync}
           disabled={syncState.status === 'SYNCING'}
-          className="h-9 px-3.5 bg-[#FF6A00] hover:bg-[#e65c00] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95 disabled:opacity-60"
+          className="h-9 px-4 bg-[#FF6A00] hover:bg-[#e65c00] text-white rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0 active:scale-95 disabled:opacity-60"
         >
           <ArrowPathIcon className={`w-3.5 h-3.5 ${syncState.status === 'SYNCING' ? 'animate-spin' : ''}`} />
           <span>{syncState.status === 'SYNCING' ? 'Menyinkronkan...' : 'Sinkronkan Sekarang'}</span>

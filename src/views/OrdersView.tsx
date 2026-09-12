@@ -333,14 +333,22 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   const loadData = async () => {
     try {
       setLoading(true);
-      const [orderList, custList, prodList] = await Promise.all([
-        api.getOrders(),
-        api.getCustomers(),
-        api.getProducts(),
+      const [orderList, custList, stockList, prodList] = await Promise.all([
+        api.getOrders().catch(() => []),
+        api.getCustomers().catch(() => []),
+        api.getStockItems().catch(() => []),
+        api.getProducts().catch(() => []),
       ]);
       setOrders(orderList);
       setCustomers(custList);
-      setProducts(prodList);
+
+      let finalProducts: any[] = [];
+      if (stockList && stockList.length > 0) {
+        finalProducts = stockList.filter(s => s.isActive !== false);
+      } else {
+        finalProducts = prodList.filter(p => p.isActive !== false);
+      }
+      setProducts(finalProducts);
 
       if (targetOrderId) {
         const found = orderList.find(o => o.id === targetOrderId);
@@ -360,9 +368,22 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   useEffect(() => {
     loadData();
     const handleRefresh = () => {
-      api.getOrders().then(o => setOrders(o)).catch(() => {});
-      api.getCustomers().then(c => setCustomers(c)).catch(() => {});
-      api.getProducts().then(p => setProducts(p)).catch(() => {});
+      Promise.all([
+        api.getOrders().catch(() => []),
+        api.getCustomers().catch(() => []),
+        api.getStockItems().catch(() => []),
+        api.getProducts().catch(() => []),
+      ]).then(([orderList, custList, stockList, prodList]) => {
+        setOrders(orderList);
+        setCustomers(custList);
+        let finalProducts: any[] = [];
+        if (stockList && stockList.length > 0) {
+          finalProducts = stockList.filter(s => s.isActive !== false);
+        } else {
+          finalProducts = prodList.filter(p => p.isActive !== false);
+        }
+        setProducts(finalProducts);
+      }).catch(() => {});
     };
     window.addEventListener('sukunaru:sync_completed', handleRefresh);
     window.addEventListener('sukunaru:data_mutation', handleRefresh);
@@ -840,57 +861,57 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   return (
     <div id="orders-view" className="space-y-3.5 max-w-7xl mx-auto pb-12">
       {/* ── STICKY TOP HEADER: [ ← Judul ] ... [ Aksi ] ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 space-y-2">
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 space-y-2">
         {/* Row 1: [ ← Judul ] ... [ Aksi (+ Buat Pesanan) ] */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             {viewMode === 'pos' && (
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
-                className="h-9 w-9 rounded-xl bg-white hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-md"
+                className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
                 title="Kembali ke Daftar Pesanan"
               >
-                <ArrowLeftIcon className="w-4 h-4" />
+                <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
               </button>
             )}
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
+              <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
                 {viewMode === 'pos' ? 'Pesanan Kerja' : 'Daftar Pesanan'}
               </h1>
-              <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
+              <p className="text-xs sm:text-[13px] text-[#898989] dark:text-slate-400 font-medium mt-0.5 truncate hidden sm:block">
                 {viewMode === 'pos' ? 'Pilih produk dari katalog untuk membuat pesanan' : 'Manajemen status produksi, timeline &amp; cetak faktur'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {viewMode === 'pos' ? (
               <button
                 type="button"
                 id="btn-top-create-order"
                 onClick={() => setViewMode('table')}
-                className="h-9 px-3.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md transition-colors cursor-pointer shrink-0 active:scale-95 bg-[#EAEFEF] text-[#25343F] hover:bg-slate-300"
+                className="h-9 px-4 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0 active:scale-95 bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[#25343F] dark:text-white"
               >
-                <ListBulletIcon className="w-3.5 h-3.5" />
+                <ListBulletIcon className="w-4 h-4 stroke-[2]" />
                 <span>Lihat Daftar</span>
               </button>
             ) : (
-              <div className="flex items-center gap-2 relative">
+              <div className="flex items-center gap-1.5 relative">
                 {/* Search Toggle Icon Button */}
                 <button
                   type="button"
                   id="btn-toggle-search-orders"
                   onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
+                  className={`p-2 rounded-full transition-all cursor-pointer active:scale-90 ${
                     isSearchOpen || searchQuery
-                      ? 'bg-[#25343F] text-white border-slate-900'
-                      : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
+                      ? 'bg-[#FF6A00] text-white shadow-xs'
+                      : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
                   }`}
                   title="Cari Pesanan"
                   aria-label="Cari Pesanan"
                 >
-                  <MagnifyingGlassIcon className="w-4 h-4" />
+                  <MagnifyingGlassIcon className="w-5 h-5 stroke-[2.2]" />
                 </button>
 
                 {/* Ellipsis Menu Button (⋮) */}
@@ -899,15 +920,15 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                     type="button"
                     id="btn-orders-top-menu"
                     onClick={() => setIsTopMenuOpen(!isTopMenuOpen)}
-                    className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
+                    className={`p-2 rounded-full transition-all cursor-pointer active:scale-90 ${
                       isTopMenuOpen || isSelectionMode || selectedOrderIds.length > 0
-                        ? 'bg-[#25343F] text-white border-slate-900'
-                        : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
+                        ? 'bg-black/10 dark:bg-white/15 text-[#25343F] dark:text-white'
+                        : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
                     }`}
                     title="Menu Lainnya"
                     aria-label="Menu Lainnya"
                   >
-                    <EllipsisVerticalIcon className="w-5 h-5 stroke-[2]" />
+                    <EllipsisVerticalIcon className="w-5 h-5 stroke-[2.2]" />
                   </button>
 
                   {/* Dropdown Menu Popover */}
@@ -1646,7 +1667,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           {mobileTab === 'catalog' && newOrderItems.length > 0 && (
             <div
               className="lg:hidden fixed right-3 z-30 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-auto"
-              style={{ bottom: 'calc(78px + env(safe-area-inset-bottom, 8px))' }}
+              style={{ bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))' }}
             >
               {/* Compact Trash / Reset Order Icon Button with confirmation */}
               <button
@@ -1657,9 +1678,9 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                 }}
                 aria-label="Batalkan / Reset Pesanan"
                 title="Batalkan / Reset Pesanan"
-                className="w-11 h-11 rounded-full bg-[#1E293B]/95 backdrop-blur-md hover:bg-[#151D2A] active:scale-90 text-rose-400 shadow-[0_8px_20px_-4px_rgba(30,41,59,0.35)] flex items-center justify-center cursor-pointer border border-white/15 transition-all shrink-0"
+                className="w-11 h-11 rounded-full bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 hover:text-rose-600 border border-rose-200/80 dark:border-rose-500/30 shadow-[0_8px_24px_rgba(0,0,0,0.12)] flex items-center justify-center cursor-pointer active:scale-90 transition-all shrink-0"
               >
-                <TrashIcon className="w-4 h-4 text-rose-400" />
+                <TrashIcon className="w-5 h-5 stroke-[2]" />
               </button>
 
               {/* Order Cart Summary Pill Button */}
@@ -2660,7 +2681,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         <div
           id="batch-actions-floating-bar"
           className="fixed bottom-[92px] sm:bottom-8 left-1/2 -translate-x-1/2 z-40 bg-[#25343F] text-white px-3.5 py-2.5 sm:px-4 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-2 sm:gap-3 animate-fade-in max-w-[95vw]"
-          style={{ bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))' }}
+          style={{ bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))' }}
         >
           <div className="flex items-center gap-2 min-w-0">
             <span
@@ -2728,7 +2749,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           type="button"
           onClick={() => setViewMode('pos')}
           style={{
-            bottom: 'calc(86px + env(safe-area-inset-bottom, 12px))',
+            bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))',
             backgroundColor: 'var(--color-accent)',
             color: 'var(--color-accent-contrast)',
             boxShadow: '0 10px 25px -4px var(--color-accent-soft, rgba(0,0,0,0.4))',

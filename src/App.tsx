@@ -38,6 +38,7 @@ import { CustomersView } from './views/CustomersView';
 import { ProductsView } from './views/ProductsView';
 import { HppCalculatorView } from './views/HppCalculatorView';
 import { InventoryView } from './views/InventoryView';
+import StockView from './views/StockView';
 import { FinanceView } from './views/FinanceView';
 import { InvoicesView } from './views/InvoicesView';
 import { ReportsView } from './views/ReportsView';
@@ -84,6 +85,8 @@ function MainAppContent() {
 
   // Auth state — null = not checked yet, undefined = checked but not logged in
   const [authUser, setAuthUser] = useState<User | null | undefined>(undefined);
+  const [isSplashVisible, setIsSplashVisible] = useState<boolean>(true);
+  const [isSplashFading, setIsSplashFading] = useState<boolean>(false);
   // Auth sub-screen: 'sign-in' | 'sign-up' | 'forgot-password'
   const [authScreen, setAuthScreen] = useState<'sign-in' | 'sign-up' | 'forgot-password'>('sign-in');
   // Whether session is currently locked (e.g. after user logout)
@@ -227,15 +230,19 @@ function MainAppContent() {
     return cleanup;
   }, [handleUserSessionRestoration]);
 
-  // App Startup Splash Screen state
-  const [showSplash, setShowSplash] = useState<boolean>(true);
-
+  // Web preview splash screen timer: smooth initial display & graceful fade-out
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 1400);
-    return () => clearTimeout(timer);
-  }, []);
+    if (authUser !== undefined) {
+      const t1 = setTimeout(() => {
+        setIsSplashFading(true);
+        const t2 = setTimeout(() => {
+          setIsSplashVisible(false);
+        }, 300);
+        return () => clearTimeout(t2);
+      }, 500);
+      return () => clearTimeout(t1);
+    }
+  }, [authUser]);
 
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [targetRecordId, setTargetRecordId] = useState<string | undefined>(undefined);
@@ -466,16 +473,27 @@ function MainAppContent() {
     }
   };
 
-  // ── 1. Splash Screen Gate (Initial launch & session verification) ───────────
-  const isAuthLoading = authUser === undefined;
-  if (showSplash || isAuthLoading) {
+  // ── 1. Web Preview Splash Screen Gate (Smooth initial presentation & session resolution) ───
+  if (isSplashVisible || authUser === undefined) {
     return (
-      <div className="fixed inset-0 z-[9999] bg-white dark:bg-[#0B0F17] flex items-center justify-center transition-colors">
-        <img
-          src="/splash.png"
-          alt="BisnisUrang"
-          className="w-full h-full object-contain animate-fade-in"
-        />
+      <div
+        className={`fixed inset-0 z-[9999] bg-white dark:bg-[#0B0F17] flex flex-col items-center justify-center transition-opacity duration-300 ${
+          isSplashFading ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <div className="flex flex-col items-center animate-fade-in select-none">
+          <img
+            src="/app-logo.png"
+            alt="BisnisUrang"
+            className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-3xl shadow-xl mb-4"
+          />
+          <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white tracking-tight">
+            Bisnis<span className="text-[#FF9B51]">Urang</span>
+          </h1>
+          <p className="text-xs text-[#898989] font-medium mt-1">
+            Usaha tercatat, Kelola jadi mudah.
+          </p>
+        </div>
       </div>
     );
   }
@@ -648,7 +666,7 @@ function MainAppContent() {
           )}
 
           {currentView === 'inventory' && (
-            <InventoryView
+            <StockView
               onRefreshDashboard={refreshStatsAndSettings}
               onNavigate={handleNavigate}
             />
@@ -755,6 +773,7 @@ function MainAppContent() {
             <ProfileView
               onNavigate={handleNavigate}
               settings={settings}
+              onUpdateSettings={setSettings}
             />
           )}
 

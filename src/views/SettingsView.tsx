@@ -81,22 +81,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     <div id="settings-view" className="space-y-3.5 max-w-4xl mx-auto pb-12">
 
       {/* ── STICKY TOP HEADER: [ ← Judul ] ... [ Aksi ] ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
             onClick={() => onNavigate?.(previousView)}
-            className="h-9 w-9 rounded-xl bg-white hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-md"
+            className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
             title="Kembali ke Beranda"
           >
-            <ArrowLeftIcon className="w-4 h-4" />
+            <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
+            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
               Pengaturan
             </h1>
-            <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
-              Konfigurasi tampilan, dokumen & data aplikasi
+            <p className="text-xs sm:text-[13px] text-[#898989] dark:text-slate-400 font-medium mt-0.5 truncate hidden sm:block">
+              Konfigurasi tampilan, dokumen &amp; data aplikasi
             </p>
           </div>
         </div>
@@ -105,9 +105,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           form="settings-form"
           type="submit"
           disabled={isSaving}
-          className="h-9 px-3.5 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md transition-colors cursor-pointer disabled:opacity-50 shrink-0 active:scale-95"
+          className="h-9 px-4 bg-[#FF6A00] hover:bg-[#e65c00] text-white rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50 shrink-0 active:scale-95"
         >
-          <DocumentCheckIcon className="w-4 h-4" />
+          <DocumentCheckIcon className="w-4 h-4 stroke-[2]" />
           <span>{isSaving ? 'Menyimpan...' : 'Simpan'}</span>
         </button>
       </div>

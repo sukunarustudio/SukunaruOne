@@ -58,7 +58,7 @@ export const MenuView: React.FC<MenuViewProps> = ({
         },
         {
           id: 'inventory' as ViewType,
-          label: 'Bahan Baku',
+          label: 'Stok Barang',
           icon: Square3Stack3DIcon,
           iconBg: 'bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25',
           badge: lowStockCount > 0 ? lowStockCount : undefined,

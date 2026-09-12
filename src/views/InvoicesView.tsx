@@ -15,12 +15,13 @@ import {
   NoSymbolIcon,
 } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
-import { Transaction, Order, BusinessSettings } from '../types';
+import { Transaction, Order, BusinessSettings, CashierShift } from '../types';
 import { formatRupiah, formatDate, formatDateTime, getStatusBadgeClass, formatPaymentStatus, formatOrderStatus } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { PrintReceiptModal } from '../components/PrintReceiptModal';
 import { PrintInvoiceModal } from '../components/PrintInvoiceModal';
 import { RefundConfirmationModal } from '../components/RefundConfirmationModal';
+import { ShiftDetailModal } from '../components/ShiftDetailModal';
 
 interface InvoicesViewProps {
   settings: BusinessSettings;
@@ -34,6 +35,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [shifts, setShifts] = useState<CashierShift[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -45,6 +47,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
+  // Shift Detail Modal
+  const [selectedShift, setSelectedShift] = useState<CashierShift | null>(null);
+  const [isShiftDetailModalOpen, setIsShiftDetailModalOpen] = useState(false);
+
   // Refund Modal
   const [selectedRefundTrx, setSelectedRefundTrx] = useState<Transaction | null>(null);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
@@ -52,9 +58,14 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
   const loadData = async () => {
     try {
       setLoading(true);
-      const [trxList, orderList] = await Promise.all([api.getTransactions(), api.getOrders()]);
+      const [trxList, orderList, shiftList] = await Promise.all([
+        api.getTransactions(),
+        api.getOrders(),
+        api.getShifts().catch(() => []),
+      ]);
       setTransactions(trxList);
       setOrders(orderList);
+      setShifts(shiftList);
     } catch (err: any) {
       showToast(err.message || 'Gagal memuat arsip transaksi', 'error');
     } finally {
@@ -67,6 +78,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
     const handleRefresh = () => {
       api.getTransactions().then(t => setTransactions(t)).catch(() => {});
       api.getOrders().then(o => setOrders(o)).catch(() => {});
+      api.getShifts().then(s => setShifts(s)).catch(() => {});
     };
     window.addEventListener('sukunaru:sync_completed', handleRefresh);
     window.addEventListener('sukunaru:data_mutation', handleRefresh);
@@ -101,6 +113,49 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
       o.customerName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredShifts = shifts.filter(s =>
+    (s.cashierName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    'shift'.includes(searchQuery.toLowerCase()) ||
+    (s.notes && s.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const shiftEvents = [
+    ...filteredShifts.map(s => ({
+      kind: 'shift_start' as const,
+      id: `${s.id}_start`,
+      shiftId: s.id,
+      code: `SHIFT-START`,
+      customerName: s.cashierName || 'Kasir',
+      cashierName: s.cashierName || 'Kasir',
+      date: (s.startedAt || '').split('T')[0],
+      createdAt: s.startedAt,
+      amount: 0,
+      profit: 0,
+      paymentMethod: '',
+      isRefunded: false,
+      items: 'Shift Dimulai',
+      rawShift: s,
+    })),
+    ...filteredShifts.filter(s => s.status === 'CLOSED' && s.endedAt).map(s => ({
+      kind: 'shift_end' as const,
+      id: `${s.id}_end`,
+      shiftId: s.id,
+      code: `SHIFT-END`,
+      customerName: s.cashierName || 'Kasir',
+      cashierName: s.cashierName || 'Kasir',
+      date: (s.endedAt || s.startedAt || '').split('T')[0],
+      createdAt: s.endedAt || s.startedAt,
+      amount: s.totalAmount || 0,
+      profit: 0,
+      paymentMethod: '',
+      isRefunded: false,
+      items: `Shift Selesai · ${s.totalTransactions} transaksi`,
+      totalTransactions: s.totalTransactions,
+      totalAmount: s.totalAmount,
+      rawShift: s,
+    })),
+  ];
+
   // Combined sorted list for 'all' mode
   const combinedHistory = [
     ...filteredTransactions.map(t => ({
@@ -108,6 +163,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
       id: t.id,
       code: t.receiptNumber,
       customerName: t.customerName,
+      cashierName: t.cashierName || 'Owner',
       date: t.date,
       createdAt: t.createdAt || t.date,
       amount: t.totalAmount,
@@ -122,6 +178,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
       id: o.id,
       code: o.orderNumber,
       customerName: o.customerName,
+      cashierName: 'SPK',
       date: o.orderDate,
       createdAt: o.createdAt || o.orderDate,
       amount: o.totalAmount,
@@ -132,6 +189,27 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
       items: o.items.map(i => `${i.productName}(${i.quantity})`).join(' · '),
       rawOrder: o,
     })),
+    ...shiftEvents,
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Receipts tab also includes shift events
+  const receiptsWithShifts = [
+    ...filteredTransactions.map(t => ({
+      kind: 'receipt' as const,
+      id: t.id,
+      code: t.receiptNumber,
+      customerName: t.customerName,
+      cashierName: t.cashierName || 'Owner',
+      date: t.date,
+      createdAt: t.createdAt || t.date,
+      amount: t.totalAmount,
+      profit: t.profit,
+      paymentMethod: t.paymentMethod,
+      isRefunded: t.status === 'REFUNDED' || t.status === 'CANCELLED',
+      items: t.items.map(i => `${i.productName}(${i.quantity})`).join(' · '),
+      rawTransaction: t,
+    })),
+    ...shiftEvents,
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handlePrintReceipt = (trx: Transaction) => {
@@ -152,33 +230,33 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
   return (
     <div id="invoices-view" className="space-y-3.5 max-w-7xl mx-auto pb-24">
       {/* ── STICKY TOP HEADER: [ ← Judul ] ... [ Aksi ] ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 space-y-2">
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 space-y-2">
         {/* Row 1: Header + Action Buttons */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
+              <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
                 Riwayat Transaksi
               </h1>
-              <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
+              <p className="text-xs sm:text-[13px] text-[#898989] dark:text-slate-400 font-medium mt-0.5 truncate hidden sm:block">
                 Arsip cetak ulang nota kasir POS, pembatalan/refund &amp; invoice pesanan
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Search Toggle Icon */}
             <button
               type="button"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
+              className={`p-2 rounded-full transition-all cursor-pointer active:scale-90 ${
                 isSearchOpen || searchQuery
-                  ? 'bg-[#25343F] text-white border-slate-900'
-                  : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
+                  ? 'bg-[#FF6A00] text-white shadow-xs'
+                  : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
               title="Cari Transaksi"
             >
-              <MagnifyingGlassIcon className="w-4 h-4" />
+              <MagnifyingGlassIcon className="w-5 h-5 stroke-[2.2]" />
             </button>
 
             {/* Filter Button */}
@@ -187,12 +265,16 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                 type="button"
                 id="btn-filter-transaction-type"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="h-9 px-2.5 rounded-xl border border-[#BFC9D1]/25 bg-white hover:bg-[#EAEFEF] text-[#25343F] flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95 shrink-0"
+                className={`p-2 rounded-full transition-all active:scale-90 cursor-pointer flex items-center gap-1.5 ${
+                  isFilterOpen
+                    ? 'bg-black/10 dark:bg-white/15 text-[#25343F] dark:text-white'
+                    : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
+                }`}
                 title="Filter Tipe Transaksi"
                 aria-label="Filter Tipe Transaksi"
               >
-                <FunnelIcon className="w-3.5 h-3.5 text-[#898989]" />
-                <span className="text-[#25343F] text-xs hidden sm:inline">
+                <FunnelIcon className="w-5 h-5 stroke-[2]" />
+                <span className="text-[#25343F] dark:text-white text-xs font-bold hidden sm:inline">
                   {activeTab === 'all'
                     ? `Semua (${transactions.length + orders.length})`
                     : activeTab === 'receipts'
@@ -343,81 +425,147 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
             <>
               {/* MOBILE: Combined List */}
               <div className="md:hidden divide-y divide-slate-100">
-                {combinedHistory.map(item => (
-                  <div key={item.id} className={`px-4 py-3.5 space-y-1.5 ${item.isRefunded ? 'bg-rose-50/40 opacity-80' : ''}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-[#EAEFEF] text-[#25343F]">
-                            {item.kind === 'receipt' ? 'KASIR' : 'PESANAN'}
+                {combinedHistory.map(item => {
+                  if (item.kind === 'shift_start') {
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedShift(item.rawShift);
+                          setIsShiftDetailModalOpen(true);
+                        }}
+                        className="px-4 py-3 bg-emerald-50/70 border-l-4 border-emerald-500 rounded-r-xl transition-all hover:bg-emerald-100/50 cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                              🟢 Shift Dimulai
+                            </span>
+                            <span className="font-bold text-xs text-[#25343F]">
+                              {item.cashierName}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-mono font-bold text-emerald-700">
+                            {formatDateTime(item.createdAt)}
                           </span>
-                          <span className="font-black text-[13px] text-[#25343F] font-mono">{item.code}</span>
-                          {item.isRefunded && (
-                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 border border-rose-200">
-                              Dibatalkan
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (item.kind === 'shift_end') {
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedShift(item.rawShift);
+                          setIsShiftDetailModalOpen(true);
+                        }}
+                        className="px-4 py-3 bg-rose-50/70 border-l-4 border-rose-500 rounded-r-xl transition-all hover:bg-rose-100/50 cursor-pointer space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
+                              🔴 Shift Selesai
+                            </span>
+                            <span className="font-bold text-xs text-[#25343F]">
+                              {item.cashierName}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-mono font-bold text-rose-700">
+                            {formatDateTime(item.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-0.5">
+                          <span className="text-[#898989] font-medium">
+                            {item.totalTransactions || 0} Transaksi Kasir
+                          </span>
+                          <span className="font-black text-[#25343F] font-mono">
+                            Omset: {formatRupiah(item.amount || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={item.id} className={`px-4 py-3.5 space-y-1.5 ${item.isRefunded ? 'bg-rose-50/40 opacity-80' : ''}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-[#EAEFEF] text-[#25343F]">
+                              {item.kind === 'receipt' ? 'KASIR' : 'PESANAN'}
+                            </span>
+                            <span className="font-black text-[13px] text-[#25343F] font-mono">{item.code}</span>
+                            {item.isRefunded && (
+                              <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 border border-rose-200">
+                                Dibatalkan
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-[#898989] font-medium mt-0.5">{item.customerName}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-black text-sm font-mono ${item.isRefunded ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
+                            {formatRupiah(item.amount)}
+                          </div>
+                          {item.kind === 'receipt' ? (
+                            !item.isRefunded && (
+                              <div className="text-[10px] text-emerald-700 font-bold">+{formatRupiah(item.profit)} profit</div>
+                            )
+                          ) : (
+                            <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${getStatusBadgeClass(item.paymentMethod || '')}`}>
+                              {formatPaymentStatus(item.paymentMethod)}
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-[#898989] font-medium mt-0.5">{item.customerName}</div>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-black text-sm font-mono ${item.isRefunded ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
-                          {formatRupiah(item.amount)}
+
+                      {item.items && (
+                        <div className="text-[10px] text-[#898989] truncate">
+                          {item.items}
                         </div>
-                        {item.kind === 'receipt' ? (
-                          !item.isRefunded && (
-                            <div className="text-[10px] text-emerald-700 font-bold">+{formatRupiah(item.profit)} profit</div>
-                          )
-                        ) : (
-                          <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${getStatusBadgeClass(item.paymentMethod || '')}`}>
-                            {formatPaymentStatus(item.paymentMethod)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                      )}
 
-                    {item.items && (
-                      <div className="text-[10px] text-[#898989] truncate">
-                        {item.items}
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] text-[#898989]">{formatDate(item.date)}</span>
-                      <div className="flex items-center gap-1.5">
-                        {item.kind === 'receipt' ? (
-                          <>
-                            {!item.isRefunded && (
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[10px] text-[#898989]">{formatDate(item.date)}</span>
+                        <div className="flex items-center gap-1.5">
+                          {item.kind === 'receipt' ? (
+                            <>
+                              {!item.isRefunded && (
+                                <button
+                                  onClick={() => handleOpenRefund(item.rawTransaction)}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[11px] transition-colors cursor-pointer"
+                                  title="Batalkan / Refund Transaksi"
+                                >
+                                  <ReceiptRefundIcon className="w-3 h-3 stroke-[2]" />
+                                  Refund
+                                </button>
+                              )}
                               <button
-                                onClick={() => handleOpenRefund(item.rawTransaction)}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[11px] transition-colors cursor-pointer"
-                                title="Batalkan / Refund Transaksi"
+                                onClick={() => handlePrintReceipt(item.rawTransaction)}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
                               >
-                                <ReceiptRefundIcon className="w-3 h-3 stroke-[2]" />
-                                Refund
+                                <PrinterIcon className="w-3 h-3" />
+                                Struk
                               </button>
-                            )}
+                            </>
+                          ) : (
                             <button
-                              onClick={() => handlePrintReceipt(item.rawTransaction)}
+                              onClick={() => handlePrintInvoice(item.rawOrder)}
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
                             >
                               <PrinterIcon className="w-3 h-3" />
-                              Struk
+                              Invoice
                             </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => handlePrintInvoice(item.rawOrder)}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-[11px] transition-colors cursor-pointer"
-                          >
-                            <PrinterIcon className="w-3 h-3" />
-                            Invoice
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* DESKTOP: Combined Table */}
@@ -427,8 +575,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                     <tr className="border-b border-[#BFC9D1]/40 bg-[#EAEFEF]/80 text-[#898989] font-bold uppercase tracking-wider">
                       <th className="py-3.5 px-4">Tipe</th>
                       <th className="py-3.5 px-4">No. Bukti</th>
-                      <th className="py-3.5 px-4">Tanggal</th>
-                      <th className="py-3.5 px-4">Pelanggan</th>
+                      <th className="py-3.5 px-4">Tanggal / Waktu</th>
+                      <th className="py-3.5 px-4">Pelanggan / Kasir</th>
                       <th className="py-3.5 px-4">Item / Keterangan</th>
                       <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4 text-right">Nilai Transaksi</th>
@@ -436,72 +584,166 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {combinedHistory.map(item => (
-                      <tr key={item.id} className={`hover:bg-[#EAEFEF]/60 transition-colors ${item.isRefunded ? 'bg-rose-50/20 text-[#898989]' : ''}`}>
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25">
-                            <DocumentTextIcon className="w-3 h-3" />
-                            {item.kind === 'receipt' ? 'Struk POS' : 'Invoice'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 font-mono font-extrabold text-[#25343F]">{item.code}</td>
-                        <td className="py-3 px-4 text-[#898989] whitespace-nowrap">{formatDate(item.date)}</td>
-                        <td className="py-3 px-4 font-bold text-[#25343F]">{item.customerName}</td>
-                        <td className="py-3 px-4 max-w-xs text-[#898989] truncate">{item.items}</td>
-                        <td className="py-3 px-4">
-                          {item.isRefunded ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200">
-                              Dibatalkan
+                    {combinedHistory.map(item => {
+                      if (item.kind === 'shift_start') {
+                        return (
+                          <tr
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedShift(item.rawShift);
+                              setIsShiftDetailModalOpen(true);
+                            }}
+                            className="bg-emerald-50/50 hover:bg-emerald-100/60 transition-colors cursor-pointer"
+                          >
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                Shift Dimulai
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono font-extrabold text-emerald-900">{item.code}</td>
+                            <td className="py-3 px-4 text-emerald-800 whitespace-nowrap font-medium">{formatDateTime(item.createdAt)}</td>
+                            <td className="py-3 px-4 font-bold text-[#25343F]">{item.cashierName}</td>
+                            <td className="py-3 px-4 text-[#898989] italic">Kasir mulai bertugas (Shift Aktif)</td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                Aktif
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right font-bold text-slate-400 font-mono">-</td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedShift(item.rawShift);
+                                  setIsShiftDetailModalOpen(true);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <EyeIcon className="w-3.5 h-3.5" />
+                                <span>Rincian</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      if (item.kind === 'shift_end') {
+                        return (
+                          <tr
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedShift(item.rawShift);
+                              setIsShiftDetailModalOpen(true);
+                            }}
+                            className="bg-rose-50/50 hover:bg-rose-100/60 transition-colors cursor-pointer"
+                          >
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">
+                                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                Shift Selesai
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono font-extrabold text-rose-900">{item.code}</td>
+                            <td className="py-3 px-4 text-rose-800 whitespace-nowrap font-medium">{formatDateTime(item.createdAt)}</td>
+                            <td className="py-3 px-4 font-bold text-[#25343F]">{item.cashierName}</td>
+                            <td className="py-3 px-4 font-semibold text-[#25343F]">
+                              Total {item.totalTransactions || 0} Transaksi Kasir
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                Tutup Shift
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right font-black font-mono text-emerald-700">
+                              {formatRupiah(item.amount || 0)}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedShift(item.rawShift);
+                                  setIsShiftDetailModalOpen(true);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <DocumentTextIcon className="w-3.5 h-3.5" />
+                                <span>Laporan</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return (
+                        <tr key={item.id} className={`hover:bg-[#EAEFEF]/60 transition-colors ${item.isRefunded ? 'bg-rose-50/20 text-[#898989]' : ''}`}>
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EAEFEF] text-[#25343F] border border-[#BFC9D1]/25">
+                              <DocumentTextIcon className="w-3 h-3" />
+                              {item.kind === 'receipt' ? 'Struk POS' : 'Invoice'}
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Sukses
-                            </span>
-                          )}
-                        </td>
-                        <td className={`py-3 px-4 text-right font-black font-mono ${item.isRefunded ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
-                          {formatRupiah(item.amount)}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {item.kind === 'receipt' ? (
-                              <>
-                                {!item.isRefunded && (
+                          </td>
+                          <td className="py-3 px-4 font-mono font-extrabold text-[#25343F]">{item.code}</td>
+                          <td className="py-3 px-4 text-[#898989] whitespace-nowrap">{formatDate(item.date)}</td>
+                          <td className="py-3 px-4 font-bold text-[#25343F]">{item.customerName}</td>
+                          <td className="py-3 px-4 max-w-xs text-[#898989] truncate">{item.items}</td>
+                          <td className="py-3 px-4">
+                            {item.isRefunded ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200">
+                                Dibatalkan
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Sukses
+                              </span>
+                            )}
+                          </td>
+                          <td className={`py-3 px-4 text-right font-black font-mono ${item.isRefunded ? 'text-[#898989] line-through' : 'text-[#25343F]'}`}>
+                            {formatRupiah(item.amount)}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {item.kind === 'receipt' ? (
+                                <>
+                                  {!item.isRefunded && (
+                                    <button
+                                      onClick={() => handleOpenRefund(item.rawTransaction)}
+                                      className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                      title="Batalkan / Refund Transaksi"
+                                    >
+                                      <ReceiptRefundIcon className="w-3.5 h-3.5 stroke-[2]" />
+                                      <span>Refund</span>
+                                    </button>
+                                  )}
                                   <button
-                                    onClick={() => handleOpenRefund(item.rawTransaction)}
-                                    className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs inline-flex items-center gap-1 transition-colors cursor-pointer"
-                                    title="Batalkan / Refund Transaksi"
+                                    onClick={() => handlePrintReceipt(item.rawTransaction)}
+                                    className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                                   >
-                                    <ReceiptRefundIcon className="w-3.5 h-3.5 stroke-[2]" />
-                                    <span>Refund</span>
+                                    <PrinterIcon className="w-3.5 h-3.5" /><span>Struk</span>
                                   </button>
-                                )}
+                                </>
+                              ) : (
                                 <button
-                                  onClick={() => handlePrintReceipt(item.rawTransaction)}
+                                  onClick={() => handlePrintInvoice(item.rawOrder)}
                                   className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                                 >
-                                  <PrinterIcon className="w-3.5 h-3.5" /><span>Struk</span>
+                                  <PrinterIcon className="w-3.5 h-3.5" /><span>Invoice</span>
                                 </button>
-                              </>
-                            ) : (
-                              <button
-                                onClick={() => handlePrintInvoice(item.rawOrder)}
-                                className="px-3 py-1.5 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                              >
-                                <PrinterIcon className="w-3.5 h-3.5" /><span>Invoice</span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </>
           )
         ) : activeTab === 'receipts' ? (
-          /* Struk POS */
+          /* Struk POS & Shift Events */
           loading ? (
             <div className="space-y-3 p-4">
               {[1,2,3].map(n => (
@@ -514,7 +756,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                 </div>
               ))}
             </div>
-          ) : filteredTransactions.length === 0 ? (
+          ) : receiptsWithShifts.length === 0 ? (
             <div className="text-center py-16 text-[#898989]">
               <DocumentTextIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <p className="text-sm font-semibold text-[#25343F]">Belum ada struk kasir</p>
@@ -522,9 +764,74 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
             </div>
           ) : (
             <>
-              {/* ── MOBILE: Compact DocumentTextIcon List ── */}
+              {/* ── MOBILE: Compact Receipts & Shift List ── */}
               <div className="md:hidden divide-y divide-slate-100">
-                {filteredTransactions.map(trx => {
+                {receiptsWithShifts.map(item => {
+                  if (item.kind === 'shift_start') {
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedShift(item.rawShift);
+                          setIsShiftDetailModalOpen(true);
+                        }}
+                        className="px-4 py-3 bg-emerald-50/70 border-l-4 border-emerald-500 rounded-r-xl transition-all hover:bg-emerald-100/50 cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                              🟢 Shift Dimulai
+                            </span>
+                            <span className="font-bold text-xs text-[#25343F]">
+                              {item.cashierName}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-mono font-bold text-emerald-700">
+                            {formatDateTime(item.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (item.kind === 'shift_end') {
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedShift(item.rawShift);
+                          setIsShiftDetailModalOpen(true);
+                        }}
+                        className="px-4 py-3 bg-rose-50/70 border-l-4 border-rose-500 rounded-r-xl transition-all hover:bg-rose-100/50 cursor-pointer space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                            <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
+                              🔴 Shift Selesai
+                            </span>
+                            <span className="font-bold text-xs text-[#25343F]">
+                              {item.cashierName}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-mono font-bold text-rose-700">
+                            {formatDateTime(item.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-0.5">
+                          <span className="text-[#898989] font-medium">
+                            {item.totalTransactions || 0} Transaksi Kasir
+                          </span>
+                          <span className="font-black text-[#25343F] font-mono">
+                            Omset: {formatRupiah(item.amount || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const trx = item.rawTransaction;
                   const isRefunded = trx.status === 'REFUNDED' || trx.status === 'CANCELLED';
                   return (
                     <div key={trx.id} className={`px-4 py-3.5 ${isRefunded ? 'bg-rose-50/40 opacity-80' : ''}`}>
@@ -585,14 +892,14 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                 })}
               </div>
 
-              {/* ── DESKTOP: Full Table ── */}
+              {/* ── DESKTOP: Full Table for Receipts & Shifts ── */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-[#BFC9D1]/40 bg-[#EAEFEF]/80 text-[#898989] font-bold uppercase tracking-wider">
                       <th className="py-3.5 px-4">No. Struk</th>
                       <th className="py-3.5 px-4">Waktu Transaksi</th>
-                      <th className="py-3.5 px-4">Pelanggan</th>
+                      <th className="py-3.5 px-4">Pelanggan / Kasir</th>
                       <th className="py-3.5 px-4">Item Terjual</th>
                       <th className="py-3.5 px-4">Metode Bayar</th>
                       <th className="py-3.5 px-4">Status</th>
@@ -602,7 +909,100 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredTransactions.map(trx => {
+                    {receiptsWithShifts.map(item => {
+                      if (item.kind === 'shift_start') {
+                        return (
+                          <tr
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedShift(item.rawShift);
+                              setIsShiftDetailModalOpen(true);
+                            }}
+                            className="bg-emerald-50/50 hover:bg-emerald-100/60 transition-colors cursor-pointer"
+                          >
+                            <td className="py-3 px-4 font-mono font-extrabold text-emerald-900">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                Shift Dimulai
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-emerald-800 whitespace-nowrap font-medium">{formatDateTime(item.createdAt)}</td>
+                            <td className="py-3 px-4 font-bold text-[#25343F]">{item.cashierName}</td>
+                            <td className="py-3 px-4 text-[#898989] italic" colSpan={2}>Kasir mulai bertugas (Shift Aktif)</td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                Aktif
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right font-bold text-slate-400 font-mono">-</td>
+                            <td className="py-3 px-4 text-right font-bold text-slate-400 font-mono">-</td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedShift(item.rawShift);
+                                  setIsShiftDetailModalOpen(true);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <EyeIcon className="w-3.5 h-3.5" />
+                                <span>Rincian</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      if (item.kind === 'shift_end') {
+                        return (
+                          <tr
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedShift(item.rawShift);
+                              setIsShiftDetailModalOpen(true);
+                            }}
+                            className="bg-rose-50/50 hover:bg-rose-100/60 transition-colors cursor-pointer"
+                          >
+                            <td className="py-3 px-4 font-mono font-extrabold text-rose-900">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">
+                                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                Shift Selesai
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-rose-800 whitespace-nowrap font-medium">{formatDateTime(item.createdAt)}</td>
+                            <td className="py-3 px-4 font-bold text-[#25343F]">{item.cashierName}</td>
+                            <td className="py-3 px-4 font-semibold text-[#25343F]" colSpan={2}>
+                              Total {item.totalTransactions || 0} Transaksi Kasir
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                Tutup Shift
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right font-black font-mono text-emerald-700">
+                              {formatRupiah(item.amount || 0)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-bold text-slate-400 font-mono">-</td>
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedShift(item.rawShift);
+                                  setIsShiftDetailModalOpen(true);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <DocumentTextIcon className="w-3.5 h-3.5" />
+                                <span>Laporan</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      const trx = item.rawTransaction;
                       const isRefunded = trx.status === 'REFUNDED' || trx.status === 'CANCELLED';
                       return (
                         <tr key={trx.id} className={`hover:bg-[#EAEFEF]/60 transition-colors ${isRefunded ? 'bg-rose-50/20 text-[#898989]' : ''}`}>
@@ -784,6 +1184,21 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
         order={selectedOrder}
         settings={settings}
         onClose={() => setIsInvoiceModalOpen(false)}
+      />
+
+      {/* Shift Detail Modal */}
+      <ShiftDetailModal
+        isOpen={isShiftDetailModalOpen}
+        shift={selectedShift}
+        settings={settings}
+        onSelectTransaction={(trx) => {
+          setIsShiftDetailModalOpen(false);
+          handlePrintReceipt(trx);
+        }}
+        onClose={() => {
+          setIsShiftDetailModalOpen(false);
+          setSelectedShift(null);
+        }}
       />
 
       {/* Refund Confirmation Modal */}

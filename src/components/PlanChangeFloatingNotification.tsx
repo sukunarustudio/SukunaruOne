@@ -135,16 +135,16 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
       className="fixed top-4 left-1/2 -translate-x-1/2 z-[90] w-[94vw] max-w-xl animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto select-none"
       role="alert"
     >
-      <div className="relative rounded-2xl p-4 sm:p-5 shadow-2xl border border-white/10 bg-black/60 backdrop-blur-xl text-white transition-all shadow-black/40">
+      <div className="relative rounded-2xl p-4 sm:p-5 apple-glass-notification text-[#25343F] dark:text-white transition-all">
         <div className="flex items-start justify-between gap-3.5">
           {/* Refined Icon Container - Clean glass badge */}
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white/10 border border-white/15 shadow-sm">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100/80 dark:bg-white/10 border border-slate-200/70 dark:border-white/15 shadow-xs">
             {isProPlan ? (
-              <ShieldCheckIcon className="w-5 h-5 stroke-[1.8] text-amber-400" />
+              <ShieldCheckIcon className="w-5 h-5 stroke-[1.8] text-amber-500 dark:text-amber-400" />
             ) : isTrialPlan ? (
               <ClockIcon className="w-5 h-5 stroke-[1.8] text-[#FF9B51]" />
             ) : (
-              <ShieldCheckIcon className="w-5 h-5 stroke-[1.8] text-slate-400" />
+              <ShieldCheckIcon className="w-5 h-5 stroke-[1.8] text-slate-500 dark:text-slate-400" />
             )}
           </div>
 
@@ -154,24 +154,24 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
               <span
                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase ${
                   isProPlan
-                    ? 'bg-amber-400/10 text-amber-300 border border-amber-400/20'
+                    ? 'bg-amber-400/15 text-amber-600 dark:text-amber-300 border border-amber-400/30'
                     : isTrialPlan
-                      ? 'bg-orange-500/10 text-[#FF9B51] border border-orange-500/20'
-                      : 'bg-slate-800 text-slate-300 border border-slate-700'
+                      ? 'bg-orange-500/15 text-[#FF9B51] border border-orange-500/30'
+                      : 'bg-slate-200/80 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700'
                 }`}
               >
                 {notification.plan === 'PRO' ? 'PRO' : notification.plan === 'TRIAL' ? 'TRIAL 14 HARI' : 'GRATIS'}
               </span>
-              <span className="text-[11px] font-medium text-slate-400">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                 Pemberitahuan Lisensi
               </span>
             </div>
 
-            <h3 className="font-semibold text-sm sm:text-base text-white tracking-tight leading-snug">
+            <h3 className="font-semibold text-sm sm:text-base text-[#25343F] dark:text-white tracking-tight leading-snug">
               {notification.title}
             </h3>
 
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
               {notification.message}
             </p>
 
@@ -189,7 +189,7 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="h-8 px-3.5 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 text-white/90 hover:text-white border border-white/15 transition-colors cursor-pointer"
+                className="h-8 px-3.5 rounded-lg text-xs font-medium bg-slate-100/90 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 hover:text-[#25343F] dark:text-white/90 dark:hover:text-white border border-slate-200 dark:border-white/15 transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -200,7 +200,7 @@ export const PlanChangeFloatingNotification: React.FC<PlanChangeFloatingNotifica
           <button
             type="button"
             onClick={handleDismiss}
-            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-white/15"
+            className="w-7 h-7 rounded-lg bg-slate-100/80 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-500 hover:text-[#25343F] dark:text-white/70 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 border border-slate-200/70 dark:border-white/15"
             title="Tutup notifikasi"
             aria-label="Tutup notifikasi"
           >

@@ -468,41 +468,41 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
   return (
     <div id="products-view" className="space-y-3.5 max-w-7xl mx-auto pb-24 md:pb-12">
       {/* ── STICKY TOP HEADER: [ ← Judul ] ... [ Aksi: Search, Filter, Sort ] ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 space-y-2">
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 space-y-2">
         {/* Row 1: [ ← Judul ] ... [ Aksi: Search, Filter, Sort ] */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={() => onNavigate?.('dashboard')}
-              className="h-9 w-9 rounded-xl bg-white hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-md"
+              className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
               title="Kembali ke Beranda"
             >
-              <ArrowLeftIcon className="w-4 h-4" />
+              <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
+              <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
                 Produk Bisnis
               </h1>
-              <p className="text-xs sm:text-[13px] text-[#898989] font-medium truncate hidden sm:block">
+              <p className="text-xs sm:text-[13px] text-[#898989] dark:text-slate-400 font-medium truncate hidden sm:block">
                 {loading ? 'Memuat...' : `${filteredProducts.length} dari ${products.length} item`}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Search Toggle Icon */}
             <button
               type="button"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 ${
+              className={`p-2 rounded-full transition-all cursor-pointer active:scale-90 ${
                 isSearchOpen || searchQuery
-                  ? 'bg-[#25343F] text-white border-slate-900'
-                  : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
+                  ? 'bg-[#FF6A00] text-white shadow-xs'
+                  : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
               title="Cari Produk"
             >
-              <MagnifyingGlassIcon className="w-4 h-4" />
+              <MagnifyingGlassIcon className="w-5 h-5 stroke-[2.2]" />
             </button>
 
             {/* Three-dot Menu: Print + Filter */}
@@ -510,18 +510,18 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
               <button
                 type="button"
                 onClick={() => setIsTopMenuOpen(prev => !prev)}
-                className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative ${
+                className={`p-2 rounded-full transition-all cursor-pointer active:scale-90 relative ${
                   isTopMenuOpen
-                    ? 'bg-[#25343F] text-white border-slate-900'
-                    : 'bg-white hover:bg-[#EAEFEF] border-[#BFC9D1]/25 text-[#25343F]'
+                    ? 'bg-black/10 dark:bg-white/15 text-[#25343F] dark:text-white'
+                    : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
                 }`}
                 title="Menu"
                 aria-label="Menu lainnya"
               >
-                <EllipsisVerticalIcon className="w-4 h-4" />
+                <EllipsisVerticalIcon className="w-5 h-5 stroke-[2.2]" />
                 {/* Active filter dot indicator */}
                 {(activeFiltersCount > 0 || sortBy !== 'name-asc') && (
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#FF9B51]" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#FF9B51]" />
                 )}
               </button>
 
@@ -1829,7 +1829,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
         type="button"
         onClick={handleOpenAdd}
         className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-xl border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
-        style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 12px))' }}
+        style={{ bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))' }}
         title="Tambah Produk Baru"
         aria-label="Tambah Produk Baru"
       >

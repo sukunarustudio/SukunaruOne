@@ -9,6 +9,13 @@ import {
   FinancialTransaction,
   BusinessSettings,
   DashboardStats,
+  StockItem,
+  StockMovement,
+  StockMovementType,
+  StockRefType,
+  PaymentMethod,
+  CashierShift,
+  ShiftSummary,
 } from '../types';
 import { localDb, emitDataMutation } from './localDb';
 import { uploadTenantFile, deleteTenantFile, isSupabaseConfigured, getSupabaseClient } from './supabaseClient';
@@ -400,6 +407,151 @@ export const api = {
     }
   },
 
+  // =========================================================================
+  // STOK BARANG (Unified Master Inventory) API Methods
+  // =========================================================================
+
+  async getStockItems(): Promise<StockItem[]> {
+    return localDb.getStockItems();
+  },
+
+  async getStockItemById(id: string): Promise<StockItem | null> {
+    return localDb.getStockItemById(id);
+  },
+
+  async getStockItemByBarcode(barcode: string): Promise<StockItem | null> {
+    return localDb.getStockItemByBarcode(barcode);
+  },
+
+  async createStockItem(data: Partial<StockItem>): Promise<StockItem> {
+    const created = await localDb.createStockItem(data);
+    enqueueSyncMutation('stock_items', 'UPSERT', created.id, created);
+    return created;
+  },
+
+  async updateStockItem(id: string, data: Partial<StockItem>): Promise<StockItem> {
+    const updated = await localDb.updateStockItem(id, data);
+    enqueueSyncMutation('stock_items', 'UPSERT', updated.id, updated);
+    return updated;
+  },
+
+  async deleteStockItem(id: string): Promise<void> {
+    enqueueSyncMutation('stock_items', 'DELETE', id);
+    return localDb.deleteStockItem(id);
+  },
+
+  async uploadStockItemImage(itemId: string, file: File): Promise<{
+    imagePath: string;
+    thumbnailPath: string;
+    imageUrl: string;
+    thumbnailUrl: string;
+    item: StockItem;
+  }> {
+    return localDb.uploadStockItemImage(itemId, file);
+  },
+
+  async deleteStockItemImage(itemId: string): Promise<StockItem> {
+    const item = await localDb.deleteStockItemImage(itemId);
+    enqueueSyncMutation('stock_items', 'UPSERT', item.id, item);
+    return item;
+  },
+
+  async getStockMovements(itemId?: string): Promise<StockMovement[]> {
+    return localDb.getStockMovements(itemId);
+  },
+
+  async addStockItemMovement(
+    itemId: string,
+    data: {
+      type: StockMovementType;
+      quantity: number;
+      referenceType?: StockRefType | string;
+      referenceId?: string;
+      notes?: string;
+      variantId?: string;
+      date?: string;
+    }
+  ): Promise<{ item: StockItem; movement: StockMovement }> {
+    const res = await localDb.addStockItemMovement(itemId, data);
+    enqueueSyncMutation('stock_items', 'UPSERT', res.item.id, res.item);
+    enqueueSyncMutation('stock_movements', 'UPSERT', res.movement.id, res.movement);
+    return res;
+  },
+
+  async restockStockItem(
+    itemId: string,
+    data: {
+      quantity: number;
+      purchasePrice?: number;
+      unitCost?: number;
+      supplier?: string;
+      notes?: string;
+      recordExpense?: boolean;
+      paymentMethod?: PaymentMethod;
+      date?: string;
+    }
+  ): Promise<{ item: StockItem; movement: StockMovement }> {
+    const res = await localDb.restockStockItem(itemId, data);
+    enqueueSyncMutation('stock_items', 'UPSERT', res.item.id, res.item);
+    enqueueSyncMutation('stock_movements', 'UPSERT', res.movement.id, res.movement);
+
+    // If expense was recorded, sync it as well
+    if (data.recordExpense) {
+      const finList = await localDb.getFinancialTransactions();
+      const matchingFin = finList.find(f => f.referenceNumber === res.movement.id);
+      if (matchingFin) {
+        enqueueSyncMutation('financial_transactions', 'UPSERT', matchingFin.id, matchingFin);
+      }
+      const expList = await localDb.getExpenses();
+      const matchingExp = expList.find(e => e.reference === res.movement.id);
+      if (matchingExp) {
+        enqueueSyncMutation('expenses', 'UPSERT', matchingExp.id, matchingExp);
+      }
+    }
+
+    return res;
+  },
+
+  async adjustStockItem(
+    itemId: string,
+    data: {
+      newStock: number;
+      type?: 'ADJUSTMENT' | 'OPNAME';
+      notes?: string;
+      date?: string;
+    }
+  ): Promise<{ item: StockItem; movement: StockMovement }> {
+    const res = await localDb.adjustStockItem(itemId, data);
+    enqueueSyncMutation('stock_items', 'UPSERT', res.item.id, res.item);
+    enqueueSyncMutation('stock_movements', 'UPSERT', res.movement.id, res.movement);
+    return res;
+  },
+
+  // ── Cashier Shift Tracking ──
+  async getCurrentShift(): Promise<CashierShift | null> {
+    return localDb.getCurrentShift();
+  },
+
+  async startShift(cashierName = 'Kasir', userId?: string, businessId?: string): Promise<CashierShift> {
+    const shift = await localDb.startShift(cashierName, userId, businessId);
+    enqueueSyncMutation('cashier_shifts', 'UPSERT', shift.id, shift);
+    return shift;
+  },
+
+  async stopShift(shiftId: string, notes?: string): Promise<ShiftSummary> {
+    const summary = await localDb.stopShift(shiftId, notes);
+    enqueueSyncMutation('cashier_shifts', 'UPSERT', summary.shift.id, summary.shift);
+    return summary;
+  },
+
+  async getShifts(): Promise<CashierShift[]> {
+    return localDb.getShifts();
+  },
+
+  async getShiftSummary(shiftId: string): Promise<ShiftSummary> {
+    return localDb.getShiftSummary(shiftId);
+  },
+
   // Transactions (POS)
   async getTransactions(): Promise<Transaction[]> {
     if (isStandaloneOffline()) return localDb.getTransactions();
@@ -410,6 +562,16 @@ export const api = {
     const created = await localDb.createTransaction(data);
     enqueueSyncMutation('transactions', 'UPSERT', created.id, created);
     
+    // Auto deduct stock for items sold (and their BOM components if PRODUCED)
+    if (Array.isArray(created.items) && created.items.length > 0) {
+      await localDb.deductStockForTransaction(
+        created.items,
+        'POS',
+        created.receiptNumber || created.id,
+        `Penjualan POS struk #${created.receiptNumber}`
+      );
+    }
+
     // Also enqueue the matching financial transaction for this POS transaction
     const finList = await localDb.getFinancialTransactions();
     const matchingFin = finList.find(f => f.referenceId === created.id);
@@ -555,6 +717,17 @@ export const api = {
   async createOrder(data: any): Promise<Order> {
     const created = await localDb.createOrder(data);
     enqueueSyncMutation('orders', 'UPSERT', created.id, created);
+
+    // Auto deduct stock for items ordered (and their BOM components if PRODUCED)
+    if (Array.isArray(created.items) && created.items.length > 0) {
+      await localDb.deductStockForTransaction(
+        created.items,
+        'ORDER',
+        created.orderNumber || created.id,
+        `Pesanan SPK #${created.orderNumber}`
+      );
+    }
+
     if (created.paidAmount > 0) {
       const finList = await localDb.getFinancialTransactions();
       const matchingFin = finList.find(f => f.referenceId === created.id);

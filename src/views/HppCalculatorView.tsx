@@ -151,26 +151,25 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
   return (
     <div id="hpp-calculator-view" className="space-y-4 max-w-7xl mx-auto pb-16">
       {/* ── STICKY TOP HEADER ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
             onClick={() => onNavigate?.('dashboard')}
-            className="h-9 w-9 rounded-xl bg-white hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-sm"
+            className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
             title="Kembali ke Beranda"
           >
-            <ArrowLeftIcon className="w-4 h-4" />
+            <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
+            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
               Hitung HPP Produk
             </h1>
-            <p className="text-xs sm:text-[13px] text-[#898989] font-medium truncate hidden sm:block">
+            <p className="text-xs sm:text-[13px] text-[#898989] dark:text-slate-400 font-medium truncate hidden sm:block">
               Kalkulator biaya pokok produksi &amp; simulasi margin harga jual untuk segala jenis usaha
             </p>
           </div>
         </div>
-
       </div>
 
       {/* ── TOP HIGHLIGHT SUMMARY CARD (Live Output) ── */}

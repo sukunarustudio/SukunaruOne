@@ -101,16 +101,16 @@ export const AppearanceView: React.FC<AppearanceViewProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 animate-fade-in pb-24">
-      {/* ── STICKY TOP HEADER ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] dark:bg-[#0B0F17] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 dark:border-slate-800 flex items-center justify-between gap-3 transition-colors">
-        <div className="flex items-center gap-3 min-w-0">
+      {/* ── STICKY TOP HEADER: [ ← Judul ] ... [ Aksi ] ── */}
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 flex items-center justify-between gap-3 transition-colors">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
             onClick={() => onNavigate(previousView)}
-            className="h-9 w-9 rounded-xl bg-white dark:bg-slate-900 hover:bg-[#EAEFEF] dark:hover:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-800 text-[#25343F] dark:text-white flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-md"
+            className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
             title="Kembali"
           >
-            <ArrowLeftIcon className="w-4 h-4" />
+            <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
           </button>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
@@ -125,9 +125,9 @@ export const AppearanceView: React.FC<AppearanceViewProps> = ({
         <button
           type="button"
           onClick={() => setShowResetModal(true)}
-          className="h-9 px-3 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0 active:scale-95"
+          className="h-9 px-3.5 bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 dark:text-rose-400 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95"
         >
-          <ArrowPathIcon className="w-3.5 h-3.5" />
+          <ArrowPathIcon className="w-4 h-4 stroke-[2]" />
           <span className="hidden sm:inline">Reset Default</span>
         </button>
       </div>

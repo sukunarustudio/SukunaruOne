@@ -285,6 +285,27 @@ export function initializeDatabaseSchema(): void {
     CREATE INDEX IF NOT EXISTS idx_fin_date ON financial_transactions(date);
     CREATE INDEX IF NOT EXISTS idx_fin_type ON financial_transactions(type);
     CREATE INDEX IF NOT EXISTS idx_fin_ref ON financial_transactions(referenceType, referenceId);
+
+    -- Cashier Shifts (Work Period Tracking)
+    CREATE TABLE IF NOT EXISTS cashier_shifts (
+      id TEXT PRIMARY KEY,
+      businessId TEXT,
+      userId TEXT,
+      cashierName TEXT NOT NULL,
+      startedAt TEXT NOT NULL,
+      endedAt TEXT,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      totalTransactions INTEGER DEFAULT 0,
+      totalAmount REAL DEFAULT 0,
+      cashAmount REAL DEFAULT 0,
+      transferAmount REAL DEFAULT 0,
+      qrisAmount REAL DEFAULT 0,
+      notes TEXT,
+      createdAt TEXT,
+      updatedAt TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_shifts_status ON cashier_shifts(status);
+    CREATE INDEX IF NOT EXISTS idx_shifts_startedAt ON cashier_shifts(startedAt);
   `);
 
   // Safe dynamic migration for existing databases: check and add missing columns
@@ -313,6 +334,9 @@ export function initializeDatabaseSchema(): void {
   }
 
   const trxCols = (db.prepare("PRAGMA table_info(transactions)").all() as any[]).map(c => c.name);
+  if (!trxCols.includes('shiftId')) {
+    db.prepare('ALTER TABLE transactions ADD COLUMN shiftId TEXT').run();
+  }
   if (!trxCols.includes('status')) {
     db.prepare("ALTER TABLE transactions ADD COLUMN status TEXT DEFAULT 'COMPLETED'").run();
   }

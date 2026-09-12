@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Funnel Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-mono: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --font-sans: 'Funnel Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'Roboto', -apple-system, BlinkMacSystemFont, 'SF Mono', 'Segoe UI', Arial, sans-serif;
 
   /* ── SKNR Official Palette ─────────────────────────────────── */
   --color-sknr-navy:      #25343F;
@@ -57,11 +57,110 @@
   --hero-end: #D93600;
   --hero-text: #FFFFFF;
 
+  /* Apple & Emil Design Custom Curves */
+  --ease-apple-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-apple-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   /* Safe Area Insets */
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
+}
+
+/* ── Apple Tactile Press & Motion Utilities ── */
+.apple-press,
+.btn-apple {
+  transition: transform 140ms var(--ease-apple-out), opacity 140ms var(--ease-apple-out), background-color 140ms var(--ease-apple-out);
+}
+
+.apple-press:active,
+.btn-apple:active {
+  transform: scale(0.965);
+}
+
+.apple-card {
+  transition: transform 180ms var(--ease-apple-out), box-shadow 180ms var(--ease-apple-out), border-color 180ms var(--ease-apple-out);
+}
+
+.apple-card:active {
+  transform: scale(0.98);
+}
+
+/* ── Apple Frosted Glass Utilities ── */
+.apple-glass {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.apple-glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.apple-glass-toast {
+  background: rgba(255, 255, 255, 0.60) !important;
+  backdrop-filter: blur(24px) saturate(190%) contrast(105%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) contrast(105%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12), inset 0 1px 1px 0 rgba(255, 255, 255, 0.85) !important;
+}
+
+.apple-glass-notification {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(24px) saturate(190%) contrast(105%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) contrast(105%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+html.dark .apple-glass {
+  background: rgba(15, 23, 42, 0.82) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .apple-glass-card {
+  background: rgba(21, 29, 40, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .apple-glass-toast {
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(24px) saturate(190%) contrast(105%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) contrast(105%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+html.dark .apple-glass-notification {
+  background: rgba(15, 23, 42, 0.70) !important;
+  backdrop-filter: blur(24px) saturate(190%) contrast(105%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) contrast(105%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ── Scrollbar Utilities ── */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+}
+
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 html.dark {
@@ -76,7 +175,7 @@ html.dark body {
   color: #F1F5F9 !important;
 }
 
-/* Dashboard Header Title (Dark gray in Light mode, White in Dark mode) */
+/* Dashboard Header Title (Dark navy in Light mode, White in Dark mode) */
 #dashboard-header-title,
 .dashboard-title-text {
   color: #25343F !important;
@@ -304,6 +403,7 @@ html.dark table tbody tr:hover {
   * {
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
   }
   
   html, body, #root {
@@ -317,7 +417,7 @@ html.dark table tbody tr:hover {
   }
 
   body {
-    font-family: 'Funnel Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Funnel Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: #18181b;
     background-color: #f8f9fa;
     -webkit-font-smoothing: antialiased;
@@ -454,25 +554,20 @@ html.dark table tbody tr:hover {
 .hero-banner-custom {
   position: relative;
   overflow: hidden;
-  border-radius: 1.25rem; /* rounded-2xl */
+  border-radius: 1.5rem; /* rounded-3xl Apple curve */
   background:
     radial-gradient(circle at 18% 22%, var(--hero-glow, rgba(255, 209, 102, 0.35)) 0%, transparent 45%),
     radial-gradient(circle at 82% 82%, var(--hero-glow, rgba(255, 209, 102, 0.20)) 0%, transparent 50%),
     var(--hero-gradient, linear-gradient(135deg, var(--hero-start, #FF8A1F) 0%, var(--hero-end, #D93600) 100%)) !important;
   background-size: 150% 150%;
   animation: premium-gradient 14s ease-in-out infinite;
-  box-shadow: 0 12px 30px -5px var(--hero-shadow, rgba(255, 90, 10, 0.35)), 0 6px 12px -4px rgba(0, 0, 0, 0.18);
-  border: 1px solid var(--hero-border, rgba(255, 255, 255, 0.30)) !important;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 16px 36px -8px var(--hero-shadow, rgba(255, 90, 10, 0.35)), 0 6px 16px -4px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--hero-border, rgba(255, 255, 255, 0.35)) !important;
+  transition: transform 180ms var(--ease-apple-out), box-shadow 180ms var(--ease-apple-out);
 }
 
-.premium-fintech-card:hover,
-.hero-card:hover,
-.hero-banner-custom:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.02);
-  box-shadow: 0 20px 35px -8px var(--hero-shadow, rgba(255, 90, 10, 0.45)), 0 10px 18px -3px rgba(0, 0, 0, 0.22);
-  border-color: rgba(255, 255, 255, 0.45) !important;
+.hero-card:active {
+  transform: scale(0.98);
 }
 
 /* Layer 2: Radial/ambient depth */
@@ -538,5 +633,11 @@ html.dark table tbody tr:hover {
   .fintech-light-sweep {
     animation: none;
   }
+  .apple-press:active,
+  .btn-apple:active,
+  .apple-card:active {
+    transform: none !important;
+  }
 }
+
 

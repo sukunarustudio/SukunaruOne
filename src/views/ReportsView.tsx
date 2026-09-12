@@ -143,15 +143,38 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const loadData = async () => {
     try {
       setLoading(true);
-      const [trx, ord, mat, exp] = await Promise.all([
-        api.getTransactions(),
-        api.getOrders(),
-        api.getMaterials(),
-        api.getExpenses(),
+      const [trx, ord, stockList, mat, exp] = await Promise.all([
+        api.getTransactions().catch(() => []),
+        api.getOrders().catch(() => []),
+        api.getStockItems().catch(() => []),
+        api.getMaterials().catch(() => []),
+        api.getExpenses().catch(() => []),
       ]);
       setTransactions(trx);
       setOrders(ord);
-      setMaterials(mat);
+
+      if (stockList && stockList.length > 0) {
+        // Map StockItem to Material-compatible shape for reports table
+        const mappedStock: any[] = stockList.map(s => ({
+          id: s.id,
+          name: s.name,
+          sku: s.sku || '',
+          category: s.category || 'Umum',
+          unit: s.baseUnit || 'pcs',
+          currentStock: s.currentStock || 0,
+          minStock: s.minStock || 0,
+          unitCost: s.costPrice || s.purchasePrice || 0,
+          purchasePrice: s.purchasePrice || s.costPrice || 0,
+          supplier: s.supplier || '',
+          supplierContact: s.supplierContact || '',
+          notes: s.notes || '',
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+        }));
+        setMaterials(mappedStock);
+      } else {
+        setMaterials(mat);
+      }
       setExpenses(exp);
     } catch (err: any) {
       showToast(err.message || 'Gagal memuat laporan', 'error');
@@ -163,10 +186,38 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   useEffect(() => {
     loadData();
     const handleRefresh = () => {
-      api.getTransactions().then(t => setTransactions(t)).catch(() => {});
-      api.getOrders().then(o => setOrders(o)).catch(() => {});
-      api.getMaterials().then(m => setMaterials(m)).catch(() => {});
-      api.getExpenses().then(e => setExpenses(e)).catch(() => {});
+      Promise.all([
+        api.getTransactions().catch(() => []),
+        api.getOrders().catch(() => []),
+        api.getStockItems().catch(() => []),
+        api.getMaterials().catch(() => []),
+        api.getExpenses().catch(() => []),
+      ]).then(([trx, ord, stockList, mat, exp]) => {
+        setTransactions(trx);
+        setOrders(ord);
+        if (stockList && stockList.length > 0) {
+          const mappedStock: any[] = stockList.map(s => ({
+            id: s.id,
+            name: s.name,
+            sku: s.sku || '',
+            category: s.category || 'Umum',
+            unit: s.baseUnit || 'pcs',
+            currentStock: s.currentStock || 0,
+            minStock: s.minStock || 0,
+            unitCost: s.costPrice || s.purchasePrice || 0,
+            purchasePrice: s.purchasePrice || s.costPrice || 0,
+            supplier: s.supplier || '',
+            supplierContact: s.supplierContact || '',
+            notes: s.notes || '',
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt,
+          }));
+          setMaterials(mappedStock);
+        } else {
+          setMaterials(mat);
+        }
+        setExpenses(exp);
+      }).catch(() => {});
     };
     window.addEventListener('sukunaru:sync_completed', handleRefresh);
     window.addEventListener('sukunaru:data_mutation', handleRefresh);
@@ -648,16 +699,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   return (
     <div id="reports-view" className="space-y-3.5 max-w-7xl mx-auto pb-28 md:pb-16 animate-fade-in text-slate-800 dark:text-slate-200">
       {/* ── STICKY TOP HEADER: [ ← Judul ] ... [ Aksi Cepat (Excel/PDF/Cetak) ] ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] dark:bg-slate-900 py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 dark:border-slate-800 transition-colors">
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 transition-colors">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={() => onNavigate?.('dashboard')}
-              className="h-9 w-9 rounded-xl bg-white dark:bg-slate-800 hover:bg-[#EAEFEF] dark:hover:bg-slate-700 border border-[#BFC9D1]/25 dark:border-slate-700 text-[#25343F] dark:text-white flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-sm"
+              className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
               title="Kembali ke Beranda"
             >
-              <ArrowLeftIcon className="w-4 h-4" />
+              <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
             </button>
             <div className="min-w-0">
               <h1 className="text-lg sm:text-xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
@@ -674,15 +725,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <button
               type="button"
               onClick={() => setShowExcelDropdown(prev => !prev)}
-              className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 relative ${
+              className={`p-2 rounded-full transition-all cursor-pointer active:scale-90 relative ${
                 showExcelDropdown
-                  ? 'bg-[#25343F] text-white border-slate-900'
-                  : 'bg-white hover:bg-[#EAEFEF] dark:bg-slate-800 dark:hover:bg-slate-700 border-[#BFC9D1]/25 dark:border-slate-700 text-[#25343F] dark:text-white'
+                  ? 'bg-black/10 dark:bg-white/15 text-[#25343F] dark:text-white'
+                  : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
               title="Menu Opsi Laporan"
               aria-label="Menu Opsi Laporan"
             >
-              <EllipsisVerticalIcon className="w-4 h-4" />
+              <EllipsisVerticalIcon className="w-5 h-5 stroke-[2.2]" />
             </button>
 
             {/* Dropdown Menu Container */}

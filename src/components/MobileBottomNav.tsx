@@ -92,89 +92,94 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   };
 
   return (
-    <nav
-      id="mobile-bottom-navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#BFC9D1]/30 px-2 py-2 flex items-center justify-around shadow-[0_-4px_24px_rgba(0,0,0,0.06)] select-none"
+    <div
+      id="mobile-bottom-navigation-container"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-3 pointer-events-none"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 10px)' }}
     >
-      {navItems.map(item => {
-        const isActive = currentView === item.id;
-        const Icon = isActive ? item.solidIcon : item.outlineIcon;
-        const isLocked = !isPro && proViews.includes(item.id);
+      <nav
+        id="mobile-bottom-navigation"
+        className="pointer-events-auto mx-auto max-w-md bg-white/85 dark:bg-[#0F172A]/85 backdrop-blur-2xl border border-black/[0.06] dark:border-white/[0.09] px-2 py-1.5 rounded-3xl flex items-center justify-around shadow-[0_8px_32px_rgba(0,0,0,0.12)] select-none transition-all"
+      >
+        {navItems.map(item => {
+          const isActive = currentView === item.id;
+          const Icon = isActive ? item.solidIcon : item.outlineIcon;
+          const isLocked = !isPro && proViews.includes(item.id);
 
-        return (
-          <button
-            key={item.id}
-            type="button"
-            id={`btn-mobile-nav-${item.id}`}
-            onClick={() => handleNavClick(item.id)}
-            className="flex flex-col items-center justify-center flex-1 py-0.5 cursor-pointer active:scale-95 transition-all group"
-          >
-            {/* Pill Container behind Icon */}
-            <div className="relative">
-              <div
-                className={`w-14 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[#FFF0E6] text-[#FF9B51] shadow-xs'
-                    : 'bg-transparent text-[#898989] group-hover:text-[#25343F]'
-                }`}
-              >
-                {item.id === 'profile' ? (
-                  settings?.logoUrl ? (
-                    <img
-                      src={settings.logoUrl}
-                      alt={settings.businessName || 'Profil'}
-                      className={`w-6 h-6 rounded-full object-cover transition-all duration-200 ${
-                        isActive
-                          ? 'ring-2 ring-[#FF9B51] scale-105 shadow-xs'
-                          : 'ring-1.5 ring-slate-300/80'
+          return (
+            <button
+              key={item.id}
+              type="button"
+              id={`btn-mobile-nav-${item.id}`}
+              onClick={() => handleNavClick(item.id)}
+              className="flex flex-col items-center justify-center flex-1 py-1 cursor-pointer active:scale-90 transition-transform duration-150 group"
+            >
+              {/* Pill Container behind Icon */}
+              <div className="relative">
+                <div
+                  className={`w-12 h-7.5 rounded-full flex items-center justify-center transition-all duration-200 ${
+                    isActive
+                      ? 'bg-[#FF9B51]/15 text-[#FF9B51] shadow-xs'
+                      : 'bg-transparent text-[#898989] group-hover:text-[#25343F]'
+                  }`}
+                >
+                  {item.id === 'profile' ? (
+                    settings?.logoUrl ? (
+                      <img
+                        src={settings.logoUrl}
+                        alt={settings.businessName || 'Profil'}
+                        className={`w-5.5 h-5.5 rounded-full object-cover transition-all duration-200 ${
+                          isActive
+                            ? 'ring-2 ring-[#FF9B51] scale-105 shadow-xs'
+                            : 'ring-1 ring-slate-300/80'
+                        }`}
+                      />
+                    ) : (
+                      <div
+                        className={`w-5.5 h-5.5 rounded-full flex items-center justify-center font-black text-[9px] uppercase transition-all duration-200 ${
+                          isActive
+                            ? 'bg-[#FF9B51] text-white ring-2 ring-[#FF9B51] scale-105 shadow-xs'
+                            : 'bg-[#898989] text-white ring-1 ring-slate-300'
+                        }`}
+                      >
+                        {settings?.businessName ? settings.businessName.slice(0, 2) : 'SK'}
+                      </div>
+                    )
+                  ) : (
+                    <Icon
+                      className={`w-5.5 h-5.5 transition-transform duration-200 ${
+                        isActive ? 'scale-105 text-[#FF9B51]' : 'text-[#898989]'
                       }`}
                     />
-                  ) : (
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] uppercase transition-all duration-200 ${
-                        isActive
-                          ? 'bg-[#FF9B51] text-white ring-2 ring-[#FF9B51] scale-105 shadow-xs'
-                          : 'bg-[#898989] text-white ring-1 ring-slate-300'
-                      }`}
-                    >
-                      {settings?.businessName ? settings.businessName.slice(0, 2) : 'SK'}
-                    </div>
-                  )
-                ) : (
-                  <Icon
-                    className={`w-6 h-6 transition-transform duration-200 ${
-                      isActive ? 'scale-105 text-[#FF9B51]' : 'text-[#898989]'
-                    }`}
-                  />
-                )}
+                  )}
+                </div>
+
+                {/* Lock Badge if feature is locked */}
+                {isLocked ? (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FF9B51] text-white flex items-center justify-center border-1.5 border-white shadow-xs pointer-events-none">
+                    <LockClosedIcon className="w-2 h-2" />
+                  </span>
+                ) : item.badge !== undefined ? (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#FF4267] text-white text-[9px] font-black flex items-center justify-center border-1.5 border-white shadow-xs pointer-events-none animate-in zoom-in-50">
+                    {item.badge}
+                  </span>
+                ) : null}
               </div>
 
-              {/* Lock Badge if feature is locked */}
-              {isLocked ? (
-                <span className="absolute -top-1 -right-0.5 w-[18px] h-[18px] rounded-full bg-[#FF9B51] text-white flex items-center justify-center border border-white shadow-xs pointer-events-none">
-                  <LockClosedIcon className="w-2.5 h-2.5" />
-                </span>
-              ) : item.badge !== undefined ? (
-                <span className="absolute -top-1 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF9B51] text-white text-[10px] font-black flex items-center justify-center border border-white shadow-xs pointer-events-none">
-                  {item.badge}
-                </span>
-              ) : null}
-            </div>
-
-            {/* Label below Icon */}
-            <span
-              className={`text-[11px] mt-1 leading-tight tracking-tight transition-colors ${
-                isActive
-                  ? 'text-[#25343F] font-black'
-                  : 'text-[#898989] font-bold group-hover:text-[#25343F]'
-              }`}
-            >
-              {item.label}
-            </span>
-          </button>
-        );
-      })}
-    </nav>
+              {/* Label below Icon */}
+              <span
+                className={`text-[10px] mt-0.5 leading-tight tracking-tight transition-colors ${
+                  isActive
+                    ? 'text-[#25343F] dark:text-white font-extrabold'
+                    : 'text-[#898989] font-semibold group-hover:text-[#25343F]'
+                }`}
+              >
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+    </div>
   );
 };

@@ -245,21 +245,21 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
   return (
     <div id="finance-view" className="space-y-4 max-w-7xl mx-auto pb-24">
       {/* ── STICKY TOP HEADER ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF] py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/40 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
             onClick={() => onNavigate?.('dashboard')}
-            className="h-9 w-9 rounded-xl bg-white hover:bg-[#EAEFEF] border border-[#BFC9D1]/25 text-[#25343F] flex items-center justify-center transition-colors cursor-pointer active:scale-95 shrink-0 shadow-xs"
+            className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
             title="Kembali ke Beranda"
           >
-            <ArrowLeftIcon className="w-4 h-4" />
+            <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] leading-tight tracking-tight truncate">
+            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
               Arus Kas &amp; Keuangan
             </h1>
-            <p className="text-xs sm:text-[13px] text-[#898989] font-medium mt-0.5 truncate hidden sm:block">
+            <p className="text-xs sm:text-[13px] text-[#898989] dark:text-slate-400 font-medium mt-0.5 truncate hidden sm:block">
               Ringkasan saldo, mutasi penerimaan &amp; pengeluaran kas usaha
             </p>
           </div>
@@ -375,34 +375,29 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
         </div>
       </div>
 
-      {/* ── 2. GRAFIK TREN ARUS KAS (MODERN MINIMALIST SMOOTH AREA CHART) ── */}
-      <div className="bg-white rounded-2xl border border-[#BFC9D1]/30 p-4 sm:p-5 shadow-xs">
+      {/* ── 2. GRAFIK TREN ARUS KAS (MINIMALIST MODERN SMOOTH LINE CHART) ── */}
+      <div className="bg-white dark:bg-[#151D28] rounded-3xl border border-black/[0.06] dark:border-white/[0.08] p-5 sm:p-6 shadow-xs">
         {/* Header & Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#BFC9D1]/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/[0.05] dark:border-white/[0.06]">
           <div>
-            <h2 className="text-sm sm:text-base font-extrabold text-[#25343F] flex items-center gap-2">
-              <span>Tren Arus Kas Masuk vs Keluar</span>
+            <h2 className="text-sm sm:text-base font-black text-[#25343F] dark:text-white tracking-tight flex items-center gap-2">
+              <span>Tren Arus Kas</span>
             </h2>
-            <p className="text-xs text-[#898989] font-medium mt-0.5">
-              Periode {chartPeriod === 'week' ? '7 Hari Terakhir' : chartPeriod === 'month' ? '4 Minggu Terakhir' : '12 Bulan Terakhir'}
-            </p>
+            <div className="flex items-center gap-3 mt-1 text-[11px] font-medium text-[#898989]">
+              <span className="flex items-center gap-1.5 text-[#25343F] dark:text-slate-200">
+                <span className="w-2 h-2 rounded-full bg-[#FF9B51]" />
+                Masuk: <span className="font-mono font-bold">{formatRupiah(periodChartTotals.periodIncome)}</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[#25343F] dark:text-slate-200">
+                <span className="w-2 h-2 rounded-full bg-[#F43F5E]" />
+                Keluar: <span className="font-mono font-bold">{formatRupiah(periodChartTotals.periodExpense)}</span>
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            {/* Legend Indicators */}
-            <div className="hidden sm:flex items-center gap-3 text-xs font-bold mr-2">
-              <div className="flex items-center gap-1.5 text-[#059669]">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block" />
-                <span>Masuk ({formatRupiah(periodChartTotals.periodIncome)})</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[#E11D48]">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#F43F5E] inline-block" />
-                <span>Keluar ({formatRupiah(periodChartTotals.periodExpense)})</span>
-              </div>
-            </div>
-
             {/* Period Switcher Buttons */}
-            <div className="inline-flex p-1 rounded-xl bg-[#EAEFEF] border border-[#BFC9D1]/20">
+            <div className="inline-flex p-0.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] text-xs font-semibold text-[#898989]">
               {([
                 { id: 'week', label: 'Mingguan' },
                 { id: 'month', label: 'Bulanan' },
@@ -412,10 +407,10 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
                   key={p.id}
                   type="button"
                   onClick={() => setChartPeriod(p.id)}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`px-3 py-1 text-[11px] rounded-lg transition-all cursor-pointer ${
                     chartPeriod === p.id
-                      ? 'bg-white text-[#25343F] shadow-xs'
-                      : 'text-[#898989] hover:text-[#25343F]'
+                      ? 'bg-white dark:bg-[#1F2937] text-[#25343F] dark:text-white shadow-xs font-bold'
+                      : 'hover:text-[#25343F] dark:hover:text-white'
                   }`}
                 >
                   {p.label}
@@ -425,46 +420,35 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
           </div>
         </div>
 
-        {/* Mobile Legend */}
-        <div className="flex sm:hidden items-center justify-between text-xs font-bold py-2 border-b border-[#BFC9D1]/15">
-          <div className="flex items-center gap-1.5 text-[#059669]">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] inline-block" />
-            <span>Masuk: {formatRupiah(periodChartTotals.periodIncome)}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[#E11D48]">
-            <span className="w-2 h-2 rounded-full bg-[#F43F5E] inline-block" />
-            <span>Keluar: {formatRupiah(periodChartTotals.periodExpense)}</span>
-          </div>
-        </div>
-
         {/* Chart Canvas */}
-        <div className="h-48 sm:h-64 w-full mt-3">
+        <div className="h-48 sm:h-60 w-full mt-3">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={trafficChartData} margin={{ top: 12, right: 10, left: -15, bottom: 0 }}>
               <defs>
-                <linearGradient id="incomeAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.18} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
+                <linearGradient id="financeIncomeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FF9B51" stopOpacity={0.12} />
+                  <stop offset="100%" stopColor="#FF9B51" stopOpacity={0.0} />
                 </linearGradient>
-                <linearGradient id="expenseAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.16} />
-                  <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.0} />
+                <linearGradient id="financeExpenseGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.08} />
+                  <stop offset="100%" stopColor="#F43F5E" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
 
-              <CartesianGrid strokeDasharray="3 3" stroke="#BFC9D1" strokeOpacity={0.25} vertical={false} />
+              <CartesianGrid strokeDasharray="4 4" stroke="#898989" strokeOpacity={0.1} vertical={false} />
 
               <XAxis
                 dataKey="label"
                 tickLine={false}
-                axisLine={{ stroke: '#BFC9D1', strokeOpacity: 0.3 }}
-                tick={{ fontSize: 11, fill: '#898989', fontWeight: 600 }}
+                axisLine={false}
+                tick={{ fontSize: 10.5, fill: '#898989', fontWeight: 500 }}
+                dy={6}
               />
 
               <YAxis
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 10, fill: '#898989', fontWeight: 500 }}
+                tick={{ fontSize: 9.5, fill: '#898989', fontWeight: 500 }}
                 domain={[0, 'auto']}
                 tickFormatter={(v) =>
                   v >= 1000000
@@ -476,33 +460,37 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
               />
 
               <Tooltip
+                cursor={{ stroke: '#898989', strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.3 }}
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     const inc = Number(payload.find(p => p.dataKey === 'income')?.value || 0);
                     const exp = Number(payload.find(p => p.dataKey === 'expense')?.value || 0);
                     const net = inc - exp;
                     return (
-                      <div className="bg-white/95 backdrop-blur-xs border border-[#BFC9D1]/40 shadow-lg rounded-xl p-3 text-xs min-w-[170px]">
-                        <div className="font-extrabold text-[#25343F] mb-1.5 border-b border-[#BFC9D1]/25 pb-1 flex items-center justify-between">
-                          <span>{label}</span>
-                          <span className={`text-[10px] font-mono ${net >= 0 ? 'text-[#059669]' : 'text-[#E11D48]'}`}>
-                            Net: {formatRupiah(net)}
-                          </span>
-                        </div>
-                        <div className="space-y-1 font-mono">
-                          <div className="flex items-center justify-between text-[#059669]">
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                              Masuk:
+                      <div className="bg-white/95 dark:bg-[#1C2634]/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-2xl p-3 shadow-xl text-xs space-y-2 min-w-[170px]">
+                        <p className="font-semibold text-gray-500 dark:text-gray-400 text-[11px] pb-1 border-b border-black/5 dark:border-white/5">
+                          {label}
+                        </p>
+                        <div className="space-y-1.5 font-mono">
+                          <div className="flex items-center justify-between gap-3 text-[#FF9B51]">
+                            <span className="flex items-center gap-1.5 text-xs font-sans text-gray-700 dark:text-gray-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#FF9B51]" />
+                              Uang Masuk
                             </span>
-                            <span className="font-bold">+{formatRupiah(inc)}</span>
+                            <span className="font-bold font-mono">+{formatRupiah(inc)}</span>
                           </div>
-                          <div className="flex items-center justify-between text-[#E11D48]">
-                            <span className="flex items-center gap-1.5">
+                          <div className="flex items-center justify-between gap-3 text-[#F43F5E]">
+                            <span className="flex items-center gap-1.5 text-xs font-sans text-gray-700 dark:text-gray-300">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E]" />
-                              Keluar:
+                              Uang Keluar
                             </span>
-                            <span className="font-bold">-{formatRupiah(exp)}</span>
+                            <span className="font-bold font-mono">-{formatRupiah(exp)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 pt-1 border-t border-black/5 dark:border-white/5">
+                            <span className="text-[10.5px] font-sans text-gray-500">Hasil Bersih</span>
+                            <span className={`font-bold font-mono ${net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                              {formatRupiah(net)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -516,11 +504,12 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
                 type="monotone"
                 dataKey="income"
                 name="Uang Masuk"
-                stroke="#10B981"
+                stroke="#FF9B51"
                 strokeWidth={2.5}
-                fill="url(#incomeAreaGrad)"
-                dot={{ r: 3.5, fill: '#10B981', strokeWidth: 1.5, stroke: '#FFFFFF' }}
-                activeDot={{ r: 5, fill: '#10B981', stroke: '#FFFFFF', strokeWidth: 2 }}
+                fill="url(#financeIncomeGrad)"
+                dot={false}
+                activeDot={{ r: 4.5, fill: '#FF9B51', stroke: '#FFFFFF', strokeWidth: 2 }}
+                animationDuration={400}
               />
 
               <Area
@@ -528,10 +517,12 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
                 dataKey="expense"
                 name="Uang Keluar"
                 stroke="#F43F5E"
-                strokeWidth={2.5}
-                fill="url(#expenseAreaGrad)"
-                dot={{ r: 3.5, fill: '#F43F5E', strokeWidth: 1.5, stroke: '#FFFFFF' }}
-                activeDot={{ r: 5, fill: '#F43F5E', stroke: '#FFFFFF', strokeWidth: 2 }}
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                fill="url(#financeExpenseGrad)"
+                dot={false}
+                activeDot={{ r: 4.5, fill: '#F43F5E', stroke: '#FFFFFF', strokeWidth: 2 }}
+                animationDuration={400}
               />
             </AreaChart>
           </ResponsiveContainer>

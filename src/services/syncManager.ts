@@ -10,6 +10,11 @@ import {
   Expense,
   FinancialTransaction,
   BusinessSettings,
+  StockItem,
+  StockMovement,
+  ItemType,
+  ProductType,
+  CashierShift,
 } from '../types';
 
 export function getActiveLicenseKey(): string {
@@ -30,6 +35,167 @@ export function getActiveLicenseKey(): string {
 }
 
 // ── Model Transformers with Multi-Tenant License Key ───────────
+
+function stockItemToSupabase(s: StockItem, licenseKey: string) {
+  return {
+    id: s.id,
+    license_key: licenseKey,
+    name: s.name,
+    sku: s.sku || null,
+    category: s.category || null,
+    item_type: s.itemType || 'GOODS',
+    track_stock: s.trackStock !== undefined ? s.trackStock : true,
+    current_stock: Number(s.currentStock) || 0,
+    min_stock: Number(s.minStock) || 0,
+    base_unit: s.baseUnit || 'PCS',
+    purchase_price: Number(s.purchasePrice) || 0,
+    selling_price: Number(s.sellingPrice) || 0,
+    cost_price: Number(s.costPrice) || 0,
+    price_tiers: s.priceTiers || [],
+    unit_conversions: s.unitConversions || [],
+    components: s.components || [],
+    labor_cost: Number(s.laborCost) || 0,
+    machine_cost: Number(s.machineCost) || 0,
+    other_cost: Number(s.otherCost) || 0,
+    barcode: s.barcode || null,
+    barcode_type: s.barcodeType || null,
+    description: s.description || null,
+    image_path: s.imagePath || null,
+    thumbnail_path: s.thumbnailPath || null,
+    is_active: s.isActive !== false,
+    supplier: s.supplier || null,
+    supplier_contact: s.supplierContact || null,
+    product_type: s.productType || null,
+    has_variants: Boolean(s.hasVariants),
+    variants: s.variants || [],
+    notes: s.notes || null,
+    created_at: s.createdAt || new Date().toISOString(),
+    updated_at: s.updatedAt || new Date().toISOString(),
+  };
+}
+
+function stockItemFromSupabase(row: any): StockItem {
+  const sellingPrice = Number(row.selling_price) || 0;
+  const costPrice = Number(row.cost_price) || Number(row.purchase_price) || 0;
+  const profit = sellingPrice - costPrice;
+  const profitMargin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
+
+  return {
+    id: row.id,
+    name: row.name,
+    sku: row.sku || '',
+    category: row.category || 'Umum',
+    itemType: (row.item_type || 'GOODS') as ItemType,
+    trackStock: row.track_stock !== undefined ? Boolean(row.track_stock) : true,
+    currentStock: Number(row.current_stock) || 0,
+    minStock: Number(row.min_stock) || 0,
+    baseUnit: row.base_unit || 'PCS',
+    purchasePrice: Number(row.purchase_price) || costPrice,
+    sellingPrice,
+    costPrice,
+    priceTiers: Array.isArray(row.price_tiers) ? row.price_tiers : [],
+    unitConversions: Array.isArray(row.unit_conversions) ? row.unit_conversions : [],
+    components: Array.isArray(row.components) ? row.components : [],
+    laborCost: Number(row.labor_cost) || 0,
+    machineCost: Number(row.machine_cost) || 0,
+    otherCost: Number(row.other_cost) || 0,
+    profit,
+    profitMargin,
+    marginPercent: profitMargin,
+    barcode: row.barcode || undefined,
+    barcodeType: row.barcode_type || undefined,
+    description: row.description || '',
+    imagePath: row.image_path || undefined,
+    thumbnailPath: row.thumbnail_path || undefined,
+    isActive: row.is_active !== false,
+    supplier: row.supplier || undefined,
+    supplierContact: row.supplier_contact || undefined,
+    productType: row.product_type as ProductType,
+    hasVariants: Boolean(row.has_variants),
+    variants: Array.isArray(row.variants) ? row.variants : [],
+    notes: row.notes || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function stockMovementToSupabase(m: StockMovement, licenseKey: string) {
+  return {
+    id: m.id,
+    license_key: licenseKey,
+    item_id: m.itemId,
+    item_name: m.itemName,
+    variant_id: m.variantId || null,
+    type: m.type,
+    quantity: Number(m.quantity) || 0,
+    previous_stock: Number(m.previousStock) || 0,
+    new_stock: Number(m.newStock) || 0,
+    reference_type: m.referenceType || null,
+    reference_id: m.referenceId || null,
+    notes: m.notes || null,
+    date: m.date || new Date().toISOString().split('T')[0],
+    created_at: m.createdAt || new Date().toISOString(),
+  };
+}
+
+function stockMovementFromSupabase(row: any): StockMovement {
+  return {
+    id: row.id,
+    itemId: row.item_id || row.material_id,
+    itemName: row.item_name || row.material_name || '',
+    variantId: row.variant_id || undefined,
+    type: row.type,
+    quantity: Number(row.quantity) || 0,
+    previousStock: Number(row.previous_stock) || 0,
+    newStock: Number(row.new_stock) || 0,
+    referenceType: row.reference_type || undefined,
+    referenceId: row.reference_id || undefined,
+    notes: row.notes || '',
+    date: row.date,
+    createdAt: row.created_at,
+  };
+}
+
+function shiftToSupabase(s: CashierShift, licenseKey: string) {
+  return {
+    id: s.id,
+    license_key: licenseKey,
+    business_id: s.businessId || null,
+    user_id: s.userId || null,
+    cashier_name: s.cashierName || 'Kasir',
+    started_at: s.startedAt,
+    ended_at: s.endedAt || null,
+    status: s.status || 'OPEN',
+    total_transactions: Number(s.totalTransactions) || 0,
+    total_amount: Number(s.totalAmount) || 0,
+    cash_amount: Number(s.cashAmount) || 0,
+    transfer_amount: Number(s.transferAmount) || 0,
+    qris_amount: Number(s.qrisAmount) || 0,
+    notes: s.notes || null,
+    created_at: s.createdAt || new Date().toISOString(),
+    updated_at: s.updatedAt || new Date().toISOString(),
+  };
+}
+
+function shiftFromSupabase(row: any): CashierShift {
+  return {
+    id: row.id,
+    businessId: row.business_id || undefined,
+    userId: row.user_id || undefined,
+    cashierName: row.cashier_name || 'Kasir',
+    startedAt: row.started_at,
+    endedAt: row.ended_at || undefined,
+    status: (row.status || 'OPEN') as 'OPEN' | 'CLOSED',
+    totalTransactions: Number(row.total_transactions) || 0,
+    totalAmount: Number(row.total_amount) || 0,
+    cashAmount: Number(row.cash_amount) || 0,
+    transferAmount: Number(row.transfer_amount) || 0,
+    qrisAmount: Number(row.qris_amount) || 0,
+    notes: row.notes || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 function customerToSupabase(c: Customer, licenseKey: string) {
   return {
@@ -239,6 +405,7 @@ function transactionToSupabase(t: Transaction, licenseKey: string) {
     change_amount: t.changeAmount || 0,
     payment_method: t.paymentMethod || 'CASH',
     cashier_name: t.cashierName || 'Owner',
+    shift_id: t.shiftId || null,
     notes: t.notes || null,
     status: t.status || 'COMPLETED',
     refunded_at: t.refundedAt || null,
@@ -269,6 +436,7 @@ function transactionFromSupabase(row: any): Transaction {
     changeAmount: Number(row.change_amount) || 0,
     paymentMethod: row.payment_method,
     cashierName: row.cashier_name || 'Owner',
+    shiftId: row.shift_id || undefined,
     notes: row.notes || undefined,
     status: row.status || 'COMPLETED',
     refundedAt: row.refunded_at || undefined,
@@ -440,7 +608,7 @@ function saveSyncQueue(queue: SyncQueueItem[]): void {
 
 export function clearSyncQueueForHistory(): void {
   const queue = getSyncQueue();
-  const historyTables = new Set(['transactions', 'orders', 'products', 'materials', 'expenses', 'financial_transactions', 'inventory_movements']);
+  const historyTables = new Set(['transactions', 'orders', 'products', 'materials', 'expenses', 'financial_transactions', 'inventory_movements', 'stock_items', 'stock_movements']);
   const filtered = queue.filter(item => !historyTables.has(item.table));
   saveSyncQueue(filtered);
 }
@@ -507,6 +675,10 @@ export function emitSyncCompleted(): void {
 
 function toSupabasePayload(table: string, item: any, licenseKey: string): any {
   switch (table) {
+    case 'stock_items': return stockItemToSupabase(item, licenseKey);
+    case 'stock_movements': return stockMovementToSupabase(item, licenseKey);
+    case 'cashier_shifts':
+    case 'shifts': return shiftToSupabase(item, licenseKey);
     case 'products': return productToSupabase(item, licenseKey);
     case 'customers': return customerToSupabase(item, licenseKey);
     case 'materials': return materialToSupabase(item, licenseKey);
@@ -521,6 +693,10 @@ function toSupabasePayload(table: string, item: any, licenseKey: string): any {
 
 function fromSupabasePayload(table: string, row: any): any {
   switch (table) {
+    case 'stock_items': return stockItemFromSupabase(row);
+    case 'stock_movements': return stockMovementFromSupabase(row);
+    case 'cashier_shifts':
+    case 'shifts': return shiftFromSupabase(row);
     case 'products': return productFromSupabase(row);
     case 'customers': return customerFromSupabase(row);
     case 'materials': return materialFromSupabase(row);
@@ -674,15 +850,22 @@ export async function performInitialCloudSync(): Promise<{
 
     const hasSettings = remoteSettings && remoteSettings.length > 0;
 
-    // 2. Check products count as additional signal
+    // 2. Check stock_items or products count as additional signal
+    const { count: stockCount } = await client
+      .from('stock_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('license_key', licenseKey)
+      .catch(() => ({ count: null }));
+
     const { count: productCount } = await client
       .from('products')
       .select('id', { count: 'exact', head: true })
-      .eq('license_key', licenseKey);
+      .eq('license_key', licenseKey)
+      .catch(() => ({ count: null }));
 
-    const hasCloudData = hasSettings || (productCount !== null && productCount > 0);
+    const hasCloudData = hasSettings || (stockCount !== null && stockCount > 0) || (productCount !== null && productCount > 0);
 
-    console.log(`[INITIAL_SYNC] hasCloudData: ${hasCloudData}, settings: ${hasSettings}, products: ${productCount}`);
+    console.log(`[INITIAL_SYNC] hasCloudData: ${hasCloudData}, settings: ${hasSettings}, stock: ${stockCount}, products: ${productCount}`);
 
     if (!hasCloudData) {
       return { hasCloudData: false, pulled: 0, message: 'Tidak ada data cloud untuk license ini. Memulai database baru.' };
@@ -692,6 +875,30 @@ export async function performInitialCloudSync(): Promise<{
     if (hasSettings) {
       await localDb.updateSettings(settingsFromSupabase(remoteSettings![0]));
       pulled++;
+    }
+
+    // Pull Unified Stock Items
+    try {
+      const { data: remoteStockItems } = await client
+        .from('stock_items').select('*').eq('license_key', licenseKey).order('updated_at', { ascending: false });
+      if (remoteStockItems && remoteStockItems.length > 0) {
+        localDb.mergeStockItems(remoteStockItems.map(stockItemFromSupabase));
+        pulled += remoteStockItems.length;
+      }
+    } catch (e) {
+      console.warn('[INITIAL_SYNC] stock_items table not queried:', e);
+    }
+
+    // Pull Stock Movements
+    try {
+      const { data: remoteStockMovements } = await client
+        .from('stock_movements').select('*').eq('license_key', licenseKey).order('created_at', { ascending: false });
+      if (remoteStockMovements && remoteStockMovements.length > 0) {
+        localDb.mergeStockMovements(remoteStockMovements.map(stockMovementFromSupabase));
+        pulled += remoteStockMovements.length;
+      }
+    } catch (e) {
+      console.warn('[INITIAL_SYNC] stock_movements table not queried:', e);
     }
 
     const { data: remoteCustomers } = await client
@@ -1135,6 +1342,58 @@ export async function syncWithSupabase(): Promise<{
     if (remoteCustomers && remoteCustomers.length > 0) {
       localDb.mergeCustomers(remoteCustomers.map(customerFromSupabase));
       pulled += remoteCustomers.length;
+    }
+
+    // ── 2B. SYNC UNIFIED STOCK ITEMS ─────────────────────────
+    if (Array.isArray(rawLocal.stock_items) && rawLocal.stock_items.length > 0) {
+      try {
+        const payload = rawLocal.stock_items.map(s => stockItemToSupabase(s, licenseKey));
+        await client.from('stock_items').upsert(payload);
+        pushed += rawLocal.stock_items.length;
+      } catch (err) {
+        console.warn('[SYNC] Error pushing stock_items to Supabase:', err);
+      }
+    }
+
+    try {
+      const { data: remoteStockItems } = await client
+        .from('stock_items')
+        .select('*')
+        .eq('license_key', licenseKey)
+        .order('updated_at', { ascending: false });
+
+      if (remoteStockItems && remoteStockItems.length > 0) {
+        localDb.mergeStockItems(remoteStockItems.map(stockItemFromSupabase));
+        pulled += remoteStockItems.length;
+      }
+    } catch (err) {
+      console.warn('[SYNC] Error pulling stock_items from Supabase:', err);
+    }
+
+    // ── 2C. SYNC STOCK MOVEMENTS ─────────────────────────────
+    if (Array.isArray(rawLocal.stock_movements) && rawLocal.stock_movements.length > 0) {
+      try {
+        const payload = rawLocal.stock_movements.map(m => stockMovementToSupabase(m, licenseKey));
+        await client.from('stock_movements').upsert(payload);
+        pushed += rawLocal.stock_movements.length;
+      } catch (err) {
+        console.warn('[SYNC] Error pushing stock_movements to Supabase:', err);
+      }
+    }
+
+    try {
+      const { data: remoteStockMovements } = await client
+        .from('stock_movements')
+        .select('*')
+        .eq('license_key', licenseKey)
+        .order('created_at', { ascending: false });
+
+      if (remoteStockMovements && remoteStockMovements.length > 0) {
+        localDb.mergeStockMovements(remoteStockMovements.map(stockMovementFromSupabase));
+        pulled += remoteStockMovements.length;
+      }
+    } catch (err) {
+      console.warn('[SYNC] Error pulling stock_movements from Supabase:', err);
     }
 
     // ── 3. SYNC MATERIALS ────────────────────────────────────

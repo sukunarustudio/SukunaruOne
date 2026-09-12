@@ -95,23 +95,23 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               key={toast.id}
               id={`toast-${toast.id}`}
               role="alert"
-              className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full shadow-md backdrop-blur-md bg-black/40 dark:bg-black/50 border border-white/15 text-white text-[12px] font-medium select-none transition-all duration-200 animate-in fade-in slide-in-from-top-2 max-w-[92vw] sm:max-w-md"
+              className="pointer-events-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full apple-glass-toast text-[#25343F] dark:text-white text-[12px] font-semibold select-none transition-all duration-200 animate-in fade-in slide-in-from-top-2 max-w-[92vw] sm:max-w-md"
             >
               {/* Minimal Clean Dot/Icon Indicator */}
               <div className="shrink-0 flex items-center justify-center">
                 {isSuccess && (
-                  <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-400 drop-shadow-xs" />
+                  <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 drop-shadow-xs" />
                 )}
                 {isError && (
-                  <ExclamationCircleIcon className="w-3.5 h-3.5 text-rose-400 drop-shadow-xs" />
+                  <ExclamationCircleIcon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 drop-shadow-xs" />
                 )}
                 {isInfo && (
-                  <InformationCircleIcon className="w-3.5 h-3.5 text-sky-400 drop-shadow-xs" />
+                  <InformationCircleIcon className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 drop-shadow-xs" />
                 )}
               </div>
 
               {/* Message text */}
-              <span className="leading-snug tracking-tight text-white/95 truncate">
+              <span className="leading-snug tracking-tight text-[#25343F] dark:text-slate-100 truncate">
                 {toast.message}
               </span>
 
@@ -119,7 +119,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               <button
                 id={`btn-close-toast-${toast.id}`}
                 onClick={() => removeToast(toast.id)}
-                className="text-white/60 hover:text-white transition-colors ml-0.5 p-0.5 rounded-full hover:bg-white/10 cursor-pointer shrink-0 active:scale-90"
+                className="text-slate-400 hover:text-[#25343F] dark:text-slate-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors ml-0.5 p-0.5 rounded-full cursor-pointer shrink-0 active:scale-90"
                 title="Tutup notifikasi"
                 aria-label="Tutup notifikasi"
               >

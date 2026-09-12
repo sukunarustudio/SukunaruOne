@@ -9,6 +9,12 @@ import {
   FinancialTransaction,
   BusinessSettings,
   DashboardStats,
+  StockItem,
+  StockMovement,
+  ItemType,
+  ProductType,
+  CashierShift,
+  ShiftSummary,
 } from '../types';
 
 const STORAGE_KEY = 'sukunaru_local_db_v1';
@@ -16,9 +22,19 @@ const STORAGE_KEY = 'sukunaru_local_db_v1';
 export interface LocalDatabaseSchema {
   settings: BusinessSettings;
   customers: Customer[];
+
+  // === Shifts (Cashier work periods) ===
+  shifts: CashierShift[];
+
+  // === Unified Inventory (new) ===
+  stock_items: StockItem[];
+  stock_movements: StockMovement[];
+
+  // === Legacy (kept for non-destructive migration) ===
   materials: Material[];
   inventory_movements: InventoryMovement[];
   products: Product[];
+
   orders: Order[];
   transactions: Transaction[];
   expenses: Expense[];
@@ -44,6 +60,9 @@ const DEFAULT_INITIAL_DATA: LocalDatabaseSchema = {
     footerNotes: "Terima kasih atas kepercayaan Anda!"
   },
   customers: [],
+  shifts: [],
+  stock_items: [],
+  stock_movements: [],
   materials: [],
   inventory_movements: [],
   products: [],
@@ -297,6 +316,153 @@ export function reconcileFinancialTransactions(db: LocalDatabaseSchema): boolean
   return changed;
 }
 
+// === MIGRATION: materials + products → stock_items ===
+function mapProductTypeToItemType(pt?: string, hasComponents?: boolean): ItemType {
+  if (!pt) return 'GOODS';
+  const upper = pt.toUpperCase();
+  if (['SERVICE', 'JASA', 'DESAIN', 'DIGITAL'].includes(upper)) return 'SERVICE';
+  if (upper === 'CETAK' && hasComponents) return 'PRODUCED';
+  return 'GOODS';
+}
+
+function migrateToStockItems(db: LocalDatabaseSchema): boolean {
+  if (!db) return false;
+  if (!Array.isArray(db.stock_items)) db.stock_items = [];
+  if (!Array.isArray(db.stock_movements)) db.stock_movements = [];
+
+  // Skip migration if stock_items already has data
+  if (db.stock_items.length > 0) return false;
+
+  // Skip if there's nothing to migrate
+  const hasMaterials = Array.isArray(db.materials) && db.materials.length > 0;
+  const hasProducts = Array.isArray(db.products) && db.products.length > 0;
+  if (!hasMaterials && !hasProducts) return false;
+
+  let changed = false;
+  const existingIds = new Set(db.stock_items.map(si => si.id));
+  const now = new Date().toISOString();
+
+  // 1. Migrate Materials → StockItem (type: RAW_MATERIAL)
+  if (hasMaterials) {
+    for (const mat of db.materials) {
+      if (existingIds.has(mat.id)) continue;
+
+      const stockItem: StockItem = {
+        id: mat.id,
+        name: mat.name,
+        sku: mat.sku || '',
+        category: mat.category || 'Bahan Baku',
+        itemType: 'RAW_MATERIAL',
+        trackStock: true,
+        currentStock: mat.currentStock || 0,
+        minStock: mat.minStock || 0,
+        baseUnit: mat.unit || 'PCS',
+        purchasePrice: mat.unitCost || mat.purchasePrice || 0,
+        sellingPrice: 0,
+        costPrice: mat.unitCost || mat.purchasePrice || 0,
+        isActive: true,
+        supplier: mat.supplier,
+        supplierContact: mat.supplierContact,
+        notes: mat.notes,
+        createdAt: mat.createdAt || now,
+        updatedAt: mat.updatedAt || now,
+      };
+      db.stock_items.push(stockItem);
+      existingIds.add(mat.id);
+      changed = true;
+    }
+  }
+
+  // 2. Migrate Products → StockItem
+  if (hasProducts) {
+    for (const prod of db.products) {
+      if (existingIds.has(prod.id)) continue;
+
+      const hasComps = Array.isArray(prod.components) && prod.components.length > 0;
+      const itemType = mapProductTypeToItemType(prod.type, hasComps);
+
+      // Convert ProductComponent[] to ItemComponent[]
+      const components = hasComps
+        ? prod.components!.map(c => ({
+            id: c.id,
+            itemId: c.materialId || c.id,
+            componentName: c.componentName,
+            quantity: c.quantity,
+            unit: c.unit,
+            unitCost: c.unitCost,
+            subtotal: c.subtotal,
+          }))
+        : undefined;
+
+      const stockItem: StockItem = {
+        id: prod.id,
+        name: prod.name,
+        sku: prod.sku || '',
+        category: prod.category || 'Umum',
+        itemType,
+        trackStock: prod.trackStock ?? (itemType !== 'SERVICE'),
+        currentStock: prod.currentStock || 0,
+        minStock: prod.minStock || 0,
+        baseUnit: prod.unit || 'PCS',
+        purchasePrice: prod.costPrice || 0,
+        sellingPrice: prod.sellingPrice || 0,
+        costPrice: prod.costPrice || 0,
+        isActive: prod.isActive !== false,
+        barcode: prod.barcode,
+        barcodeType: prod.barcodeType,
+        description: prod.description,
+        imagePath: prod.imagePath,
+        thumbnailPath: prod.thumbnailPath,
+        productType: prod.type as ProductType,
+        components,
+        laborCost: prod.laborCost,
+        machineCost: prod.machineCost,
+        otherCost: prod.otherCost,
+        profit: prod.profit,
+        profitMargin: prod.profitMargin,
+        marginPercent: prod.marginPercent,
+        notes: undefined,
+        createdAt: prod.createdAt || now,
+        updatedAt: prod.updatedAt || now,
+      };
+      db.stock_items.push(stockItem);
+      existingIds.add(prod.id);
+      changed = true;
+    }
+  }
+
+  // 3. Migrate inventory_movements → stock_movements
+  if (Array.isArray(db.inventory_movements) && db.inventory_movements.length > 0) {
+    const existingMovIds = new Set(db.stock_movements.map(sm => sm.id));
+    for (const mov of db.inventory_movements) {
+      if (existingMovIds.has(mov.id)) continue;
+
+      const sm: StockMovement = {
+        id: mov.id,
+        itemId: mov.materialId,
+        itemName: mov.materialName,
+        type: mov.type as StockMovement['type'],
+        quantity: mov.quantity,
+        previousStock: mov.previousStock || 0,
+        newStock: mov.newStock || 0,
+        referenceType: mov.referenceType as StockMovement['referenceType'],
+        referenceId: mov.referenceId,
+        notes: mov.notes,
+        date: mov.date,
+        createdAt: mov.createdAt,
+      };
+      db.stock_movements.push(sm);
+      existingMovIds.add(mov.id);
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    console.log(`[Migration] Migrated ${db.stock_items.length} stock items, ${db.stock_movements.length} movements`);
+  }
+  return changed;
+}
+
 function getLocalData(): LocalDatabaseSchema {
   if (typeof window === 'undefined') {
     return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
@@ -311,6 +477,9 @@ function getLocalData(): LocalDatabaseSchema {
     const clean: LocalDatabaseSchema = {
       settings: data.settings || DEFAULT_INITIAL_DATA.settings,
       customers: Array.isArray(data.customers) ? data.customers : DEFAULT_INITIAL_DATA.customers,
+      shifts: Array.isArray(data.shifts) ? data.shifts : [],
+      stock_items: Array.isArray(data.stock_items) ? data.stock_items : [],
+      stock_movements: Array.isArray(data.stock_movements) ? data.stock_movements : [],
       materials: Array.isArray(data.materials) ? data.materials : DEFAULT_INITIAL_DATA.materials,
       inventory_movements: Array.isArray(data.inventory_movements) ? data.inventory_movements : [],
       products: Array.isArray(data.products) ? data.products : DEFAULT_INITIAL_DATA.products,
@@ -319,6 +488,14 @@ function getLocalData(): LocalDatabaseSchema {
       expenses: Array.isArray(data.expenses) ? data.expenses : [],
       financial_transactions: Array.isArray(data.financial_transactions) ? data.financial_transactions : [],
     };
+
+    // Auto-migrate materials+products → stock_items if not yet done
+    if (migrateToStockItems(clean)) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+      } catch {}
+    }
+
     if (reconcileFinancialTransactions(clean)) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
@@ -536,7 +713,13 @@ export const localDb = {
     const monthOrderCost = monthOrders.reduce((sum, o) => sum + (Number(o.totalCost) || 0), 0);
     const thisMonthProfit = Math.max(0, thisMonthRevenue - monthPosCost - monthOrderCost - thisMonthExpense);
 
-    const lowStockItems = (db.materials || []).filter(m => m.currentStock <= m.minStock);
+    const stockList = Array.isArray(db.stock_items) && db.stock_items.length > 0
+      ? db.stock_items
+      : (db.materials || []);
+    const lowStockItems = stockList.filter((m: any) => {
+      const track = m.trackStock !== undefined ? m.trackStock : true;
+      return track && Number(m.currentStock || 0) <= Number(m.minStock || 0);
+    });
     const activeOrders = (db.orders || []).filter(o => o.status !== 'SELESAI' && o.status !== 'BATAL');
 
     return {
@@ -848,6 +1031,511 @@ export const localDb = {
     return prod;
   },
 
+  // =========================================================================
+  // STOK BARANG (Unified Master Inventory) Methods
+  // =========================================================================
+
+  async getStockItems(): Promise<StockItem[]> {
+    const db = getLocalData();
+    return db.stock_items || [];
+  },
+
+  async getStockItemById(id: string): Promise<StockItem | null> {
+    const db = getLocalData();
+    return (db.stock_items || []).find(item => item.id === id) || null;
+  },
+
+  async getStockItemByBarcode(barcode: string): Promise<StockItem | null> {
+    const db = getLocalData();
+    const clean = barcode.trim();
+    if (!clean) return null;
+    const cleanLower = clean.toLowerCase();
+    const items = db.stock_items || [];
+
+    // 1. Exact match on barcode (case-insensitive)
+    let found = items.find(p => p.barcode && p.barcode.trim().toLowerCase() === cleanLower);
+
+    // 2. Match on SKU (case-insensitive)
+    if (!found) {
+      found = items.find(p => p.sku && p.sku.trim().toLowerCase() === cleanLower);
+    }
+
+    // 3. Match on ID
+    if (!found) {
+      found = items.find(p => p.id && p.id.trim().toLowerCase() === cleanLower);
+    }
+
+    // 4. Numeric barcode comparison (e.g. EAN-13 / EAN-8 with/without leading zero)
+    if (!found && /^\d+$/.test(clean)) {
+      const cleanNum = clean.replace(/^0+/, '');
+      found = items.find(p => {
+        if (!p.barcode || !/^\d+$/.test(p.barcode.trim())) return false;
+        return p.barcode.trim().replace(/^0+/, '') === cleanNum;
+      });
+    }
+
+    return found || null;
+  },
+
+  async createStockItem(data: Partial<StockItem>): Promise<StockItem> {
+    const db = getLocalData();
+    if (!Array.isArray(db.stock_items)) db.stock_items = [];
+
+    // Validate unique barcode if provided
+    if (data.barcode && data.barcode.trim()) {
+      const duplicate = db.stock_items.find(p => p.barcode && p.barcode.trim() === data.barcode!.trim());
+      if (duplicate) {
+        throw new Error(`Barcode "${data.barcode}" sudah digunakan oleh barang "${duplicate.name}".`);
+      }
+    }
+
+    const itemType: ItemType = data.itemType || 'GOODS';
+    const sellingPrice = Number(data.sellingPrice) || 0;
+    const costPrice = Number(data.costPrice) || Number(data.purchasePrice) || 0;
+    const profit = sellingPrice - costPrice;
+    const profitMargin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
+    const now = new Date().toISOString();
+
+    const newItem: StockItem = {
+      id: data.id || `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: data.name || 'Barang Baru',
+      sku: data.sku || `SKU-${Date.now().toString().slice(-5)}`,
+      category: data.category || 'Umum',
+      itemType,
+      trackStock: data.trackStock ?? (itemType !== 'SERVICE'),
+      currentStock: Number(data.currentStock) || 0,
+      minStock: Number(data.minStock) || 0,
+      baseUnit: data.baseUnit || 'PCS',
+      purchasePrice: Number(data.purchasePrice) || costPrice,
+      sellingPrice,
+      costPrice,
+      priceTiers: data.priceTiers || [],
+      unitConversions: data.unitConversions || [],
+      components: data.components || [],
+      laborCost: Number(data.laborCost) || 0,
+      machineCost: Number(data.machineCost) || 0,
+      otherCost: Number(data.otherCost) || 0,
+      profit,
+      profitMargin,
+      marginPercent: profitMargin,
+      barcode: data.barcode?.trim() || undefined,
+      barcodeType: data.barcodeType || undefined,
+      description: data.description || '',
+      imagePath: data.imagePath,
+      thumbnailPath: data.thumbnailPath,
+      isActive: data.isActive ?? true,
+      supplier: data.supplier,
+      supplierContact: data.supplierContact,
+      productType: data.productType,
+      hasVariants: data.hasVariants || false,
+      variants: data.variants || [],
+      notes: data.notes,
+      createdAt: data.createdAt || now,
+      updatedAt: data.updatedAt || now,
+    };
+
+    db.stock_items.unshift(newItem);
+
+    // Initial stock movement record if currentStock > 0
+    if (newItem.trackStock && newItem.currentStock > 0) {
+      const initialMov: StockMovement = {
+        id: `sm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        itemId: newItem.id,
+        itemName: newItem.name,
+        type: 'IN',
+        quantity: newItem.currentStock,
+        previousStock: 0,
+        newStock: newItem.currentStock,
+        referenceType: 'MANUAL',
+        notes: 'Stok awal barang baru',
+        date: now.split('T')[0],
+        createdAt: now,
+      };
+      if (!Array.isArray(db.stock_movements)) db.stock_movements = [];
+      db.stock_movements.unshift(initialMov);
+    }
+
+    setLocalData(db);
+    return newItem;
+  },
+
+  async updateStockItem(id: string, data: Partial<StockItem>): Promise<StockItem> {
+    const db = getLocalData();
+    if (!Array.isArray(db.stock_items)) db.stock_items = [];
+    const idx = db.stock_items.findIndex(item => item.id === id);
+    if (idx === -1) throw new Error('Barang tidak ditemukan');
+
+    // Validate unique barcode if changed
+    if (data.barcode && data.barcode.trim()) {
+      const duplicate = db.stock_items.find(p => p.id !== id && p.barcode && p.barcode.trim() === data.barcode!.trim());
+      if (duplicate) {
+        throw new Error(`Barcode "${data.barcode}" sudah digunakan oleh barang "${duplicate.name}".`);
+      }
+    }
+
+    const current = db.stock_items[idx];
+    const sellingPrice = data.sellingPrice !== undefined ? Number(data.sellingPrice) : current.sellingPrice;
+    const costPrice = data.costPrice !== undefined ? Number(data.costPrice) : current.costPrice;
+    const profit = sellingPrice - costPrice;
+    const profitMargin = sellingPrice > 0 ? (profit / sellingPrice) * 100 : 0;
+    const now = new Date().toISOString();
+
+    db.stock_items[idx] = {
+      ...current,
+      ...data,
+      sellingPrice,
+      costPrice,
+      profit,
+      profitMargin,
+      marginPercent: profitMargin,
+      barcode: data.barcode !== undefined ? (data.barcode?.trim() || undefined) : current.barcode,
+      updatedAt: now,
+    };
+
+    setLocalData(db);
+    return db.stock_items[idx];
+  },
+
+  async deleteStockItem(id: string): Promise<void> {
+    const db = getLocalData();
+    if (Array.isArray(db.stock_items)) {
+      db.stock_items = db.stock_items.filter(item => item.id !== id);
+    }
+    // Also remove from legacy tables if present
+    if (Array.isArray(db.products)) {
+      db.products = db.products.filter(p => p.id !== id);
+    }
+    if (Array.isArray(db.materials)) {
+      db.materials = db.materials.filter(m => m.id !== id);
+    }
+    setLocalData(db);
+  },
+
+  async uploadStockItemImage(itemId: string, file: File): Promise<{
+    imagePath: string;
+    thumbnailPath: string;
+    imageUrl: string;
+    thumbnailUrl: string;
+    item: StockItem;
+  }> {
+    const dataUrl = await squareImageToDataUrl(file, 512, 0.88);
+    const db = getLocalData();
+    const item = (db.stock_items || []).find(p => p.id === itemId);
+    if (!item) throw new Error('Barang tidak ditemukan');
+    item.imagePath = dataUrl;
+    item.thumbnailPath = dataUrl;
+    item.updatedAt = new Date().toISOString();
+    setLocalData(db);
+    return {
+      imagePath: dataUrl,
+      thumbnailPath: dataUrl,
+      imageUrl: dataUrl,
+      thumbnailUrl: dataUrl,
+      item,
+    };
+  },
+
+  async deleteStockItemImage(itemId: string): Promise<StockItem> {
+    const db = getLocalData();
+    const item = (db.stock_items || []).find(p => p.id === itemId);
+    if (!item) throw new Error('Barang tidak ditemukan');
+    item.imagePath = undefined;
+    item.thumbnailPath = undefined;
+    item.updatedAt = new Date().toISOString();
+    setLocalData(db);
+    return item;
+  },
+
+  // Stock Movements & Adjustments
+  async getStockMovements(itemId?: string): Promise<StockMovement[]> {
+    const db = getLocalData();
+    const movs = db.stock_movements || [];
+    if (!itemId) return movs;
+    return movs.filter(m => m.itemId === itemId);
+  },
+
+  async addStockItemMovement(
+    itemId: string,
+    data: {
+      type: StockMovementType;
+      quantity: number;
+      referenceType?: StockRefType | string;
+      referenceId?: string;
+      notes?: string;
+      variantId?: string;
+      date?: string;
+    }
+  ): Promise<{ item: StockItem; movement: StockMovement }> {
+    const db = getLocalData();
+    const item = (db.stock_items || []).find(i => i.id === itemId);
+    if (!item) throw new Error('Barang tidak ditemukan');
+
+    const prevStock = Number(item.currentStock) || 0;
+    let newStock = prevStock;
+    const qty = Number(data.quantity) || 0;
+
+    if (data.type === 'IN') {
+      newStock += qty;
+    } else if (data.type === 'OUT') {
+      newStock = Math.max(0, newStock - qty);
+    } else if (data.type === 'ADJUSTMENT' || data.type === 'OPNAME') {
+      newStock = qty;
+    }
+
+    item.currentStock = newStock;
+    item.updatedAt = new Date().toISOString();
+
+    const now = new Date().toISOString();
+    const movement: StockMovement = {
+      id: `sm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      itemId,
+      itemName: item.name,
+      variantId: data.variantId,
+      type: data.type,
+      quantity: qty,
+      previousStock: prevStock,
+      newStock,
+      referenceType: (data.referenceType as any) || 'MANUAL',
+      referenceId: data.referenceId,
+      notes: data.notes,
+      date: data.date || now.split('T')[0],
+      createdAt: now,
+    };
+
+    if (!Array.isArray(db.stock_movements)) db.stock_movements = [];
+    db.stock_movements.unshift(movement);
+
+    setLocalData(db);
+    return { item, movement };
+  },
+
+  async restockStockItem(
+    itemId: string,
+    data: {
+      quantity: number;
+      purchasePrice?: number;
+      unitCost?: number;
+      supplier?: string;
+      notes?: string;
+      recordExpense?: boolean;
+      paymentMethod?: PaymentMethod;
+      date?: string;
+    }
+  ): Promise<{ item: StockItem; movement: StockMovement }> {
+    const db = getLocalData();
+    const item = (db.stock_items || []).find(i => i.id === itemId);
+    if (!item) throw new Error('Barang tidak ditemukan');
+
+    const qty = Number(data.quantity) || 0;
+    const pricePerUnit = data.unitCost !== undefined ? Number(data.unitCost) : (data.purchasePrice !== undefined ? Number(data.purchasePrice) : item.purchasePrice);
+    const prevStock = Number(item.currentStock) || 0;
+    const newStock = prevStock + qty;
+
+    item.currentStock = newStock;
+    if (pricePerUnit > 0) {
+      item.purchasePrice = pricePerUnit;
+      // If item is raw material or has no BOM components, costPrice equals purchasePrice
+      if (!item.components || item.components.length === 0) {
+        item.costPrice = pricePerUnit;
+        if (item.sellingPrice > 0) {
+          item.profit = item.sellingPrice - item.costPrice;
+          item.profitMargin = (item.profit / item.sellingPrice) * 100;
+          item.marginPercent = item.profitMargin;
+        }
+      }
+    }
+    if (data.supplier) item.supplier = data.supplier;
+    item.updatedAt = new Date().toISOString();
+
+    const now = new Date().toISOString();
+    const dateStr = data.date || now.split('T')[0];
+
+    const movement: StockMovement = {
+      id: `sm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      itemId,
+      itemName: item.name,
+      type: 'IN',
+      quantity: qty,
+      previousStock: prevStock,
+      newStock,
+      referenceType: 'RESTOCK',
+      notes: data.notes || `Restock ${qty} ${item.baseUnit} dari ${data.supplier || item.supplier || 'Supplier'}`,
+      date: dateStr,
+      createdAt: now,
+    };
+
+    if (!Array.isArray(db.stock_movements)) db.stock_movements = [];
+    db.stock_movements.unshift(movement);
+
+    // Auto-record operational expense & financial transaction if requested
+    if (data.recordExpense) {
+      const totalCost = qty * pricePerUnit;
+      if (totalCost > 0) {
+        const expId = `exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const expense: Expense = {
+          id: expId,
+          category: item.itemType === 'RAW_MATERIAL' ? 'Bahan Baku' : 'Pembelian Stok Barang',
+          description: `Restock: ${item.name} (${qty} ${item.baseUnit})`,
+          amount: totalCost,
+          date: dateStr,
+          paymentMethod: data.paymentMethod || 'CASH',
+          reference: movement.id,
+          notes: data.notes || '',
+          createdAt: now,
+        };
+        if (!Array.isArray(db.expenses)) db.expenses = [];
+        db.expenses.unshift(expense);
+
+        const finTx: FinancialTransaction = {
+          id: `fin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          date: dateStr,
+          type: 'EXPENSE',
+          category: expense.category,
+          description: expense.description,
+          amount: totalCost,
+          referenceType: 'EXPENSE',
+          referenceId: expId,
+          referenceNumber: movement.id,
+          paymentMethod: data.paymentMethod || 'CASH',
+          notes: `Restock barang: ${item.name}`,
+          createdAt: now,
+        };
+        if (!Array.isArray(db.financial_transactions)) db.financial_transactions = [];
+        db.financial_transactions.unshift(finTx);
+      }
+    }
+
+    setLocalData(db);
+    return { item, movement };
+  },
+
+  async adjustStockItem(
+    itemId: string,
+    data: {
+      newStock: number;
+      type?: 'ADJUSTMENT' | 'OPNAME';
+      notes?: string;
+      date?: string;
+    }
+  ): Promise<{ item: StockItem; movement: StockMovement }> {
+    const db = getLocalData();
+    const item = (db.stock_items || []).find(i => i.id === itemId);
+    if (!item) throw new Error('Barang tidak ditemukan');
+
+    const prevStock = Number(item.currentStock) || 0;
+    const newStock = Math.max(0, Number(data.newStock) || 0);
+    const diff = Math.abs(newStock - prevStock);
+
+    item.currentStock = newStock;
+    item.updatedAt = new Date().toISOString();
+
+    const now = new Date().toISOString();
+    const movType = data.type || 'ADJUSTMENT';
+
+    const movement: StockMovement = {
+      id: `sm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      itemId,
+      itemName: item.name,
+      type: movType,
+      quantity: diff,
+      previousStock: prevStock,
+      newStock,
+      referenceType: movType === 'OPNAME' ? 'OPNAME' : 'ADJUSTMENT',
+      notes: data.notes || `Penyesuaian stok (${movType}) dari ${prevStock} menjadi ${newStock}`,
+      date: data.date || now.split('T')[0],
+      createdAt: now,
+    };
+
+    if (!Array.isArray(db.stock_movements)) db.stock_movements = [];
+    db.stock_movements.unshift(movement);
+
+    setLocalData(db);
+    return { item, movement };
+  },
+
+  // Auto Stock Deduction for POS/Orders (supports direct items and BOM components)
+  async deductStockForTransaction(
+    items: { productId?: string; itemId?: string; quantity: number }[],
+    refType: StockRefType,
+    refId: string,
+    notes?: string
+  ): Promise<void> {
+    const db = getLocalData();
+    if (!Array.isArray(db.stock_items) || db.stock_items.length === 0) return;
+    if (!Array.isArray(db.stock_movements)) db.stock_movements = [];
+
+    const now = new Date().toISOString();
+    const today = now.split('T')[0];
+
+    for (const line of items) {
+      const targetId = line.itemId || line.productId;
+      if (!targetId) continue;
+      const qtySold = Number(line.quantity) || 0;
+      if (qtySold <= 0) continue;
+
+      const item = db.stock_items.find(i => i.id === targetId);
+      if (!item) continue;
+
+      // 1. If the item directly tracks stock
+      if (item.trackStock) {
+        const prev = Number(item.currentStock) || 0;
+        const next = Math.max(0, prev - qtySold);
+        item.currentStock = next;
+        item.updatedAt = now;
+
+        const sm: StockMovement = {
+          id: `sm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          itemId: item.id,
+          itemName: item.name,
+          type: 'OUT',
+          quantity: qtySold,
+          previousStock: prev,
+          newStock: next,
+          referenceType: refType,
+          referenceId: refId,
+          notes: notes || `Penjualan ${refType} #${refId}`,
+          date: today,
+          createdAt: now,
+        };
+        db.stock_movements.unshift(sm);
+      }
+
+      // 2. If the item has BOM components (PRODUCED item / Cetak), deduct component stocks!
+      if (Array.isArray(item.components) && item.components.length > 0) {
+        for (const comp of item.components) {
+          const compItemId = comp.itemId;
+          if (!compItemId) continue;
+          const compItem = db.stock_items.find(i => i.id === compItemId);
+          if (!compItem || !compItem.trackStock) continue;
+
+          const compQtyNeeded = (Number(comp.quantity) || 1) * qtySold;
+          const compPrev = Number(compItem.currentStock) || 0;
+          const compNext = Math.max(0, compPrev - compQtyNeeded);
+          compItem.currentStock = compNext;
+          compItem.updatedAt = now;
+
+          const compSm: StockMovement = {
+            id: `sm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+            itemId: compItem.id,
+            itemName: compItem.name,
+            type: 'OUT',
+            quantity: compQtyNeeded,
+            previousStock: compPrev,
+            newStock: compNext,
+            referenceType: 'PRODUCTION',
+            referenceId: refId,
+            notes: `Pemakaian bahan untuk ${item.name} (${qtySold} ${item.baseUnit}) di ${refType} #${refId}`,
+            date: today,
+            createdAt: now,
+          };
+          db.stock_movements.unshift(compSm);
+        }
+      }
+    }
+
+    setLocalData(db);
+  },
+
   // Transactions (POS)
   async getTransactions(): Promise<Transaction[]> {
     const db = getLocalData();
@@ -857,7 +1545,12 @@ export const localDb = {
   async createTransaction(data: any): Promise<Transaction> {
     const db = getLocalData();
     const dateStr = data.date || new Date().toISOString().split('T')[0];
+    const nowIso = new Date().toISOString();
     const receiptNum = data.receiptNumber || `STR-${Date.now().toString().slice(-6)}`;
+
+    // Check for currently active open shift
+    const activeShift = Array.isArray(db.shifts) ? db.shifts.find(s => s.status === 'OPEN') : undefined;
+    const shiftId = data.shiftId || (activeShift ? activeShift.id : undefined);
 
     const newTrx: Transaction = {
       id: `trx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -876,11 +1569,12 @@ export const localDb = {
       paidAmount: data.paidAmount || data.totalAmount || 0,
       changeAmount: data.changeAmount || 0,
       paymentMethod: data.paymentMethod || 'CASH',
-      cashierName: data.cashierName || 'Owner',
+      cashierName: data.cashierName || (activeShift ? activeShift.cashierName : 'Owner'),
+      shiftId: shiftId,
       notes: data.notes || '',
       status: 'COMPLETED',
-      createdAt: dateStr,
-      updatedAt: dateStr,
+      createdAt: data.createdAt || nowIso,
+      updatedAt: data.updatedAt || nowIso,
     };
 
     db.transactions.unshift(newTrx);
@@ -1733,12 +2427,217 @@ export const localDb = {
     setLocalData(db);
   },
 
+  mergeShifts(remoteList: CashierShift[]): void {
+    const db = getLocalData();
+    if (!Array.isArray(db.shifts)) db.shifts = [];
+    const map = new Map<string, CashierShift>();
+    db.shifts.forEach(s => map.set(s.id, s));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.shifts = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  // ── Cashier Shift Management ──
+  async getCurrentShift(): Promise<CashierShift | null> {
+    const db = getLocalData();
+    if (!Array.isArray(db.shifts)) return null;
+    return db.shifts.find(s => s.status === 'OPEN') || null;
+  },
+
+  async startShift(cashierName = 'Kasir', userId?: string, businessId?: string): Promise<CashierShift> {
+    const db = getLocalData();
+    if (!Array.isArray(db.shifts)) db.shifts = [];
+
+    // If an open shift already exists, return it
+    const existingOpen = db.shifts.find(s => s.status === 'OPEN');
+    if (existingOpen) {
+      return existingOpen;
+    }
+
+    const nowIso = new Date().toISOString();
+    const newShift: CashierShift = {
+      id: `shift_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      businessId,
+      userId,
+      cashierName: cashierName.trim() || 'Kasir',
+      startedAt: nowIso,
+      status: 'OPEN',
+      totalTransactions: 0,
+      totalAmount: 0,
+      cashAmount: 0,
+      transferAmount: 0,
+      qrisAmount: 0,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+
+    db.shifts.unshift(newShift);
+    setLocalData(db);
+    return newShift;
+  },
+
+  async stopShift(shiftId: string, notes?: string): Promise<ShiftSummary> {
+    const db = getLocalData();
+    if (!Array.isArray(db.shifts)) db.shifts = [];
+
+    const shift = db.shifts.find(s => s.id === shiftId);
+    if (!shift) {
+      throw new Error('Shift tidak ditemukan');
+    }
+
+    const nowIso = new Date().toISOString();
+    const startTime = new Date(shift.startedAt).getTime();
+    const endTime = new Date(nowIso).getTime();
+
+    // Find all valid transactions that occurred during this shift
+    const shiftTransactions = db.transactions.filter(t => {
+      if (t.status === 'REFUNDED' || t.status === 'CANCELLED') return false;
+      if (t.shiftId === shift.id) return true;
+      const tTime = new Date(t.createdAt || t.date).getTime();
+      return tTime >= startTime && tTime <= endTime;
+    });
+
+    let totalAmount = 0;
+    let cashAmount = 0;
+    let transferAmount = 0;
+    let qrisAmount = 0;
+
+    shiftTransactions.forEach(t => {
+      const amt = Number(t.totalAmount) || 0;
+      totalAmount += amt;
+      const pm = (t.paymentMethod || 'CASH').toUpperCase();
+      if (pm === 'CASH' || pm === 'TUNAI') cashAmount += amt;
+      else if (pm === 'TRANSFER' || pm === 'BANK') transferAmount += amt;
+      else if (pm === 'QRIS') qrisAmount += amt;
+      else cashAmount += amt;
+
+      // Link transaction directly to this shift
+      t.shiftId = shift.id;
+    });
+
+    shift.endedAt = nowIso;
+    shift.status = 'CLOSED';
+    shift.totalTransactions = shiftTransactions.length;
+    shift.totalAmount = totalAmount;
+    shift.cashAmount = cashAmount;
+    shift.transferAmount = transferAmount;
+    shift.qrisAmount = qrisAmount;
+    if (notes !== undefined) shift.notes = notes;
+    shift.updatedAt = nowIso;
+
+    setLocalData(db);
+
+    return {
+      shift,
+      transactions: shiftTransactions,
+      totalTransactions: shiftTransactions.length,
+      totalAmount,
+      cashAmount,
+      transferAmount,
+      qrisAmount,
+    };
+  },
+
+  async getShifts(): Promise<CashierShift[]> {
+    const db = getLocalData();
+    if (!Array.isArray(db.shifts)) return [];
+    return [...db.shifts].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+  },
+
+  async getShiftSummary(shiftId: string): Promise<ShiftSummary> {
+    const db = getLocalData();
+    if (!Array.isArray(db.shifts)) db.shifts = [];
+
+    const shift = db.shifts.find(s => s.id === shiftId);
+    if (!shift) throw new Error('Shift tidak ditemukan');
+
+    const startTime = new Date(shift.startedAt).getTime();
+    const endTime = shift.endedAt ? new Date(shift.endedAt).getTime() : Date.now();
+
+    const shiftTransactions = db.transactions.filter(t => {
+      if (t.status === 'REFUNDED' || t.status === 'CANCELLED') return false;
+      if (t.shiftId === shift.id) return true;
+      const tTime = new Date(t.createdAt || t.date).getTime();
+      return tTime >= startTime && tTime <= endTime;
+    });
+
+    let totalAmount = 0;
+    let cashAmount = 0;
+    let transferAmount = 0;
+    let qrisAmount = 0;
+
+    shiftTransactions.forEach(t => {
+      const amt = Number(t.totalAmount) || 0;
+      totalAmount += amt;
+      const pm = (t.paymentMethod || 'CASH').toUpperCase();
+      if (pm === 'CASH' || pm === 'TUNAI') cashAmount += amt;
+      else if (pm === 'TRANSFER' || pm === 'BANK') transferAmount += amt;
+      else if (pm === 'QRIS') qrisAmount += amt;
+      else cashAmount += amt;
+    });
+
+    return {
+      shift,
+      transactions: shiftTransactions,
+      totalTransactions: shiftTransactions.length,
+      totalAmount,
+      cashAmount,
+      transferAmount,
+      qrisAmount,
+    };
+  },
+
+  mergeStockItems(remoteList: StockItem[]): void {
+    const db = getLocalData();
+    const map = new Map<string, StockItem>();
+    (db.stock_items || []).forEach(s => map.set(s.id, s));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.stock_items = Array.from(map.values());
+    setLocalData(db);
+  },
+
+  mergeStockMovements(remoteList: StockMovement[]): void {
+    const db = getLocalData();
+    const map = new Map<string, StockMovement>();
+    (db.stock_movements || []).forEach(m => map.set(m.id, m));
+    remoteList.forEach(r => map.set(r.id, { ...(map.get(r.id) || {}), ...r }));
+    db.stock_movements = Array.from(map.values());
+    setLocalData(db);
+  },
+
   // ── Realtime Single-Record Event Handlers (High Performance) ──
   applyRemoteUpsert(tableName: string, record: any): boolean {
     const db = getLocalData();
     let updated = false;
 
-    if (tableName === 'products') {
+    if (tableName === 'cashier_shifts' || tableName === 'shifts') {
+      if (!Array.isArray(db.shifts)) db.shifts = [];
+      const idx = db.shifts.findIndex(s => s.id === record.id);
+      if (idx >= 0) {
+        db.shifts[idx] = { ...db.shifts[idx], ...record };
+      } else {
+        db.shifts.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'stock_items') {
+      if (!Array.isArray(db.stock_items)) db.stock_items = [];
+      const idx = db.stock_items.findIndex(s => s.id === record.id);
+      if (idx >= 0) {
+        db.stock_items[idx] = { ...db.stock_items[idx], ...record };
+      } else {
+        db.stock_items.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'stock_movements') {
+      if (!Array.isArray(db.stock_movements)) db.stock_movements = [];
+      const idx = db.stock_movements.findIndex(m => m.id === record.id);
+      if (idx >= 0) {
+        db.stock_movements[idx] = { ...db.stock_movements[idx], ...record };
+      } else {
+        db.stock_movements.unshift(record);
+      }
+      updated = true;
+    } else if (tableName === 'products') {
       const idx = db.products.findIndex(p => p.id === record.id);
       if (idx >= 0) {
         db.products[idx] = { ...db.products[idx], ...record };
@@ -1809,7 +2708,25 @@ export const localDb = {
     const db = getLocalData();
     let updated = false;
 
-    if (tableName === 'products') {
+    if (tableName === 'cashier_shifts' || tableName === 'shifts') {
+      if (Array.isArray(db.shifts)) {
+        const lenBefore = db.shifts.length;
+        db.shifts = db.shifts.filter(s => s.id !== recordId);
+        updated = db.shifts.length !== lenBefore;
+      }
+    } else if (tableName === 'stock_items') {
+      if (Array.isArray(db.stock_items)) {
+        const lenBefore = db.stock_items.length;
+        db.stock_items = db.stock_items.filter(s => s.id !== recordId);
+        updated = db.stock_items.length !== lenBefore;
+      }
+    } else if (tableName === 'stock_movements') {
+      if (Array.isArray(db.stock_movements)) {
+        const lenBefore = db.stock_movements.length;
+        db.stock_movements = db.stock_movements.filter(m => m.id !== recordId);
+        updated = db.stock_movements.length !== lenBefore;
+      }
+    } else if (tableName === 'products') {
       const lenBefore = db.products.length;
       db.products = db.products.filter(p => p.id !== recordId);
       updated = db.products.length !== lenBefore;
@@ -1866,6 +2783,9 @@ export const localDb = {
     const clean: LocalDatabaseSchema = {
       settings: backupData.settings || DEFAULT_INITIAL_DATA.settings,
       customers: Array.isArray(backupData.customers) ? backupData.customers : [],
+      shifts: Array.isArray(backupData.shifts) ? backupData.shifts : [],
+      stock_items: Array.isArray(backupData.stock_items) ? backupData.stock_items : [],
+      stock_movements: Array.isArray(backupData.stock_movements) ? backupData.stock_movements : [],
       materials: Array.isArray(backupData.materials) ? backupData.materials : [],
       inventory_movements: Array.isArray(backupData.inventory_movements) ? backupData.inventory_movements : [],
       products: Array.isArray(backupData.products) ? backupData.products : [],
@@ -1874,6 +2794,8 @@ export const localDb = {
       expenses: Array.isArray(backupData.expenses) ? backupData.expenses : [],
       financial_transactions: Array.isArray(backupData.financial_transactions) ? backupData.financial_transactions : [],
     };
+    // Auto migrate if backup was from older schema version without stock_items
+    migrateToStockItems(clean);
     setLocalData(clean);
     return { success: true, message: 'Database berhasil dipulihkan dari cadangan.' };
   },

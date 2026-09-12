@@ -1,15 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRightIcon, CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, CubeIcon, PlusIcon, UsersIcon, ShoppingBagIcon, DocumentTextIcon, ArrowTrendingUpIcon, WalletIcon, ArrowUpRightIcon, ClipboardDocumentListIcon, PrinterIcon, ArrowPathIcon, MagnifyingGlassIcon, BuildingStorefrontIcon, ShoppingCartIcon, CalculatorIcon, Square3Stack3DIcon, ReceiptPercentIcon, ChartBarIcon, ArchiveBoxIcon, Cog6ToothIcon, InformationCircleIcon, ArrowDownRightIcon, LockClosedIcon, SparklesIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { useLicense } from '../hooks/useLicense';
-import { BuildingStorefrontIcon as BuildingStorefrontSolid, ClipboardDocumentListIcon as ClipboardDocumentListSolid, UsersIcon as UsersSolid, CubeIcon as CubeSolid, CalculatorIcon as CalculatorSolid, Square3Stack3DIcon as Square3StackSolid, WalletIcon as WalletSolid, ArrowTrendingUpIcon as ArrowTrendingUpSolid, Cog6ToothIcon as CogSolid, CloudArrowUpIcon as CloudArrowUpSolid } from '@heroicons/react/24/solid';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from 'recharts';
+  ChevronRightIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  ClockIcon,
+  CubeIcon,
+  PlusIcon,
+  UsersIcon,
+  ShoppingBagIcon,
+  DocumentTextIcon,
+  ArrowTrendingUpIcon,
+  WalletIcon,
+  ArrowUpRightIcon,
+  ClipboardDocumentListIcon,
+  PrinterIcon,
+  MagnifyingGlassIcon,
+  BuildingStorefrontIcon,
+  ShoppingCartIcon,
+  CalculatorIcon,
+  Square3Stack3DIcon,
+  ReceiptPercentIcon,
+  ChartBarIcon,
+  ArchiveBoxIcon,
+  Cog6ToothIcon,
+  InformationCircleIcon,
+  ArrowDownRightIcon,
+  LockClosedIcon,
+  SparklesIcon,
+  XMarkIcon,
+  QrCodeIcon,
+  CloudArrowUpIcon,
+  ArrowRightIcon,
+  BanknotesIcon,
+} from '@heroicons/react/24/outline';
+import { useLicense } from '../hooks/useLicense';
+import {
+  BuildingStorefrontIcon as BuildingStorefrontSolid,
+  ClipboardDocumentListIcon as ClipboardDocumentListSolid,
+  UsersIcon as UsersSolid,
+  CubeIcon as CubeSolid,
+  CalculatorIcon as CalculatorSolid,
+  Square3Stack3DIcon as Square3StackSolid,
+  WalletIcon as WalletSolid,
+  ArrowTrendingUpIcon as ArrowTrendingUpSolid,
+  CloudArrowUpIcon as CloudArrowUpSolid,
+  SparklesIcon as SparklesSolid,
+} from '@heroicons/react/24/solid';
 import { api } from '../services/api';
 import {
   DashboardStats,
@@ -23,8 +59,6 @@ import { isSupabaseConfigured } from '../services/supabaseClient';
 import {
   formatRupiah,
   formatDate,
-  isDeadlineOverdue,
-  isDeadlineToday,
   getStatusBadgeClass,
 } from '../lib/utils';
 import { useToast } from '../components/Toast';
@@ -64,8 +98,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   const [finTransactions, setFinTransactions] = useState<any[]>([]);
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today');
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
+  const [materials, setMaterials] = useState<any[]>([]);
 
-  const { isPro, isTrial, daysRemaining, isTrialExpired } = useLicense();
+  const { isPro, isTrial, daysRemaining } = useLicense();
 
   const [isProfileBannerDismissed, setIsProfileBannerDismissed] = useState<boolean>(() => {
     try {
@@ -83,9 +118,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     }
   });
 
-  const [productCount, setProductCount] = useState<number>(1); // start at 1 to avoid flash
+  const [productCount, setProductCount] = useState<number>(1);
 
-  const isProfileIncomplete = React.useMemo(() => {
+  const isProfileIncomplete = useMemo(() => {
     const name = settings?.businessName?.trim() || '';
     const isDefaultName = !name || name.toLowerCase() === 'nama bisnis anda' || name.toLowerCase() === 'sukunaru studio';
     const hasContact = Boolean(settings?.phone?.trim() || settings?.whatsapp?.trim());
@@ -94,13 +129,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     return isDefaultName || !hasContact || !hasAddress || !hasLogo;
   }, [settings]);
 
+  // Contextual greeting
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 11) return 'Selamat Pagi';
+    if (hour < 15) return 'Selamat Siang';
+    if (hour < 18) return 'Selamat Sore';
+    return 'Selamat Malam';
+  }, []);
 
   const loadData = async (showRefreshing = false) => {
     try {
       if (showRefreshing) setRefreshing(true);
       else setLoading(true);
 
-      // Trigger Cloud Sync if configured and user manually refreshes
       let isSynced = false;
       if (showRefreshing && isSupabaseConfigured()) {
         try {
@@ -109,31 +151,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
             isSynced = true;
           }
         } catch (syncErr) {
-          console.warn('Background sync on refresh warning:', syncErr);
+          console.warn('Sync failed during refresh:', syncErr);
         }
       }
 
-      const [statsData, ordersData, finData, productsData] = await Promise.all([
+      const [
+        statsData,
+        ordersData,
+        materialsData,
+        finTransData,
+        productsData,
+      ] = await Promise.all([
         api.getStats(),
         api.getOrders(),
-        api.getFinancialTransactions().catch(() => []),
-        api.getProducts().catch(() => []),
+        api.getMaterials(),
+        api.getFinancialTransactions(),
+        api.getProducts(),
       ]);
 
       setStats(statsData);
       setAllOrders(ordersData);
-      setFinTransactions(finData);
-      setProductCount(productsData.length);
+      setMaterials(materialsData);
+      setFinTransactions(finTransData);
+      setProductCount(productsData?.length ?? 1);
+
       if (showRefreshing) {
         showToast(
-          isSynced
-            ? 'Data berhasil diperbarui & disinkronkan!'
-            : 'Data berhasil diperbarui!',
+          isSynced ? 'Data & Cloud berhasil diperbarui' : 'Data berhasil diperbarui',
           'success'
         );
       }
     } catch (err: any) {
-      showToast(err.message || 'Gagal memuat data dashboard', 'error');
+      showToast(err.message || 'Gagal memuat data', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -143,37 +192,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   useEffect(() => {
     loadData();
 
-    // Auto-sync from cloud on initial app open (background, no toast)
     if (isSupabaseConfigured()) {
       syncWithSupabase()
         .then((res) => {
           if (res.success) {
-            // Re-read local data after cloud sync completes
             loadData(false);
           }
         })
-        .catch(() => {
-          // Offline or sync error — silently ignore on startup
-        });
+        .catch(() => {});
     }
 
-    const handleFocus = () => {
-      loadData(false);
-    };
-
-    // Live Auto-Refresh when local data changes or Supabase Cloud sync finishes
-    const handleLiveAutoRefresh = () => {
-      loadData(false);
-    };
-
-    // Manual Refresh shortcut (e.g. double tap/click on Beranda nav button)
+    const handleFocus = () => loadData(false);
+    const handleLiveAutoRefresh = () => loadData(false);
     const handleManualShortcutRefresh = () => {
       const scrollEl = document.getElementById('main-content-scrollable');
-      if (scrollEl) {
-        scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+      if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
       loadData(true);
     };
 
@@ -190,42 +224,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     };
   }, []);
 
-  // ─── 7-Day Sales & Expense Traffic Chart Data ─────────────────────────────
-  const trafficChartData = React.useMemo(() => {
-    const days: { [key: string]: { date: string; label: string; income: number; expense: number } } = {};
-    const now = new Date();
-    
-    // Last 7 days
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const dayLabel = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric' });
-      days[dateStr] = {
-        date: dateStr,
-        label: dayLabel,
-        income: 0,
-        expense: 0,
-      };
-    }
-
-    // Populate from financial transactions
-    finTransactions.forEach(t => {
-      const dateStr = t.date ? t.date.split('T')[0] : '';
-      if (days[dateStr]) {
-        if (t.type === 'INCOME') {
-          days[dateStr].income += Number(t.amount) || 0;
-        } else if (t.type === 'EXPENSE') {
-          days[dateStr].expense += Number(t.amount) || 0;
-        }
-      }
-    });
-
-    return Object.values(days);
-  }, [finTransactions]);
-
   // ─── Total Net Cash Balance (Saldo Kas Bisnis Kumulatif) ───────────────────
-  const liveTotalCashBalance = React.useMemo(() => {
+  const liveTotalCashBalance = useMemo(() => {
     if (finTransactions && finTransactions.length > 0) {
       const totalIn = finTransactions
         .filter(f => f.type === 'INCOME')
@@ -240,7 +240,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
   }, [finTransactions, stats.totalCashBalance, stats.todayRevenue, stats.todayExpense]);
 
   // ─── Dynamic Period-Aware KPIs (Omzet, Pengeluaran, Profit) ───────────────
-  const { kpiRevenue, kpiExpense, kpiProfit, periodNet } = React.useMemo(() => {
+  const { kpiRevenue, kpiExpense, kpiProfit } = useMemo(() => {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
     const thisMonthPrefix = todayStr.substring(0, 7);
@@ -277,99 +277,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     }
 
     const profit = Math.max(0, income - expense);
-    const periodNet = income - expense;
 
-    return { kpiRevenue: income, kpiExpense: expense, kpiProfit: profit, periodNet };
+    return { kpiRevenue: income, kpiExpense: expense, kpiProfit: profit };
   }, [finTransactions, period, stats]);
 
-  const kpiTrx = React.useMemo(() => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const thisMonthPrefix = todayStr.substring(0, 7);
-    const sevenDaysAgo = new Date(now);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    if (finTransactions && finTransactions.length > 0) {
-      if (period === 'today') {
-        return finTransactions.filter(f => (f.date ? f.date.split('T')[0] : '') === todayStr).length;
-      } else if (period === 'month') {
-        return finTransactions.filter(f => (f.date ? f.date.split('T')[0] : '').startsWith(thisMonthPrefix)).length;
-      } else {
-        return finTransactions.filter(f => {
-          if (!f.date) return false;
-          return new Date(f.date) >= sevenDaysAgo;
-        }).length;
-      }
-    }
-    return period === 'today' ? (stats.todayTransactionsCount || 0) : (stats.todayTransactionsCount || 0) * 4;
-  }, [finTransactions, period, stats.todayTransactionsCount]);
-
-  // ─── Derived: Order pipeline counts ───────────────────────────────────────
+  // ─── Order pipeline counts ───────────────────────────────────────
   const activeOrders = allOrders.filter(o => o.status !== 'SELESAI' && o.status !== 'BATAL');
-  const newOrders     = allOrders.filter(o => o.status === 'BARU');
+  const newOrders = allOrders.filter(o => o.status === 'BARU');
   const inProgressOrders = allOrders.filter(o => o.status === 'DIPROSES');
-  const readyOrders   = allOrders.filter(o => o.status === 'SIAP DIAMBIL');
-  const doneOrders    = allOrders.filter(o => o.status === 'SELESAI');
-  const unpaidOrders  = allOrders.filter(o => o.remainingAmount > 0 && o.status !== 'BATAL');
+  const readyOrders = allOrders.filter(o => o.status === 'SIAP DIAMBIL');
+  const unpaidOrders = allOrders.filter(o => o.remainingAmount > 0 && o.status !== 'BATAL');
 
-  // Orders currently being worked on (BARU + DIPROSES + SIAP) limited for dashboard
-  const workingOrders = activeOrders.slice(0, 3);
-
-  // ─── "Perlu Dikerjakan" todo items ────────────────────────────────────────
+  // ─── Todo Items (Perlu Dikerjakan) ──────────────────────────────
   const todoItems = [
     newOrders.length > 0 && {
       key: 'baru',
       count: newOrders.length,
       label: 'Pesanan Masuk',
-      desc: 'Menunggu diproses',
-      color: 'bg-slate-400',
-      dotColor: 'bg-[#FF9B51]',
-      textColor: 'text-[#25343F]',
-      bgSoft: 'bg-[#EAEFEF] border-[#BFC9D1]/60',
+      desc: 'Perlu konfirmasi & proses',
+      dotColor: 'bg-[#FF6A00]',
+      badgeBg: 'bg-[#FF9B51]/15 text-[#FF6A00] dark:text-[#FF9B51]',
       onClick: () => goTo('orders', 'filter:BARU:table'),
     },
     inProgressOrders.length > 0 && {
       key: 'diproses',
       count: inProgressOrders.length,
       label: 'Sedang Diproses',
-      desc: 'Sedang dikerjakan',
-      color: 'bg-slate-400',
+      desc: 'Tahap produksi & pengerjaan',
       dotColor: 'bg-[#0890FE]',
-      textColor: 'text-[#25343F]',
-      bgSoft: 'bg-[#EAEFEF] border-[#BFC9D1]/60',
+      badgeBg: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
       onClick: () => goTo('orders', 'filter:DIPROSES:table'),
     },
     readyOrders.length > 0 && {
       key: 'siap',
       count: readyOrders.length,
-      label: 'Siap Diambil / Dikirim',
-      desc: 'Sudah selesai diproduksi',
-      color: 'bg-slate-400',
-      dotColor: 'bg-[#52D5BA]',
-      textColor: 'text-[#25343F]',
-      bgSoft: 'bg-[#EAEFEF] border-[#BFC9D1]/60',
+      label: 'Siap Diambil / Kirim',
+      desc: 'Produksi selesai, siap serah terima',
+      dotColor: 'bg-[#10B981]',
+      badgeBg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
       onClick: () => goTo('orders', 'filter:SIAP DIAMBIL:table'),
     },
     unpaidOrders.length > 0 && {
       key: 'unpaid',
       count: unpaidOrders.length,
-      label: 'Belum Lunas',
-      desc: 'Menunggu pembayaran',
-      color: 'bg-slate-400',
-      dotColor: 'bg-[#FFAF2A]',
-      textColor: 'text-[#25343F]',
-      bgSoft: 'bg-[#EAEFEF] border-[#BFC9D1]/60',
+      label: 'Tagihan Belum Lunas',
+      desc: 'Piutang menunggu pelunasan',
+      dotColor: 'bg-[#F59E0B]',
+      badgeBg: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
       onClick: () => goTo('orders', 'filter:SEMUA:table'),
     },
     stats.lowStockItemsCount > 0 && {
       key: 'lowstock',
       count: stats.lowStockItemsCount,
-      label: 'Bahan Hampir Habis',
-      desc: 'Perlu segera diperiksa',
-      color: 'bg-slate-400',
+      label: 'Stok Menipis',
+      desc: 'Bahan/barang di bawah batas aman',
       dotColor: 'bg-[#FF4267]',
-      textColor: 'text-[#25343F]',
-      bgSoft: 'bg-[#EAEFEF] border-[#BFC9D1]/60',
+      badgeBg: 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
       onClick: () => goTo('inventory'),
     },
   ].filter(Boolean) as {
@@ -377,14 +340,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     count: number;
     label: string;
     desc: string;
-    color: string;
     dotColor: string;
-    textColor: string;
-    bgSoft: string;
+    badgeBg: string;
     onClick: () => void;
   }[];
 
-  // ─── Today's date label ────────────────────────────────────────────────────
   const today = new Date();
   const dateLabel = today.toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -397,8 +357,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3 text-[#898989]">
-          <div className="w-8 h-8 border-2 border-[#BFC9D1] border-t-slate-600 rounded-full animate-spin" />
-          <span className="text-sm font-medium">Memuat dashboard...</span>
+          <div className="w-9 h-9 border-2.5 border-[#BFC9D1]/40 border-t-[#FF6A00] rounded-full animate-spin" />
+          <span className="text-xs font-bold tracking-tight">Memuat dashboard...</span>
         </div>
       </div>
     );
@@ -409,7 +369,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
       {/* ── FLOATING PROFILE PROMPT ── */}
       {!isProfileBannerDismissed && isProfileIncomplete && (
         <div
-          className="fixed left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-md bg-white/85 dark:bg-[#151D2A]/85 backdrop-blur-md border border-[#BFC9D1]/40 dark:border-slate-800 shadow-xl shadow-black/10 p-2 sm:p-2.5 rounded-full flex items-center justify-between gap-3 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto"
+          className="fixed left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-md apple-glass-toast p-2 sm:p-2.5 rounded-full flex items-center justify-between gap-3 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto"
           style={{ bottom: 'calc(78px + env(safe-area-inset-bottom, 8px))' }}
         >
           <div className="flex items-center gap-2.5 min-w-0 pl-1">
@@ -448,10 +408,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
         </div>
       )}
 
-      {/* ── FLOATING PRODUCT PROMPT (stacked above profile banner if both visible) ── */}
+      {/* ── FLOATING PRODUCT PROMPT ── */}
       {!isProductBannerDismissed && productCount === 0 && (
         <div
-          className="fixed left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-md bg-white/85 dark:bg-[#151D2A]/85 backdrop-blur-md border border-[#BFC9D1]/40 dark:border-slate-800 shadow-xl shadow-black/10 p-2 sm:p-2.5 rounded-full flex items-center justify-between gap-3 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto"
+          className="fixed left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-md apple-glass-toast p-2 sm:p-2.5 rounded-full flex items-center justify-between gap-3 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto"
           style={{
             bottom: (!isProfileBannerDismissed && isProfileIncomplete)
               ? 'calc(78px + env(safe-area-inset-bottom, 8px) + 52px)'
@@ -495,405 +455,457 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
       )}
 
       <PullToRefresh onRefresh={() => loadData(true)} isRefreshing={refreshing}>
-        <div id="dashboard-view" className="space-y-3.5 max-w-2xl lg:max-w-7xl mx-auto pb-8">
+        <div id="dashboard-view" className="space-y-4 max-w-2xl lg:max-w-7xl mx-auto pb-12 px-0.5">
 
-      {isPro && isTrial && daysRemaining !== null && daysRemaining <= 5 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-900 px-4 py-2.5 rounded-xl flex items-center justify-between gap-3 text-xs">
-          <span className="font-medium">
-            ⏳ Masa Trial Anda tersisa <strong>{daysRemaining} hari</strong> lagi.
-          </span>
-          <button
-            type="button"
-            onClick={() => goTo('activation')}
-            className="font-bold text-amber-700 hover:text-amber-900 underline cursor-pointer shrink-0"
-          >
-            Upgrade Pro
-          </button>
-        </div>
-      )}
-
-      {/* ── TOP BAR HEADER: Beranda & Quick Tools ─────────────────────── */}
-      <div className="flex items-center justify-between gap-3 py-1 sm:py-2">
-        <div className="min-w-0">
-          <h1
-            id="dashboard-header-title"
-            className="dashboard-title-text text-2xl sm:text-3xl font-black tracking-tight leading-tight pb-0.5 truncate text-[#25343F]"
-          >
-            BisnisUrang
-          </h1>
-          <p className="text-xs sm:text-[13px] font-semibold text-[#898989] tracking-tight mt-0.5 truncate">
-            {dateLabel}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Quick Search trigger (Mobile only - Desktop/Tablet already has it in TopBar) */}
-          <button
-            type="button"
-            onClick={onOpenSearch}
-            className="flex md:hidden items-center gap-2 px-3 py-1.5 sm:py-2 rounded-xl bg-white border border-[#BFC9D1]/30 hover:border-[#FF9B51] text-xs text-[#898989] hover:text-[#25343F] shadow-sm transition-all cursor-pointer group active:scale-95"
-            title="Cari transaksi, produk, pelanggan... (⌘K)"
-          >
-            <MagnifyingGlassIcon className="w-4 h-4 text-[#898989] group-hover:text-[#FF9B51] transition-colors" />
-            <span className="hidden sm:inline font-medium">Cari cepat...</span>
-            <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-[#EAEFEF] border border-[#BFC9D1]/40 rounded text-[#898989]">
-              ⌘K
-            </kbd>
-          </button>
-        </div>
-      </div>
-
-      {/* ── SALDO KAS UTAMA (Premium Fintech Animated Card) ───────────────────────── */}
-      <div 
-        onClick={() => goTo('finance')}
-        className="premium-fintech-card p-4 sm:p-5 text-white flex flex-col cursor-pointer select-none group"
-      >
-        {/* Layer 3: Dot Grid */}
-        <div className="fintech-dot-grid" />
-
-        {/* Layer 4: Wave/Mesh Decoration */}
-        <div className="absolute right-0 bottom-0 w-64 h-36 opacity-15 pointer-events-none z-10 mix-blend-overlay">
-          <svg className="w-full h-full" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 80 C 50 50, 100 110, 200 60" stroke="white" strokeWidth="2" strokeLinecap="round" />
-            <path d="M10 85 C 60 55, 110 115, 200 65" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M20 90 C 70 60, 120 120, 200 70" stroke="white" strokeWidth="1" strokeLinecap="round" />
-            <path d="M-10 75 C 40 45, 90 105, 200 55" stroke="white" strokeWidth="0.8" strokeLinecap="round" />
-            <path d="M-20 70 C 30 40, 80 100, 200 50" stroke="white" strokeWidth="0.5" strokeLinecap="round" strokeDasharray="3 3" />
-          </svg>
-        </div>
-
-        {/* Layer 5: Glow/Light Sweep Effect */}
-        <div className="fintech-light-sweep" />
-
-        {/* Layer 6: Content */}
-        <div className="relative z-10 flex flex-col h-full justify-between">
-          {/* Card Header (SKNR Logo + Period Pill) */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 min-w-0 pr-2">
-              {settings.logoUrl ? (
-                <img
-                  src={settings.logoUrl}
-                  alt={settings.businessName || 'Logo'}
-                  className="w-7 h-7 rounded-lg object-cover bg-white shadow-md border border-white/20 shrink-0"
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-lg bg-white text-[#0B90FE] flex items-center justify-center font-black text-[11px] shadow-md shrink-0 uppercase">
-                  {settings.businessName ? settings.businessName.slice(0, 2) : 'SK'}
-                </div>
-              )}
-              <span className="font-extrabold text-sm tracking-wider truncate text-white">
-                {settings.businessName || 'Sukunaru Studio'}
+          {isPro && isTrial && daysRemaining !== null && daysRemaining <= 5 && (
+            <div className="bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 px-4 py-2.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-2xs">
+              <span className="font-semibold">
+                ⏳ Masa Trial Anda tersisa <strong>{daysRemaining} hari</strong> lagi.
               </span>
-            </div>
-            
-            <div className="relative">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsPeriodDropdownOpen(!isPeriodDropdownOpen);
-                }}
-                className="bg-white/15 backdrop-blur-xs border border-white/20 text-white rounded-full px-2.5 py-0.5 text-[10px] font-bold flex items-center gap-1.5 hover:bg-white/20 transition-all cursor-pointer active:scale-95"
+                onClick={() => goTo('activation')}
+                className="font-extrabold text-[#FF6A00] dark:text-amber-300 hover:underline cursor-pointer shrink-0"
               >
-                <span>{period === 'today' ? 'Hari Ini' : period === 'week' ? 'Minggu Ini' : 'Bulan Ini'}</span>
-                <ChevronRightIcon className="w-3 h-3 rotate-90" />
+                Upgrade Pro →
               </button>
+            </div>
+          )}
 
-              {isPeriodDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-30" 
+          {/* ── TOP HEADER (BisnisUrang Brand & Clean Date Layout) ── */}
+          <div className="flex items-center justify-between gap-3 pt-1 pb-1">
+            <div className="min-w-0">
+              <h1
+                id="dashboard-header-title"
+                className="dashboard-title-text text-2xl sm:text-3xl font-black tracking-tight leading-tight truncate text-[#25343F] dark:text-white"
+              >
+                BisnisUrang
+              </h1>
+              <p className="text-xs sm:text-[13px] font-medium text-[#898989] dark:text-slate-400 tracking-tight mt-0.5 truncate">
+                {dateLabel}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Quick Search trigger (Mobile) */}
+              <button
+                type="button"
+                onClick={onOpenSearch}
+                className="flex md:hidden items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-black/[0.06] dark:border-white/[0.08] text-xs text-[#898989] hover:text-[#25343F] shadow-xs transition-all cursor-pointer active:scale-95"
+                title="Cari transaksi, produk, pelanggan..."
+              >
+                <MagnifyingGlassIcon className="w-4 h-4 text-zinc-500" />
+                <span className="font-semibold text-[11px]">Cari</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ── SALDO KAS UTAMA (Apple Wallet / FinTech Card) ── */}
+          <div className="premium-fintech-card p-4.5 sm:p-6 text-white flex flex-col select-none relative overflow-hidden rounded-3xl">
+            {/* Dot Grid Layer */}
+            <div className="fintech-dot-grid" />
+
+            {/* Wave Mesh Decoration */}
+            <div className="absolute right-0 bottom-0 w-64 h-36 opacity-15 pointer-events-none z-10 mix-blend-overlay">
+              <svg className="w-full h-full" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 80 C 50 50, 100 110, 200 60" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                <path d="M10 85 C 60 55, 110 115, 200 65" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M20 90 C 70 60, 120 120, 200 70" stroke="white" strokeWidth="1" strokeLinecap="round" />
+              </svg>
+            </div>
+
+            {/* Light sweep effect */}
+            <div className="fintech-light-sweep" />
+
+            {/* Content */}
+            <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+              {/* Card Header: Brand + Period Switcher */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  {settings.logoUrl ? (
+                    <img
+                      src={settings.logoUrl}
+                      alt={settings.businessName || 'Logo'}
+                      className="w-8 h-8 rounded-xl object-cover bg-white shadow-md border border-white/30 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-xl bg-white/90 text-[#FF6A00] flex items-center justify-center font-black text-xs shadow-md shrink-0 uppercase">
+                      {settings.businessName ? settings.businessName.slice(0, 2) : 'SK'}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <span className="font-extrabold text-sm tracking-tight truncate block text-white">
+                      {settings.businessName || 'Sukunaru Studio'}
+                    </span>
+                    <span className="text-[10px] text-white/75 font-semibold uppercase tracking-wider block">
+                      Kas Bisnis
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Period Switcher Pill */}
+                <div className="relative">
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsPeriodDropdownOpen(false);
-                    }} 
-                  />
-                  <div className="absolute right-0 top-full mt-1.5 w-28 bg-[#25343F] border border-white/10 rounded-xl shadow-lg p-1.5 z-40 text-[10px] font-bold text-white flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPeriod('today');
-                        setIsPeriodDropdownOpen(false);
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg text-left transition-colors hover:bg-white/10 ${period === 'today' ? 'bg-[#0B90FE] text-white' : 'text-white/80'}`}
-                    >
-                      Hari Ini
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPeriod('week');
-                        setIsPeriodDropdownOpen(false);
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg text-left transition-colors hover:bg-white/10 ${period === 'week' ? 'bg-[#0B90FE] text-white' : 'text-white/80'}`}
-                    >
-                      Minggu Ini
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPeriod('month');
-                        setIsPeriodDropdownOpen(false);
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg text-left transition-colors hover:bg-white/10 ${period === 'month' ? 'bg-[#0B90FE] text-white' : 'text-white/80'}`}
-                    >
-                      Bulan Ini
-                    </button>
+                      setIsPeriodDropdownOpen(!isPeriodDropdownOpen);
+                    }}
+                    className="bg-white/20 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white rounded-full px-3 py-1 text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                  >
+                    <span>{period === 'today' ? 'Hari Ini' : period === 'week' ? '7 Hari' : 'Bulan Ini'}</span>
+                    <ChevronRightIcon className="w-3 h-3 rotate-90 stroke-[2.5]" />
+                  </button>
+
+                  {isPeriodDropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-30" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsPeriodDropdownOpen(false);
+                        }} 
+                      />
+                      <div className="absolute right-0 top-full mt-2 w-32 bg-[#1E293B]/95 backdrop-blur-xl border border-white/15 rounded-2xl shadow-2xl p-1.5 z-40 text-xs font-bold text-white flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-150">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPeriod('today');
+                            setIsPeriodDropdownOpen(false);
+                          }}
+                          className={`px-3 py-2 rounded-xl text-left transition-colors hover:bg-white/10 ${period === 'today' ? 'bg-[#FF6A00] text-white font-extrabold' : 'text-white/80'}`}
+                        >
+                          Hari Ini
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPeriod('week');
+                            setIsPeriodDropdownOpen(false);
+                          }}
+                          className={`px-3 py-2 rounded-xl text-left transition-colors hover:bg-white/10 ${period === 'week' ? 'bg-[#FF6A00] text-white font-extrabold' : 'text-white/80'}`}
+                        >
+                          7 Hari Terakhir
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPeriod('month');
+                            setIsPeriodDropdownOpen(false);
+                          }}
+                          className={`px-3 py-2 rounded-xl text-left transition-colors hover:bg-white/10 ${period === 'month' ? 'bg-[#FF6A00] text-white font-extrabold' : 'text-white/80'}`}
+                        >
+                          Bulan Ini
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Main Balance */}
+              <div className="py-1">
+                <div className="text-[10.5px] font-bold text-white/80 uppercase tracking-wider">
+                  Saldo Kas
+                </div>
+                <div className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight mt-1 tabular-nums leading-none">
+                  {formatRupiah(liveTotalCashBalance)}
+                </div>
+              </div>
+
+              {/* Frosted KPI Subgrid */}
+              <div className="bg-white/15 backdrop-blur-md border border-white/25 rounded-2xl p-3 grid grid-cols-3 divide-x divide-white/20 shadow-xs">
+                <div className="px-2">
+                  <div className="text-[10px] font-bold text-white/85 uppercase tracking-wider truncate">
+                    Omzet
                   </div>
-                </>
-              )}
+                  <div className="text-xs sm:text-sm font-black text-white font-mono mt-0.5 tabular-nums truncate">
+                    {formatRupiah(kpiRevenue)}
+                  </div>
+                </div>
+                <div className="px-2 pl-3">
+                  <div className="text-[10px] font-bold text-white/85 uppercase tracking-wider truncate">
+                    Profit
+                  </div>
+                  <div className="text-xs sm:text-sm font-black text-emerald-100 font-mono mt-0.5 tabular-nums truncate">
+                    {formatRupiah(kpiProfit)}
+                  </div>
+                </div>
+                <div className="px-2 pl-3">
+                  <div className="text-[10px] font-bold text-white/85 uppercase tracking-wider truncate">
+                    Pengeluaran
+                  </div>
+                  <div className="text-xs sm:text-sm font-black text-rose-100 font-mono mt-0.5 tabular-nums truncate">
+                    {formatRupiah(kpiExpense)}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Card Middle (Saldo Kas) */}
-          <div className="flex items-center justify-between mb-4.5">
-            <div>
-              <div className="text-[10px] sm:text-[11px] font-bold text-white/80 uppercase tracking-[0.15em] leading-none">
-                Saldo Kas Bisnis
-              </div>
-              <div className="text-[28px] sm:text-3xl font-black text-white font-mono tracking-tight mt-2.5 leading-none">
-                {formatRupiah(liveTotalCashBalance)}
-              </div>
+          {/* ── PUSAT AKSI CEPAT / SHORTCUT MENU (Apple Control Center & Bento Style) ── */}
+          <div className="space-y-2.5">
 
-              {(() => {
-                const isPositive = periodNet >= 0;
-                const periodLabel = period === 'today' ? 'hari ini' : period === 'week' ? '7 hari terakhir' : 'bulan ini';
-                return (
-                  <div className="inline-flex items-center gap-1 mt-3.5 px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-bold text-white border border-white/10">
-                    <span className={isPositive ? 'text-green-300' : 'text-rose-300'}>
-                      {isPositive ? '↑' : '↓'} {periodNet !== 0 ? formatRupiah(Math.abs(periodNet)) : 'Rp0'}
+            {/* Bento Grid: 4 Primary Hero Actions */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              {/* 1. Kasir POS */}
+              <button
+                type="button"
+                onClick={() => goTo('pos')}
+                className="apple-card p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent hover:from-emerald-500/15 hover:via-emerald-500/10 border border-emerald-500/25 dark:border-emerald-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[92px]"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
+                  <BuildingStorefrontSolid className="w-5 h-5" />
+                </div>
+                <div className="mt-2.5">
+                  <h3 className="text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
+                    Kasir POS
+                  </h3>
+                </div>
+              </button>
+
+              {/* 2. Pesanan */}
+              <button
+                type="button"
+                onClick={() => goTo('orders', 'filter:SEMUA:table')}
+                className="apple-card p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-[#FF6A00]/10 via-[#FF6A00]/5 to-transparent hover:from-[#FF6A00]/15 hover:via-[#FF6A00]/10 border border-[#FF6A00]/25 dark:border-[#FF6A00]/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[92px]"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-2xl bg-[#FF6A00] text-white flex items-center justify-center shadow-md shadow-[#FF6A00]/25 group-hover:scale-105 transition-transform">
+                    <ClipboardDocumentListSolid className="w-5 h-5" />
+                  </div>
+                  {activeOrders.length > 0 && (
+                    <span className="text-[10px] font-extrabold text-[#FF6A00] dark:text-[#FF9B51] bg-[#FF9B51]/20 px-2 py-0.5 rounded-full animate-pulse">
+                      {activeOrders.length} Aktif
                     </span>
-                    <span className="text-white/80">{periodLabel}</span>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-
-          {/* Card Bottom Translucent Stats Grid */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-xl p-2.5 grid grid-cols-3 divide-x divide-white/20 mt-1 relative z-10">
-            <div className="px-2">
-              <div className="text-[9px] font-bold text-white/70 uppercase tracking-wider truncate">
-                Omzet
-              </div>
-              <div className="text-xs sm:text-sm font-black text-white font-mono mt-0.5 truncate">
-                {formatRupiah(kpiRevenue)}
-              </div>
-            </div>
-            <div className="px-2 pl-3">
-              <div className="text-[9px] font-bold text-white/70 uppercase tracking-wider truncate">
-                Profit
-              </div>
-              <div className="text-xs sm:text-sm font-black text-white font-mono mt-0.5 truncate">
-                {formatRupiah(kpiProfit)}
-              </div>
-            </div>
-            <div className="px-2 pl-3">
-              <div className="text-[9px] font-bold text-white/70 uppercase tracking-wider truncate">
-                Pengeluaran
-              </div>
-              <div className="text-xs sm:text-sm font-black text-white font-mono mt-0.5 truncate">
-                {formatRupiah(kpiExpense)}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── AKSI CEPAT (9 Fitur dalam Grid 4 Kolom) ───────────── */}
-      <div className="bg-white rounded-xl border border-[#BFC9D1]/25 py-4 px-2 sm:p-5">
-        <div className="grid grid-cols-4 gap-y-5 gap-x-2 sm:gap-6">
-          {[
-            // Operasional Utama
-            {
-              icon: <BuildingStorefrontSolid className="w-5 h-5 text-[#10B981]" />,
-              label: 'Kasir',
-              bgClass: 'bg-[#E6F9F2] hover:bg-[#D1F4E8] shadow-[0_2px_8px_rgba(16,185,129,0.22)]',
-              onClick: () => goTo('pos'),
-            },
-            {
-              icon: <ClipboardDocumentListSolid className="w-5 h-5 text-[#FF9B51]" />,
-              label: 'Pesanan',
-              bgClass: 'bg-[#FFF0E6] hover:bg-[#FFE2CC] shadow-[0_2px_8px_rgba(255,155,81,0.22)]',
-              onClick: () => goTo('orders', 'filter:SEMUA:table'),
-            },
-            {
-              icon: <UsersSolid className="w-5 h-5 text-[#8B5CF6]" />,
-              label: 'Pelanggan',
-              bgClass: 'bg-[#F3E8FF] hover:bg-[#E9D5FF] shadow-[0_2px_8px_rgba(139,92,246,0.22)]',
-              onClick: () => goTo('customers'),
-            },
-            {
-              icon: <CubeSolid className="w-5 h-5 text-[#0B90FE]" />,
-              label: 'Produk',
-              bgClass: 'bg-[#E0F2FE] hover:bg-[#BAE6FD] shadow-[0_2px_8px_rgba(11,144,254,0.22)]',
-              onClick: () => goTo('products'),
-            },
-            {
-              icon: <CalculatorSolid className="w-5 h-5 text-[#F59E0B]" />,
-              label: 'Hitung HPP',
-              bgClass: 'bg-[#FEF3C7] hover:bg-[#FDE68A] shadow-[0_2px_8px_rgba(245,158,11,0.22)]',
-              onClick: () => goTo('hpp'),
-            },
-
-            // Logistik, Keuangan, Laporan & Pengaturan
-            {
-              icon: <Square3StackSolid className="w-5 h-5 text-[#6366F1]" />,
-              label: 'Bahan Baku',
-              bgClass: 'bg-[#EEF2FF] hover:bg-[#E0E7FF] shadow-[0_2px_8px_rgba(99,102,241,0.22)]',
-              onClick: () => goTo('inventory'),
-            },
-            {
-              icon: <WalletSolid className="w-5 h-5 text-[#0D9488]" />,
-              label: 'Arus Kas',
-              bgClass: 'bg-[#CCFBF1] hover:bg-[#99F6E4] shadow-[0_2px_8px_rgba(13,148,136,0.22)]',
-              onClick: () => goTo('finance'),
-            },
-            {
-              icon: <ArrowTrendingUpSolid className="w-5 h-5 text-[#F43F5E]" />,
-              label: 'Laporan',
-              bgClass: 'bg-[#FFE4E6] hover:bg-[#FECDD3] shadow-[0_2px_8px_rgba(244,63,94,0.22)]',
-              onClick: () => goTo('sales-report'),
-            },
-            {
-              icon: <CloudArrowUpSolid className="w-5 h-5 text-[#3B82F6]" />,
-              label: 'Cadangkan Data',
-              bgClass: 'bg-[#EFF6FF] hover:bg-[#DBEAFE] shadow-[0_2px_8px_rgba(59,130,246,0.22)]',
-              onClick: () => goTo('backup'),
-            },
-          ].map(action => (
-            <button
-              key={action.label}
-              onClick={action.onClick}
-              className="flex flex-col items-center justify-start gap-2 hover:opacity-75 active:scale-95 transition-all cursor-pointer group relative"
-            >
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all shrink-0 relative ring-1 ring-white ${action.bgClass}`}>
-                {action.icon}
-              </div>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-[#25343F] text-center leading-tight max-w-[70px]">
-                {action.label}
-              </span>
-            </button>
-          ))}
-        </div>
-
-      </div>
-
-      {/* ── PERLU DIKERJAKAN ────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-[#BFC9D1]/25 shadow-md overflow-hidden">
-        <div className="px-3.5 py-2.5 border-b border-[#BFC9D1]/40 flex items-center justify-between">
-          <div>
-            <h2 className="text-[11px] font-black text-[#25343F] uppercase tracking-wider">
-              Perlu Dikerjakan
-            </h2>
-            <p className="text-[10px] text-[#898989] font-medium">
-              {todoItems.length > 0
-                ? `${todoItems.length} hal yang perlu diperhatikan`
-                : 'Semua aman — tidak ada tindakan'}
-            </p>
-          </div>
-          {todoItems.length > 0 && (
-            <span className="min-w-[18px] h-4.5 px-1.5 rounded-full bg-[#25343F] text-white text-[9px] font-black flex items-center justify-center">
-              {todoItems.length}
-            </span>
-          )}
-        </div>
-
-        {todoItems.length === 0 ? (
-          <div className="flex items-center gap-2.5 px-3.5 py-3 text-[#25343F]">
-            <CheckCircleIcon className="w-4 h-4 text-[#25343F] shrink-0" />
-            <div className="text-[11px] font-medium">
-              Semua aman ✓ Tidak ada pekerjaan tertunda.
-            </div>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {todoItems.map(item => (
-              <button
-                key={item.key}
-                onClick={item.onClick}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#EAEFEF]/50 active:bg-[#EAEFEF] transition-colors cursor-pointer text-left group"
-              >
-                <div className={`w-7 h-7 rounded-lg ${item.bgSoft} border flex items-center justify-center shrink-0 relative`}>
-                  <span className={`text-[11px] font-black ${item.textColor}`}>{item.count}</span>
-                  <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${item.dotColor}`} />
+                  )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-[#25343F] leading-snug">{item.label}</div>
-                  <div className="text-[10px] text-[#898989]">{item.desc}</div>
+                <div className="mt-2.5">
+                  <h3 className="text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
+                    Pesanan & SPK
+                  </h3>
                 </div>
-                <ChevronRightIcon className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#898989] transition-colors shrink-0" />
               </button>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* ── BAHAN BAKU ─────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-[#BFC9D1]/25 shadow-md overflow-hidden">
-        <div className="px-3.5 py-2.5 border-b border-[#BFC9D1]/40 flex items-center justify-between">
-          <div>
-            <h2 className="text-[11px] font-black text-[#25343F] uppercase tracking-wider flex items-center gap-1.5">
-              Bahan Baku
-              {stats.lowStockItemsCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-[#FF9B51]/15 text-[#c45e00] text-[9px] font-black">
-                  {stats.lowStockItemsCount} menipis
-                </span>
+              {/* 3. Stok Barang */}
+              <button
+                type="button"
+                onClick={() => goTo('inventory')}
+                className="apple-card p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent hover:from-indigo-500/15 hover:via-indigo-500/10 border border-indigo-500/25 dark:border-indigo-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[92px]"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+                    <Square3StackSolid className="w-5 h-5" />
+                  </div>
+                  {stats.lowStockItemsCount > 0 && (
+                    <span className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded-full">
+                      {stats.lowStockItemsCount} Menipis
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2.5">
+                  <h3 className="text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
+                    Stok Barang
+                  </h3>
+                </div>
+              </button>
+
+              {/* 4. Arus Kas & Biaya */}
+              <button
+                type="button"
+                onClick={() => goTo('finance')}
+                className="apple-card p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-teal-500/10 via-teal-500/5 to-transparent hover:from-teal-500/15 hover:via-teal-500/10 border border-teal-500/25 dark:border-teal-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[92px]"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 group-hover:scale-105 transition-transform">
+                  <WalletSolid className="w-5 h-5" />
+                </div>
+                <div className="mt-2.5">
+                  <h3 className="text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
+                    Buku Kas
+                  </h3>
+                </div>
+              </button>
+            </div>
+
+            {/* Secondary Tools Grid (Apple Control Center 5-tile pill buttons) */}
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5 pt-1">
+              {[
+                {
+                  label: 'Hitung HPP',
+                  icon: <CalculatorSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-500" />,
+                  bg: 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20',
+                  onClick: () => goTo('hpp'),
+                },
+                {
+                  label: 'Pelanggan',
+                  icon: <UsersSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-purple-500" />,
+                  bg: 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20',
+                  onClick: () => goTo('customers'),
+                },
+                {
+                  label: 'Katalog',
+                  icon: <CubeSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-sky-500" />,
+                  bg: 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20',
+                  onClick: () => goTo('products'),
+                },
+                {
+                  label: 'Laporan',
+                  icon: <ArrowTrendingUpSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-500" />,
+                  bg: 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20',
+                  onClick: () => goTo('sales-report'),
+                },
+                {
+                  label: 'Cloud Sync',
+                  icon: <CloudArrowUpSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-500" />,
+                  bg: 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20',
+                  onClick: () => goTo('backup'),
+                },
+              ].map(tool => (
+                <button
+                  key={tool.label}
+                  type="button"
+                  onClick={tool.onClick}
+                  className={`apple-press px-1 py-2 sm:p-2.5 rounded-2xl border ${tool.bg} flex flex-col items-center justify-center gap-1 sm:gap-1.5 text-center cursor-pointer transition-all shadow-2xs`}
+                >
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center shrink-0">
+                    {tool.icon}
+                  </div>
+                  <span className="text-[9px] sm:text-[10.5px] font-bold text-[#25343F] dark:text-white leading-tight tracking-tight text-center w-full line-clamp-1">
+                    {tool.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── PERLU TINDAKAN (Apple Reminders Style) ── */}
+          <div className="bg-white dark:bg-[#151D28] rounded-3xl border border-black/[0.06] dark:border-white/[0.08] p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-xs font-extrabold text-[#25343F] dark:text-white uppercase tracking-wider">
+                    Perlu Tindakan
+                  </h3>
+                  <p className="text-[10.5px] text-[#898989] font-medium">
+                    {todoItems.length > 0 ? `${todoItems.length} antrean tugas menunggu` : 'Semua beres & teratur'}
+                  </p>
+                </div>
+                {todoItems.length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-[#FF6A00] text-white text-[10px] font-black flex items-center justify-center shadow-xs">
+                    {todoItems.length}
+                  </span>
+                )}
+              </div>
+
+              {todoItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center text-zinc-400">
+                  <CheckCircleIcon className="w-10 h-10 text-emerald-500/80 mb-2" />
+                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">
+                    Semua antrean pesanan & stok beres!
+                  </span>
+                  <span className="text-[10.5px] text-zinc-400 mt-0.5">
+                    Tidak ada pekerjaan yang tertunda saat ini.
+                  </span>
+                </div>
+              ) : (
+                <div className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+                  {todoItems.map(item => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={item.onClick}
+                      className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] active:scale-[0.98] transition-all cursor-pointer text-left group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${item.dotColor}`} />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-[#25343F] dark:text-white truncate">
+                            {item.label}
+                          </div>
+                          <div className="text-[10px] text-[#898989] truncate">
+                            {item.desc}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                        <span className={`px-2 py-0.5 text-[10.5px] font-black rounded-full ${item.badgeBg}`}>
+                          {item.count}
+                        </span>
+                        <ChevronRightIcon className="w-3.5 h-3.5 text-zinc-400 group-hover:text-[#FF6A00] transition-colors" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
               )}
-            </h2>
-            <p className="text-[10px] text-[#898989] font-medium">
-              {stats.lowStockItemsCount > 0 ? 'Ada bahan perlu diperhatikan' : 'Semua stok dalam kondisi aman'}
-            </p>
-          </div>
-          <button
-            onClick={() => goTo('inventory')}
-            className="text-[10px] text-[#25343F]/50 hover:text-[#25343F] font-medium flex items-center gap-0.5 cursor-pointer"
-          >
-            Lihat <ChevronRightIcon className="w-3 h-3" />
-          </button>
-        </div>
+            </div>
 
-        {stats.lowStockItems.length === 0 ? (
-          <div className="flex items-center gap-2.5 px-3.5 py-3 text-[#25343F]">
-            <CubeIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
-            <span className="text-xs font-medium">Stok bahan baku aman ✓</span>
+            <button
+              type="button"
+              onClick={() => goTo('orders')}
+              className="w-full mt-3 py-2 px-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] text-[#25343F] dark:text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95"
+            >
+              Lihat Semua Antrean Pesanan →
+            </button>
           </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {stats.lowStockItems.slice(0, 4).map(item => (
-              <button
-                key={item.id}
-                onClick={() => goTo('inventory')}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-[#EAEFEF]/50 active:bg-[#EAEFEF] transition-colors cursor-pointer text-left group"
-              >
-                <ExclamationTriangleIcon className="w-3.5 h-3.5 text-[#FF9B51] shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-[#25343F] truncate">{item.name}</div>
-                  <div className="text-[10px] text-[#898989]">
-                    Min: {item.minStock} {item.unit}
+
+          {/* ── STOK MENIPIS QUICK GLANCE (Jika ada) ── */}
+          {stats.lowStockItems.length > 0 && (
+            <div className="bg-white dark:bg-[#151D28] rounded-3xl border border-black/[0.06] dark:border-white/[0.08] p-4 sm:p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-rose-500/15 text-rose-600 flex items-center justify-center">
+                    <ExclamationTriangleIcon className="w-4 h-4 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-extrabold text-[#25343F] dark:text-white uppercase tracking-wider">
+                      Stok Perlu Diisi Ulang ({stats.lowStockItemsCount} Barang)
+                    </h3>
+                    <p className="text-[10.5px] text-[#898989] font-medium">
+                      Barang di bawah batas minimum persediaan
+                    </p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded bg-[#FF9B51]/15 text-[#c45e00] text-[10px] font-black shrink-0">
-                  Sisa {item.currentStock} {item.unit}
-                </span>
-              </button>
-            ))}
-            {stats.lowStockItems.length > 4 && (
-              <button
-                onClick={() => goTo('inventory')}
-                className="w-full px-3 py-2 text-center text-[11px] font-bold text-[#FF9B51] hover:bg-[#FF9B51]/5 transition-colors cursor-pointer"
-              >
-                Lihat {stats.lowStockItems.length - 4} bahan lainnya →
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  </PullToRefresh>
-</>
+                <button
+                  type="button"
+                  onClick={() => goTo('inventory')}
+                  className="text-xs font-extrabold text-[#FF6A00] dark:text-[#FF9B51] hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  Buka Stok <ChevronRightIcon className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {stats.lowStockItems.slice(0, 4).map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => goTo('inventory')}
+                    className="p-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 transition-all cursor-pointer flex items-center justify-between gap-2 active:scale-95"
+                  >
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-[#25343F] dark:text-white truncate">
+                        {item.name}
+                      </h4>
+                      <p className="text-[10px] text-[#898989]">
+                        Batas aman: {item.minStock} {item.unit}
+                      </p>
+                    </div>
+                    <span className="px-2 py-1 rounded-xl bg-rose-500 text-white font-black text-[10.5px] tabular-nums shrink-0 shadow-2xs">
+                      {item.currentStock} {item.unit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </PullToRefresh>
+    </>
   );
 };
+
+export default DashboardView;

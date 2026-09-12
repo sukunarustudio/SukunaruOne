@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeftIcon, MagnifyingGlassIcon, PlusIcon, MinusIcon, TrashIcon, UserIcon, ShoppingCartIcon, ShoppingBagIcon, CreditCardIcon, PrinterIcon, CheckCircleIcon, TagIcon, DocumentTextIcon, ArrowPathIcon, SparklesIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon, XMarkIcon, QrCodeIcon, LockClosedIcon, StarIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, MagnifyingGlassIcon, PlusIcon, MinusIcon, TrashIcon, UserIcon, ShoppingCartIcon, ShoppingBagIcon, CreditCardIcon, PrinterIcon, CheckCircleIcon, TagIcon, DocumentTextIcon, ArrowPathIcon, SparklesIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon, XMarkIcon, QrCodeIcon, LockClosedIcon, StarIcon, StopCircleIcon, PlayCircleIcon } from '@heroicons/react/24/outline';
 import confetti from 'canvas-confetti';
 import { api } from '../services/api';
-import { Product, Customer, Transaction, BusinessSettings, PaymentMethod, ViewType } from '../types';
+import { Product, Customer, Transaction, BusinessSettings, PaymentMethod, ViewType, CashierShift, ShiftSummary } from '../types';
 import { formatRupiah, parseRupiahInput } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { PrintReceiptModal } from '../components/PrintReceiptModal';
 import { ProductImage } from '../components/ProductImage';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { StopShiftModal } from '../components/StopShiftModal';
 import { startKeyboardScanner, stopKeyboardScanner, playScanSuccessFeedback, playScanErrorFeedback } from '../lib/barcodeScanner';
 import { useLicense } from '../hooks/useLicense';
 
@@ -38,6 +39,12 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isBarcodeLockedModalOpen, setIsBarcodeLockedModalOpen] = useState(false);
   const [isClearCartConfirmOpen, setIsClearCartConfirmOpen] = useState(false);
+
+  // Shift State
+  const [currentShift, setCurrentShift] = useState<CashierShift | null>(null);
+  const [isStopShiftModalOpen, setIsStopShiftModalOpen] = useState(false);
+  const [stopShiftSummary, setStopShiftSummary] = useState<ShiftSummary | null>(null);
+  const [isStoppingShift, setIsStoppingShift] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('SEMUA');
@@ -133,12 +140,71 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const formatTimeOnly = (isoStr?: string) => {
+    if (!isoStr) return '--:--';
+    const d = new Date(isoStr);
+    return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleStartShift = async () => {
+    try {
+      const cashierName = settings.businessName || 'Kasir';
+      const shift = await api.startShift(cashierName);
+      setCurrentShift(shift);
+      showToast('Shift kasir berhasil dimulai.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Gagal memulai shift', 'error');
+    }
+  };
+
+  const handleOpenStopShift = async () => {
+    if (!currentShift) return;
+    try {
+      const summary = await api.getShiftSummary(currentShift.id);
+      setStopShiftSummary(summary);
+      setIsStopShiftModalOpen(true);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal memuat ringkasan shift', 'error');
+    }
+  };
+
+  const handleConfirmStopShift = async (notes?: string) => {
+    if (!currentShift) return;
+    try {
+      setIsStoppingShift(true);
+      await api.stopShift(currentShift.id, notes);
+      setCurrentShift(null);
+      setIsStopShiftModalOpen(false);
+      setStopShiftSummary(null);
+      showToast('Shift kasir telah ditutup.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menutup shift', 'error');
+    } finally {
+      setIsStoppingShift(false);
+    }
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [prodList, custList] = await Promise.all([api.getProducts(), api.getCustomers()]);
-      setProducts(prodList.filter(p => p.isActive));
+      const [stockList, prodList, custList, activeShift] = await Promise.all([
+        api.getStockItems().catch(() => []),
+        api.getProducts().catch(() => []),
+        api.getCustomers().catch(() => []),
+        api.getCurrentShift().catch(() => null),
+      ]);
+
+      // Prioritize unified stock_items that are sellable, fallback to products
+      let finalProducts: any[] = [];
+      if (stockList && stockList.length > 0) {
+        finalProducts = stockList.filter(s => s.isActive !== false && (s.itemType !== 'RAW_MATERIAL' || s.sellingPrice > 0));
+      } else {
+        finalProducts = prodList.filter(p => p.isActive);
+      }
+
+      setProducts(finalProducts);
       setCustomers(custList);
+      setCurrentShift(activeShift);
     } catch (err: any) {
       showToast(err.message || 'Gagal memuat katalog produk', 'error');
     } finally {
@@ -149,8 +215,22 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
   useEffect(() => {
     loadData();
     const handleRefresh = () => {
-      api.getProducts().then(p => setProducts(p.filter(prod => prod.isActive))).catch(() => {});
-      api.getCustomers().then(c => setCustomers(c)).catch(() => {});
+      Promise.all([
+        api.getStockItems().catch(() => []),
+        api.getProducts().catch(() => []),
+        api.getCustomers().catch(() => []),
+        api.getCurrentShift().catch(() => null),
+      ]).then(([stockList, prodList, custList, activeShift]) => {
+        let finalProducts: any[] = [];
+        if (stockList && stockList.length > 0) {
+          finalProducts = stockList.filter(s => s.isActive !== false && (s.itemType !== 'RAW_MATERIAL' || s.sellingPrice > 0));
+        } else {
+          finalProducts = prodList.filter(p => p.isActive);
+        }
+        setProducts(finalProducts);
+        setCustomers(custList);
+        setCurrentShift(activeShift);
+      }).catch(() => {});
     };
     window.addEventListener('sukunaru:sync_completed', handleRefresh);
     window.addEventListener('sukunaru:data_mutation', handleRefresh);
@@ -160,7 +240,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
     };
   }, []);
 
-  // â”€â”€ Barcode scan handler (shared by camera modal & USB keyboard scanner) â”€â”€
+  // ── Barcode scan handler (shared by camera modal & USB keyboard scanner) ──
   const handleBarcodeScan = async (code: string): Promise<boolean> => {
     if (!isPro) {
       playScanErrorFeedback();
@@ -171,13 +251,17 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
     const trimmed = code.trim();
     if (!trimmed) return false;
     try {
-      const found = await api.getProductByBarcode(trimmed);
-      if (found && found.isActive) {
+      let found: any = await api.getStockItemByBarcode(trimmed).catch(() => null);
+      if (!found) {
+        found = await api.getProductByBarcode(trimmed).catch(() => null);
+      }
+
+      if (found && found.isActive !== false) {
         addToCart(found);
         playScanSuccessFeedback();
         showToast(`${found.name} ditambahkan ke keranjang`, 'success');
         return true;
-      } else if (found && !found.isActive) {
+      } else if (found && found.isActive === false) {
         playScanErrorFeedback();
         showToast(`Produk "${found.name}" tidak aktif`, 'error');
         return false;
@@ -263,31 +347,53 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
     return matchesCat && matchesSearch;
   });
 
+  // Helper: Get active unit price based on quantity and wholesale price tiers
+  const getEffectiveUnitPrice = (productOrItem: any, qty: number): number => {
+    const basePrice = Number(productOrItem.sellingPrice) || 0;
+    if (!Array.isArray(productOrItem.priceTiers) || productOrItem.priceTiers.length === 0) {
+      return basePrice;
+    }
+    // Sort tiers descending by minQty to find the highest qualified tier
+    const sortedTiers = [...productOrItem.priceTiers].sort((a, b) => b.minQty - a.minQty);
+    for (const tier of sortedTiers) {
+      if (qty >= tier.minQty && tier.price > 0) {
+        return Number(tier.price);
+      }
+    }
+    return basePrice;
+  };
+
   // Add to cart
-  const addToCart = (product: Product) => {
+  const addToCart = (product: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.productId === product.id);
       if (existing) {
+        const nextQty = existing.quantity + 1;
+        const matchedProd = products.find(p => p.id === product.id) || product;
+        const effectivePrice = getEffectiveUnitPrice(matchedProd, nextQty);
+
         return prev.map(item =>
           item.productId === product.id
             ? {
                 ...item,
-                quantity: item.quantity + 1,
-                subtotal: (item.quantity + 1) * item.unitPrice,
+                quantity: nextQty,
+                unitPrice: effectivePrice,
+                subtotal: nextQty * effectivePrice,
               }
             : item
         );
       } else {
+        const effectivePrice = getEffectiveUnitPrice(product, 1);
         return [
           ...prev,
           {
             productId: product.id,
             productName: product.name,
             quantity: 1,
-            unitPrice: product.sellingPrice,
-            costPrice: product.costPrice,
-            subtotal: product.sellingPrice,
-            unit: product.unit || 'pcs',
+            unitPrice: effectivePrice,
+            costPrice: product.costPrice || 0,
+            subtotal: effectivePrice,
+            unit: product.baseUnit || product.unit || 'pcs',
             imagePath: product.imagePath,
             thumbnailPath: product.thumbnailPath,
           },
@@ -298,15 +404,19 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
 
   const updateQuantity = (productId: string, qty: number) => {
     setCart(prev =>
-      prev.map(item =>
-        item.productId === productId
-          ? {
-              ...item,
-              quantity: qty,
-              subtotal: qty * item.unitPrice,
-            }
-          : item
-      )
+      prev.map(item => {
+        if (item.productId === productId) {
+          const matchedProd = products.find(p => p.id === productId) || item;
+          const effectivePrice = getEffectiveUnitPrice(matchedProd, qty);
+          return {
+            ...item,
+            quantity: qty,
+            unitPrice: effectivePrice,
+            subtotal: qty * effectivePrice,
+          };
+        }
+        return item;
+      })
     );
   };
 
@@ -398,7 +508,8 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
         paidAmount: amountPaid,
         changeAmount: changeAmount,
         notes: transactionNotes,
-        cashierName: 'Owner',
+        cashierName: currentShift ? currentShift.cashierName : (settings.businessName || 'Kasir'),
+        shiftId: currentShift?.id,
       };
 
       const result = await api.createTransaction(payload);
@@ -459,31 +570,71 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
         mobileTab === 'catalog' ? 'flex' : 'hidden lg:flex'
       }`}>
         {/* MagnifyingGlassIcon & Category FunnelIcon Header */}
-        <div className="px-3 py-2 border-b border-[#BFC9D1]/40 bg-[#EAEFEF]/40 space-y-2">
+        <div className="px-3 py-2.5 bg-[#EAEFEF]/80 dark:bg-[#0B0F17]/80 backdrop-blur-xl space-y-2">
+          {/* Shift Status Bar */}
+          <div className="flex items-center justify-between gap-2 px-0.5 pb-0.5">
+            <div className="flex items-center gap-2 min-w-0">
+              {currentShift ? (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-300 truncate shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                  <span className="truncate">Shift Aktif · {formatTimeOnly(currentShift.startedAt)}</span>
+                  <span className="text-[11px] font-normal text-emerald-700 dark:text-emerald-400 hidden sm:inline">({currentShift.cashierName})</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-[#898989] dark:text-slate-400 text-xs font-medium truncate shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+                  <span className="truncate">Shift Belum Dimulai</span>
+                </div>
+              )}
+            </div>
+
+            <div className="shrink-0">
+              {currentShift ? (
+                <button
+                  type="button"
+                  onClick={handleOpenStopShift}
+                  className="px-3 py-1 text-xs font-bold text-white bg-red-600 hover:bg-red-700 active:scale-95 rounded-full transition shadow-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <StopCircleIcon className="w-3.5 h-3.5" />
+                  <span>Stop Shift</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleStartShift}
+                  className="px-3 py-1 text-xs font-bold text-[#25343F] bg-[#FF9B51] hover:bg-[#ff8c3a] active:scale-95 rounded-full transition shadow-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <PlayCircleIcon className="w-3.5 h-3.5" />
+                  <span>Mulai Shift</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="flex items-center gap-1.5">
             {/* FunnelIcon Icon Button */}
             <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`h-8 w-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                className={`p-2 rounded-full transition-all active:scale-90 cursor-pointer ${
                   selectedCategory !== 'SEMUA' || isFilterOpen
-                    ? 'bg-[#25343F] text-white border-[#25343F]'
-                    : 'bg-white text-[#898989] border-[#BFC9D1] hover:bg-[#EAEFEF]'
+                    ? 'bg-[#FF6A00] text-white shadow-xs'
+                    : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
                 }`}
                 title="Filter Kategori Produk"
                 aria-label="Filter Kategori"
               >
-                <FunnelIcon className="w-3.5 h-3.5" />
+                <FunnelIcon className="w-4.5 h-4.5 stroke-[2]" />
                 {selectedCategory !== 'SEMUA' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF9B51] border border-white" />
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#FF9B51] border border-white" />
                 )}
               </button>
             </div>
 
-            {/* MagnifyingGlassIcon Bar */}
+            {/* Search Bar */}
             <div className="flex-1 relative">
-              <MagnifyingGlassIcon className="w-3.5 h-3.5 text-[#898989]/70 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <MagnifyingGlassIcon className="w-4 h-4 text-[#898989] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 id="input-pos-product-search"
                 ref={searchInputRef}
@@ -491,13 +642,13 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Cari produk..."
-                className="w-full pl-8 pr-3 py-1.5 bg-white border border-[#BFC9D1]/25 rounded-lg text-xs focus:outline-none focus:border-[#25343F] font-medium placeholder:text-[#898989]/60 placeholder:font-normal"
+                className="w-full pl-9 pr-3 py-2 bg-black/[0.04] dark:bg-white/[0.06] rounded-full text-xs focus:outline-none focus:ring-1 focus:ring-[#FF6A00] font-medium placeholder:text-[#898989]/60"
               />
             </div>
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="px-2 py-1.5 text-[11px] font-semibold text-[#898989] hover:text-[#25343F] bg-[#EAEFEF] hover:bg-[#BFC9D1]/50 rounded-lg cursor-pointer shrink-0"
+                className="px-3 py-1.5 text-[11px] font-bold text-[#898989] hover:text-[#25343F] dark:hover:text-white bg-black/[0.04] dark:bg-white/[0.06] rounded-full cursor-pointer shrink-0"
               >
                 Reset
               </button>
@@ -515,13 +666,13 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               }}
               aria-label={isPro ? "Scan Barcode Produk" : "Scan Barcode Produk (Terkunci)"}
               title={isPro ? "Scan Barcode Produk (Kamera / USB)" : "Scan Barcode Produk (Perlu Aktivasi)"}
-              className={`hidden lg:flex h-8 rounded-lg border items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${
+              className={`hidden lg:flex p-2 rounded-full items-center justify-center transition-all active:scale-90 cursor-pointer shrink-0 ${
                 !isPro
-                  ? 'px-2 gap-1 border-[#FF9B51]/40 bg-[#FFF6F0] text-[#FF9B51]'
-                  : 'w-8 border-[#BFC9D1]/25 bg-white hover:bg-[#FF9B51]/10 hover:border-[#FF9B51]/50 text-[#898989] hover:text-[#FF9B51]'
+                  ? 'bg-[#FF9B51]/15 text-[#FF6A00]'
+                  : 'text-zinc-600 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
               }`}
             >
-              <QrCodeIcon className="w-3.5 h-3.5" />
+              <QrCodeIcon className="w-4.5 h-4.5 stroke-[2]" />
               {!isPro && <LockClosedIcon className="w-3 h-3 text-[#FF9B51]" />}
             </button>
 
@@ -531,13 +682,12 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               onClick={() => setMobileTab('cart')}
               aria-label="Buka Keranjang Kasir"
               title="Buka Keranjang Kasir"
-              className="lg:hidden h-8 w-8 rounded-lg border border-[#BFC9D1]/25 bg-white hover:bg-[#EAEFEF] text-[#25343F] flex items-center justify-center relative transition-transform active:scale-95 cursor-pointer shrink-0"
+              className="lg:hidden p-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full flex items-center justify-center relative transition-transform active:scale-90 cursor-pointer shrink-0"
             >
-              <ShoppingCartIcon className="w-3.5 h-3.5 text-[#25343F]" />
+              <ShoppingCartIcon className="w-5 h-5 stroke-[2]" />
               {cart.length > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full font-black text-[9px] flex items-center justify-center shadow-sm"
-                  style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-accent-contrast)' }}
+                  className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full font-black text-[9.5px] flex items-center justify-center shadow-xs bg-[#FF4267] text-white"
                 >
                   {cart.reduce((s, i) => s + i.quantity, 0)}
                 </span>
@@ -880,7 +1030,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
       {mobileTab === 'catalog' && cart.length > 0 && (
         <div
           className="lg:hidden fixed right-3 z-30 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-auto"
-          style={{ bottom: 'calc(78px + env(safe-area-inset-bottom, 8px))' }}
+          style={{ bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))' }}
         >
           {/* Compact Trash / Clear Cart Icon Button with confirmation */}
           <button
@@ -891,9 +1041,9 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
             }}
             aria-label="Kosongkan Keranjang"
             title="Kosongkan Keranjang"
-            className="w-11 h-11 rounded-full bg-[#1E293B]/95 backdrop-blur-md hover:bg-[#151D2A] active:scale-90 text-rose-400 shadow-[0_8px_20px_-4px_rgba(30,41,59,0.35)] flex items-center justify-center cursor-pointer border border-white/15 transition-all shrink-0"
+            className="w-11 h-11 rounded-full bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 hover:text-rose-600 border border-rose-200/80 dark:border-rose-500/30 shadow-[0_8px_24px_rgba(0,0,0,0.12)] flex items-center justify-center cursor-pointer active:scale-90 transition-all shrink-0"
           >
-            <TrashIcon className="w-4 h-4 text-rose-400" />
+            <TrashIcon className="w-5 h-5 stroke-[2]" />
           </button>
 
           {/* Cart Summary Pill Button */}
@@ -1186,7 +1336,7 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
               ? 'left-3'
               : 'left-1/2 -translate-x-1/2'
           }`}
-          style={{ bottom: 'calc(78px + env(safe-area-inset-bottom, 8px))' }}
+          style={{ bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))' }}
         >
           <button
             type="button"
@@ -1222,6 +1372,16 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
           </button>
         </div>
       )}
+
+      {/* Stop Shift Confirmation & Summary Modal */}
+      <StopShiftModal
+        isOpen={isStopShiftModalOpen}
+        onClose={() => setIsStopShiftModalOpen(false)}
+        summary={stopShiftSummary}
+        onConfirmStop={handleConfirmStopShift}
+        isProcessing={isStoppingShift}
+        settings={settings}
+      />
     </div>
   );
 };

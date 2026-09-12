@@ -11,6 +11,14 @@ export type MovementType = InventoryMovementType;
 
 export type InventoryRefType = 'POS' | 'ORDER' | 'RESTOCK' | 'MANUAL' | 'WASTE';
 
+// === STOK BARANG (Unified Inventory) ===
+export type ItemType = 'GOODS' | 'RAW_MATERIAL' | 'SERVICE' | 'PRODUCED';
+
+export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT' | 'OPNAME' | 'TRANSFER';
+
+export type StockRefType = 'POS' | 'ORDER' | 'PURCHASE' | 'PRODUCTION' |
+  'RETURN' | 'ADJUSTMENT' | 'OPNAME' | 'MANUAL' | 'WASTE' | 'RESTOCK';
+
 export type FinancialType = 'INCOME' | 'EXPENSE';
 export type TransactionType = FinancialType;
 
@@ -215,6 +223,7 @@ export interface Transaction {
   changeAmount: number;
   paymentMethod: PaymentMethod;
   cashierName: string;
+  shiftId?: string;
   notes?: string;
   status?: 'COMPLETED' | 'REFUNDED' | 'CANCELLED';
   refundedAt?: string;
@@ -333,4 +342,150 @@ export interface ThemePreset {
   heroBorder?: string;
   heroAccent?: string;
   heroShadow?: string;
+}
+
+// =============================================================================
+// STOK BARANG — Unified Inventory System
+// =============================================================================
+
+export interface PriceTier {
+  id: string;
+  minQty: number;
+  price: number;
+  label?: string;
+}
+
+export interface UnitConversion {
+  id: string;
+  fromUnit: string;
+  toUnit: string;
+  conversionRate: number;
+  sellingPrice?: number;
+  purchasePrice?: number;
+  barcode?: string;
+}
+
+export interface ItemComponent {
+  id: string;
+  itemId: string;
+  componentName: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  subtotal: number;
+}
+
+export interface ItemVariant {
+  id: string;
+  parentItemId: string;
+  name: string;
+  sku: string;
+  barcode?: string;
+  currentStock: number;
+  sellingPrice: number;
+  purchasePrice?: number;
+  imagePath?: string;
+  isActive: boolean;
+}
+
+export interface StockItem {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  itemType: ItemType;
+
+  // Stock
+  trackStock: boolean;
+  currentStock: number;
+  minStock: number;
+  baseUnit: string;
+
+  // Pricing
+  purchasePrice: number;
+  sellingPrice: number;
+  costPrice: number;
+  priceTiers?: PriceTier[];
+
+  // Unit conversion
+  unitConversions?: UnitConversion[];
+
+  // BOM / Recipe (for PRODUCED type)
+  components?: ItemComponent[];
+  laborCost?: number;
+  machineCost?: number;
+  otherCost?: number;
+
+  // Identity
+  barcode?: string;
+  barcodeType?: string;
+  description?: string;
+  imagePath?: string;
+  thumbnailPath?: string;
+  isActive: boolean;
+
+  // Supplier
+  supplier?: string;
+  supplierContact?: string;
+
+  // Legacy compat — preserves original ProductType for display
+  productType?: ProductType;
+
+  // Variants (Phase 2 UI, interface ready)
+  hasVariants?: boolean;
+  variants?: ItemVariant[];
+
+  // Profit (calculated)
+  profit?: number;
+  profitMargin?: number;
+  marginPercent?: number;
+
+  // Metadata
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface StockMovement {
+  id: string;
+  itemId: string;
+  itemName: string;
+  variantId?: string;
+  type: StockMovementType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  referenceType?: StockRefType | string;
+  referenceId?: string;
+  notes?: string;
+  date?: string;
+  createdAt?: string;
+}
+
+export interface CashierShift {
+  id: string;
+  businessId?: string;
+  userId?: string;
+  cashierName: string;
+  startedAt: string;
+  endedAt?: string;
+  status: 'OPEN' | 'CLOSED';
+  totalTransactions: number;
+  totalAmount: number;
+  cashAmount: number;
+  transferAmount: number;
+  qrisAmount: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ShiftSummary {
+  shift: CashierShift;
+  transactions: Transaction[];
+  totalTransactions: number;
+  totalAmount: number;
+  cashAmount: number;
+  transferAmount: number;
+  qrisAmount: number;
 }
