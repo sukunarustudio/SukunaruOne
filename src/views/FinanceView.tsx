@@ -15,6 +15,7 @@ import {
   CreditCardIcon,
   QrCodeIcon,
   BanknotesIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import {
   ResponsiveContainer,
@@ -723,9 +724,9 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="w-8 h-8 rounded-lg text-[#898989] hover:bg-[#EAEFEF] flex items-center justify-center text-sm font-bold"
+                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] hover:text-[#25343F] hover:bg-[#BFC9D1]/30 transition-all cursor-pointer active:scale-90"
               >
-                ✕
+                <XMarkIcon className="w-5 h-5 stroke-[2]" />
               </button>
             </div>
 

@@ -530,10 +530,11 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
                 <p className="text-xs text-[#898989]">Profil dan riwayat transaksi belanja</p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsDetailModalOpen(false)}
-                className="p-1 rounded text-[#898989] hover:text-[#25343F]"
+                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] hover:text-[#25343F] hover:bg-[#BFC9D1]/30 transition-all cursor-pointer active:scale-90"
               >
-                ✕
+                <XMarkIcon className="w-5 h-5 stroke-[2]" />
               </button>
             </div>
 

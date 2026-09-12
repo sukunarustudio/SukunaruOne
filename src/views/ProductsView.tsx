@@ -1231,9 +1231,9 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
               <button
                 type="button"
                 onClick={() => setIsFormModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] hover:text-[#25343F] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] hover:text-[#25343F] hover:bg-[#BFC9D1]/30 transition-all cursor-pointer active:scale-90"
               >
-                ✕
+                <XMarkIcon className="w-5 h-5 stroke-[2]" />
               </button>
             </div>
 
@@ -1681,9 +1681,9 @@ export const ProductsView: React.FC<ProductsViewProps> = ({ onOpenHppCalculator,
               <button
                 type="button"
                 onClick={() => setSelectedDetailProduct(null)}
-                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] hover:text-[#25343F] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EAEFEF] flex items-center justify-center text-[#898989] hover:text-[#25343F] hover:bg-[#BFC9D1]/30 transition-all cursor-pointer active:scale-90"
               >
-                ✕
+                <XMarkIcon className="w-5 h-5 stroke-[2]" />
               </button>
             </div>
 
