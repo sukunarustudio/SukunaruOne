@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   CalculatorIcon,
   PlusIcon,
@@ -9,6 +9,8 @@ import {
   CurrencyDollarIcon,
   ArrowPathIcon,
   TrashIcon,
+  InformationCircleIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import {
   ResponsiveContainer,
@@ -324,6 +326,13 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
     showToast('Kalkulator HPP berhasil direset', 'info');
   };
 
+  // Check if any component is manual/custom (not linked to real inventory)
+  const hasManualIngredients = useMemo(() => {
+    return components.some(
+      c => c.source === 'custom' || !c.materialId || c.materialId.trim() === ''
+    );
+  }, [components]);
+
   // Save to Product
   const handleSaveAsProduct = async () => {
     if (!calculationName.trim()) {
@@ -347,6 +356,9 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
 
       const skuCode = `PRD-${Math.floor(1000 + Math.random() * 9000)}`;
 
+      // Cegah pembuatan/pelacakan stok fisik jika user menggunakan bahan baku manual
+      const shouldTrackRealStock = !hasManualIngredients && validComponents.length > 0;
+
       const productPayload: Partial<Product> = {
         sku: skuCode,
         name: calculationName.trim(),
@@ -363,52 +375,62 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
         machineCost: machineDepreciationCost + electricityCost,
         otherCost: inkCost + finishingCost + packagingCost,
         components: validComponents,
-        trackStock: true,
+        trackStock: shouldTrackRealStock,
         currentStock: 0,
-        minStock: 5,
+        minStock: shouldTrackRealStock ? 5 : 0,
         isActive: true,
       };
 
       await api.createProduct(productPayload);
 
-      // Sinkronisasi otomatis ke Master Stok Barang jika didukung
-      try {
-        await api.createStockItem({
-          name: calculationName.trim(),
-          sku: skuCode,
-          category: 'Hasil Produksi',
-          itemType: 'PRODUCED',
-          trackStock: true,
-          currentStock: 0,
-          minStock: 5,
-          baseUnit: 'pcs',
-          purchasePrice: hppPerUnit,
-          costPrice: hppPerUnit,
-          sellingPrice: suggestedSellingPrice,
-          laborCost,
-          machineCost: machineDepreciationCost + electricityCost,
-          otherCost: inkCost + finishingCost + packagingCost,
-          profit: profitPerUnit,
-          profitMargin: actualMarginPercent,
-          components: validComponents.map(vc => ({
-            id: vc.id,
-            itemId: vc.materialId || '',
-            componentName: vc.componentName,
-            quantity: vc.quantity,
-            unit: vc.unit,
-            unitCost: vc.unitCost,
-            subtotal: vc.subtotal,
-          })),
-          isActive: true,
-        });
-      } catch {
-        // Abaikan jika stock items tidak tersinkron
+      // Hanya daftarkan ke Master Stok Barang jika SEMUA bahan baku terhubung ke stok riil
+      // Jika ada bahan manual, JANGAN buat atau tambahkan ke stok barang fisik
+      if (shouldTrackRealStock) {
+        try {
+          await api.createStockItem({
+            name: calculationName.trim(),
+            sku: skuCode,
+            category: 'Hasil Produksi',
+            itemType: 'PRODUCED',
+            trackStock: true,
+            currentStock: 0,
+            minStock: 5,
+            baseUnit: 'pcs',
+            purchasePrice: hppPerUnit,
+            costPrice: hppPerUnit,
+            sellingPrice: suggestedSellingPrice,
+            laborCost,
+            machineCost: machineDepreciationCost + electricityCost,
+            otherCost: inkCost + finishingCost + packagingCost,
+            profit: profitPerUnit,
+            profitMargin: actualMarginPercent,
+            components: validComponents.map(vc => ({
+              id: vc.id,
+              itemId: vc.materialId || '',
+              componentName: vc.componentName,
+              quantity: vc.quantity,
+              unit: vc.unit,
+              unitCost: vc.unitCost,
+              subtotal: vc.subtotal,
+            })),
+            isActive: true,
+          });
+        } catch {
+          // Abaikan jika stock items tidak tersinkron
+        }
       }
 
-      showToast(
-        `Produk "${calculationName.trim()}" berhasil disimpan ke Katalog Produk!`,
-        'success'
-      );
+      if (hasManualIngredients) {
+        showToast(
+          `Produk "${calculationName.trim()}" berhasil disimpan ke Katalog! (Tanpa penambahan data stok fisik)`,
+          'success'
+        );
+      } else {
+        showToast(
+          `Produk "${calculationName.trim()}" berhasil disimpan ke Katalog & terhubung ke Stok Barang!`,
+          'success'
+        );
+      }
       if (onSavedToProducts) onSavedToProducts();
     } catch (err: any) {
       showToast(err.message || 'Gagal menyimpan ke produk', 'error');
@@ -696,6 +718,23 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
                 <PlusIcon className="w-4 h-4 stroke-[2.5]" />
                 <span>+ Tambah Bahan Baku Lainnya</span>
               </button>
+
+              {/* Status Banner: Pencegahan Penambahan Stok Fisik Riil jika Bahan Manual */}
+              {hasManualIngredients ? (
+                <div className="flex items-start gap-2 p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-xl text-[11px] text-amber-800 dark:text-amber-300">
+                  <InformationCircleIcon className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Bahan Baku Manual Terdeteksi:</span> Produk akan disimpan ke Katalog Produk tanpa membuat / menambahkan data stok fisik di menu Stok Barang.
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 rounded-xl text-[11px] text-emerald-800 dark:text-emerald-300">
+                  <CheckCircleIcon className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Semua Bahan Dari Stok Barang:</span> Resep produk terhubung dengan data master stok fisik Anda.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
