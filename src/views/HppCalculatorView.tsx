@@ -579,27 +579,27 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
                             onChange={e => handleSelectStockForComponent(comp.id, e.target.value)}
                             className="w-full px-2.5 py-1.5 bg-white dark:bg-[#151C24] border border-[#BFC9D1]/40 dark:border-white/[0.1] rounded-lg text-xs font-bold text-[#25343F] dark:text-white outline-none focus:border-[#FF9B51]"
                           >
-                            <option value="CUSTOM_MANUAL">✏️ Input Manual (Bahan Kustom / Baru)</option>
+                            <option value="CUSTOM_MANUAL">Input Manual (Bahan Kustom / Baru)</option>
                             {availableStock.filter(s => s.source === 'stock').length > 0 && (
-                              <optgroup label="📦 Stok Barang (Master Inventory)">
+                              <optgroup label="Stok Barang (Master Inventory)">
                                 {availableStock
                                   .filter(s => s.source === 'stock')
                                   .map(item => (
                                     <option key={item.id} value={item.id}>
                                       {item.name} ({formatRupiah(item.unitCost)} / {item.unit})
-                                      {item.currentStock !== undefined ? ` • Stok: ${item.currentStock}` : ''}
+                                      {item.currentStock !== undefined ? ` (Stok: ${item.currentStock})` : ''}
                                     </option>
                                   ))}
                               </optgroup>
                             )}
                             {availableStock.filter(s => s.source === 'material').length > 0 && (
-                              <optgroup label="🌾 Bahan Baku (Inventory)">
+                              <optgroup label="Bahan Baku (Inventory)">
                                 {availableStock
                                   .filter(s => s.source === 'material')
                                   .map(item => (
                                     <option key={item.id} value={item.id}>
                                       {item.name} ({formatRupiah(item.unitCost)} / {item.unit})
-                                      {item.currentStock !== undefined ? ` • Stok: ${item.currentStock}` : ''}
+                                      {item.currentStock !== undefined ? ` (Stok: ${item.currentStock})` : ''}
                                     </option>
                                   ))}
                               </optgroup>
