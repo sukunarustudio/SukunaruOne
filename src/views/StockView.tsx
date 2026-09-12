@@ -1016,7 +1016,7 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
               : 'text-[#898989] hover:text-[#25343F] hover:bg-[#EAEFEF] dark:hover:bg-slate-700'
           }`}
         >
-          <span>Kartu Stok &amp; Mutasi</span>
+          <span>Mutasi Stok</span>
         </button>
       </div>
 
