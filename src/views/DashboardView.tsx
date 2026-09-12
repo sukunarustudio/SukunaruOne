@@ -174,13 +174,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
       setMaterials(materialsData);
       setFinTransactions(finTransData);
       setProductCount(productsData?.length ?? 1);
-
-      if (showRefreshing) {
-        showToast(
-          isSynced ? 'Data & Cloud berhasil diperbarui' : 'Data berhasil diperbarui',
-          'success'
-        );
-      }
     } catch (err: any) {
       showToast(err.message || 'Gagal memuat data', 'error');
     } finally {

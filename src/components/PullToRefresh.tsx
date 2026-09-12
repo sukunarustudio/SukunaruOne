@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface PullToRefreshProps {
@@ -15,8 +15,8 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   onRefresh,
   children,
   disabled = false,
-  threshold = 60,
-  maxPullDistance = 110,
+  threshold = 64,
+  maxPullDistance = 96,
   className = '',
   isRefreshing: externalIsRefreshing,
 }) => {
@@ -95,8 +95,8 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
     if (deltaY > 0) {
       setIsPulling(true);
 
-      // Apply rubber-band damping physics formula
-      const dampedDistance = Math.min(Math.pow(deltaY, 0.82) * 1.2, maxPullDistance);
+      // Apply logarithmic / damped rubber-band physics
+      const dampedDistance = Math.min(Math.pow(deltaY, 0.8) * 1.1, maxPullDistance);
       setPullDistance(dampedDistance);
 
       // Light haptic feedback on reaching the threshold
@@ -104,11 +104,9 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
         setHasTriggeredHaptic(true);
         try {
           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            navigator.vibrate(18);
+            navigator.vibrate(15);
           }
-        } catch {
-          // Ignore vibration error if not supported
-        }
+        } catch {}
       } else if (dampedDistance < threshold && hasTriggeredHaptic) {
         setHasTriggeredHaptic(false);
       }
@@ -131,18 +129,18 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
 
     if (pullDistance >= threshold) {
       setInternalIsRefreshing(true);
-      setPullDistance(44); // Resting position for spinner
+      setPullDistance(48); // Resting position for spinner & content
 
       try {
         await onRefresh();
       } catch (err) {
         console.error('Pull to refresh error:', err);
       } finally {
-        // Smoothly close the refresh indicator
+        // Smoothly return back to resting position
         setTimeout(() => {
           setInternalIsRefreshing(false);
           setPullDistance(0);
-        }, 300);
+        }, 250);
       }
     } else {
       // Released before threshold: spring back to 0
@@ -160,9 +158,10 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
 
   const progress = Math.min(pullDistance / threshold, 1);
   const isThresholdReached = pullDistance >= threshold;
+  const iconRotation = isRefreshing ? 0 : progress * 360;
 
-  // Icon rotation: rotates progressively as user pulls, spins when refreshing
-  const iconRotation = isRefreshing ? 0 : progress * 540;
+  // Active translation for content area
+  const contentTranslateY = isRefreshing ? 48 : pullDistance;
 
   return (
     <div
@@ -173,55 +172,52 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       onTouchCancel={handleTouchCancel}
       className={`relative w-full ${className}`}
     >
-      {/* ── Floating Circular Arrow Indicator (does NOT shift page content) ── */}
+      {/* ── Apple-Style Top Spinner Indicator ── */}
       <div
-        className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex justify-center"
+        className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center items-center overflow-hidden"
         style={{
-          transform: `translateY(${
-            isRefreshing
-              ? 20
-              : pullDistance > 0
-              ? Math.max(pullDistance - 20, 0)
-              : -48
-          }px)`,
-          opacity: pullDistance > 6 || isRefreshing ? 1 : 0,
+          height: isRefreshing ? 48 : Math.max(pullDistance, 0),
+          opacity: pullDistance > 8 || isRefreshing ? 1 : 0,
           transition: isPulling
             ? 'opacity 0.15s ease'
-            : 'transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease',
+            : 'height 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease',
         }}
       >
         <div
-          className={`flex items-center justify-center rounded-full shadow-lg shadow-black/10 ${
-            isRefreshing
-              ? 'bg-white dark:bg-[#151D28] border border-[#FF9B51]/40'
-              : isThresholdReached
-                ? 'bg-white dark:bg-[#151D28] border border-[#FF9B51]/40'
-                : 'bg-white dark:bg-[#1a2332] border border-[#BFC9D1]/40 dark:border-slate-700'
+          className={`flex items-center justify-center rounded-full shadow-sm ${
+            isRefreshing || isThresholdReached
+              ? 'bg-white dark:bg-[#151D28] border border-[#FF9B51]/40 text-[#FF9B51]'
+              : 'bg-white/90 dark:bg-[#1a2332]/90 border border-black/[0.08] dark:border-white/[0.1] text-[#8E8E93]'
           }`}
           style={{
-            width: 36,
-            height: 36,
-            transform: `scale(${isRefreshing ? 1 : 0.8 + progress * 0.2})`,
-            transition: isPulling ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
+            width: 32,
+            height: 32,
+            transform: `scale(${isRefreshing ? 1 : 0.75 + progress * 0.25})`,
+            transition: isPulling ? 'none' : 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
           }}
         >
           <ArrowPathIcon
-            className={`w-[18px] h-[18px] stroke-[2.5] ${
-              isRefreshing
-                ? 'animate-spin text-[#FF9B51]'
-                : ''
-            }`}
+            className={`w-4 h-4 stroke-[2.5] ${isRefreshing ? 'animate-spin' : ''}`}
             style={{
-              color: isRefreshing || isThresholdReached ? '#FF9B51' : '#898989',
               transform: isRefreshing ? undefined : `rotate(${iconRotation}deg)`,
-              transition: isPulling ? 'color 0.15s ease' : 'transform 0.2s ease, color 0.15s ease',
+              transition: isPulling ? 'none' : 'transform 0.2s ease',
             }}
           />
         </div>
       </div>
 
-      {/* ── Content Area — NO translation, stays fixed ── */}
-      {children}
+      {/* ── Content Area — Translates fluidly with gesture ── */}
+      <div
+        style={{
+          transform: contentTranslateY > 0 ? `translate3d(0, ${contentTranslateY}px, 0)` : undefined,
+          transition: isPulling
+            ? 'none'
+            : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)',
+          willChange: isPulling || isRefreshing ? 'transform' : 'auto',
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 };
