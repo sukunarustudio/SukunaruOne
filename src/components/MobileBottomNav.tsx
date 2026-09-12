@@ -95,10 +95,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     <nav
       id="mobile-bottom-navigation"
       aria-label="Navigasi Utama"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 w-full bg-white/85 dark:bg-[#0B0F17]/85 backdrop-blur-2xl border-t border-black/[0.08] dark:border-white/[0.08] select-none transition-colors duration-200"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 2px)' }}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 w-full bg-white/90 dark:bg-[#0B0F17]/90 backdrop-blur-2xl border-t border-black/[0.08] dark:border-white/[0.08] shadow-[0_-4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)] select-none transition-colors duration-200"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4px)' }}
     >
-      <div className="grid grid-cols-5 h-[52px] sm:h-[56px] max-w-lg mx-auto px-1">
+      <div className="grid grid-cols-5 h-[62px] sm:h-[68px] max-w-lg mx-auto px-1.5 items-center">
         {navItems.map(item => {
           const isActive = currentView === item.id;
           const Icon = isActive ? item.solidIcon : item.outlineIcon;
@@ -110,7 +110,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               type="button"
               id={`btn-mobile-nav-${item.id}`}
               onClick={() => handleNavClick(item.id)}
-              className="flex flex-col items-center justify-center h-full w-full py-1 cursor-pointer active:scale-90 active:opacity-70 transition-all duration-150 group touch-manipulation"
+              className="flex flex-col items-center justify-center h-full w-full py-1 cursor-pointer active:scale-95 active:opacity-75 transition-all duration-150 group touch-manipulation"
             >
               {/* Icon Container with Badge */}
               <div className="relative flex items-center justify-center">
@@ -119,17 +119,17 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                     <img
                       src={settings.logoUrl}
                       alt={settings.businessName || 'Profil'}
-                      className={`w-[22px] h-[22px] rounded-full object-cover transition-all duration-200 ${
+                      className={`w-[26px] h-[26px] sm:w-[28px] sm:h-[28px] rounded-full object-cover transition-all duration-200 ${
                         isActive
-                          ? 'ring-2 ring-[#FF9B51] ring-offset-1 dark:ring-offset-[#0B0F17] scale-105'
+                          ? 'ring-2 ring-[#FF9B51] ring-offset-2 dark:ring-offset-[#0B0F17] scale-110 shadow-xs'
                           : 'opacity-85 grayscale-30 ring-1 ring-black/10 dark:ring-white/20'
                       }`}
                     />
                   ) : (
                     <div
-                      className={`w-[22px] h-[22px] rounded-full flex items-center justify-center font-bold text-[9px] uppercase transition-all duration-200 ${
+                      className={`w-[26px] h-[26px] sm:w-[28px] sm:h-[28px] rounded-full flex items-center justify-center font-bold text-[10px] sm:text-[11px] uppercase transition-all duration-200 ${
                         isActive
-                          ? 'bg-[#FF9B51] text-white ring-2 ring-[#FF9B51] ring-offset-1 dark:ring-offset-[#0B0F17] scale-105'
+                          ? 'bg-[#FF9B51] text-white ring-2 ring-[#FF9B51] ring-offset-2 dark:ring-offset-[#0B0F17] scale-110 shadow-xs'
                           : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                       }`}
                     >
@@ -138,9 +138,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   )
                 ) : (
                   <Icon
-                    className={`w-[23px] h-[23px] transition-all duration-200 ${
+                    className={`w-[26px] h-[26px] sm:w-[28px] sm:h-[28px] transition-all duration-200 ${
                       isActive
-                        ? 'text-[#FF9B51] scale-105'
+                        ? 'text-[#FF9B51] scale-110'
                         : 'text-[#8E8E93] dark:text-slate-400 group-hover:text-[#25343F] dark:group-hover:text-white'
                     }`}
                   />
@@ -148,11 +148,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
                 {/* Apple-style Red Badge / Lock Badge */}
                 {isLocked ? (
-                  <span className="absolute -top-1.5 -right-2.5 w-3.5 h-3.5 rounded-full bg-[#FF9B51] text-white flex items-center justify-center border-2 border-white dark:border-[#0B0F17] shadow-xs pointer-events-none">
-                    <LockClosedIcon className="w-2 h-2" />
+                  <span className="absolute -top-1 -right-2.5 w-4 h-4 rounded-full bg-[#FF9B51] text-white flex items-center justify-center border-2 border-white dark:border-[#0B0F17] shadow-xs pointer-events-none">
+                    <LockClosedIcon className="w-2.5 h-2.5" />
                   </span>
                 ) : item.badge !== undefined ? (
-                  <span className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FF3B30] text-white text-[9.5px] font-black tracking-tight flex items-center justify-center border-2 border-white dark:border-[#0B0F17] shadow-xs pointer-events-none animate-in zoom-in-50">
+                  <span className="absolute -top-1.5 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF3B30] text-white text-[10px] font-black tracking-tight flex items-center justify-center border-2 border-white dark:border-[#0B0F17] shadow-xs pointer-events-none animate-in zoom-in-50">
                     {item.badge}
                   </span>
                 ) : null}
@@ -160,7 +160,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 
               {/* Apple-style Label */}
               <span
-                className={`text-[10px] sm:text-[10.5px] mt-1 leading-none tracking-tight transition-colors duration-200 ${
+                className={`text-[11px] sm:text-[12px] mt-1.5 leading-none tracking-tight transition-colors duration-200 ${
                   isActive
                     ? 'text-[#FF9B51] font-bold'
                     : 'text-[#8E8E93] dark:text-slate-400 font-medium group-hover:text-[#25343F] dark:group-hover:text-white'
