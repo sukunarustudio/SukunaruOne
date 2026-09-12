@@ -45,6 +45,8 @@ import {
   ArrowTrendingUpIcon as ArrowTrendingUpSolid,
   CloudArrowUpIcon as CloudArrowUpSolid,
   SparklesIcon as SparklesSolid,
+  Cog6ToothIcon as Cog6ToothSolid,
+  CheckCircleIcon as CheckCircleSolid,
 } from '@heroicons/react/24/solid';
 import { api } from '../services/api';
 import {
@@ -723,50 +725,68 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
               </button>
             </div>
 
-            {/* Secondary Tools Grid (Apple Control Center 5-tile pill buttons) */}
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5 pt-1">
+            {/* Secondary Tools Grid (Apple Control Center 4-column quick action grid) */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-2.5 pt-1">
               {[
                 {
                   label: 'Hitung HPP',
-                  icon: <CalculatorSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-500" />,
+                  icon: <CalculatorSolid className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
                   bg: 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20',
                   onClick: () => goTo('hpp'),
                 },
                 {
                   label: 'Pelanggan',
-                  icon: <UsersSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-purple-500" />,
+                  icon: <UsersSolid className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
                   bg: 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20',
                   onClick: () => goTo('customers'),
                 },
                 {
                   label: 'Katalog',
-                  icon: <CubeSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-sky-500" />,
+                  icon: <CubeSolid className="w-4 h-4 sm:w-5 sm:h-5 text-sky-500" />,
                   bg: 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20',
                   onClick: () => goTo('products'),
                 },
                 {
                   label: 'Laporan',
-                  icon: <ArrowTrendingUpSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-500" />,
+                  icon: <ArrowTrendingUpSolid className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500" />,
                   bg: 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20',
                   onClick: () => goTo('sales-report'),
                 },
                 {
                   label: 'Cloud Sync',
-                  icon: <CloudArrowUpSolid className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-500" />,
+                  icon: <CloudArrowUpSolid className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
                   bg: 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20',
                   onClick: () => goTo('backup'),
+                },
+                {
+                  label: 'Tema Visual',
+                  icon: <SparklesSolid className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />,
+                  bg: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20',
+                  onClick: () => goTo('appearance'),
+                },
+                {
+                  label: 'Pengaturan',
+                  icon: <Cog6ToothSolid className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-300" />,
+                  bg: 'bg-slate-500/10 hover:bg-slate-500/20 border-slate-500/20',
+                  onClick: () => goTo('settings'),
+                },
+                {
+                  label: 'Aktivasi',
+                  icon: <CheckCircleSolid className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />,
+                  bg: 'bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/20',
+                  onClick: () => goTo('activation'),
                 },
               ].map(tool => (
                 <button
                   key={tool.label}
                   type="button"
                   onClick={tool.onClick}
-                  className={`apple-press px-1 py-2 sm:p-2.5 rounded-2xl border ${tool.bg} flex flex-col items-center justify-center gap-1 sm:gap-1.5 text-center cursor-pointer transition-all shadow-2xs`}
+                  className={`apple-press p-2 sm:p-2.5 rounded-2xl border ${tool.bg} flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer transition-all shadow-2xs`}
                 >
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center shrink-0">
                     {tool.icon}
                   </div>
-                  <span className="text-[9px] sm:text-[10.5px] font-bold text-[#25343F] dark:text-white leading-tight tracking-tight text-center w-full line-clamp-1">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-[#25343F] dark:text-white leading-tight tracking-tight text-center w-full truncate">
                     {tool.label}
                   </span>
                 </button>
