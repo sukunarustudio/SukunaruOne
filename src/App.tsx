@@ -480,7 +480,7 @@ function MainAppContent() {
     return (
       <div
         className={`fixed inset-0 z-[9999] ${
-          isNative ? 'bg-[#FF9B51]' : 'bg-white dark:bg-[#0B0F17]'
+          isNative ? 'bg-[#FEAF46]' : 'bg-white dark:bg-[#0B0F17]'
         } flex items-center justify-center transition-opacity duration-400 ease-in-out select-none ${
           isSplashFading ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
@@ -489,7 +489,7 @@ function MainAppContent() {
           <img
             src="/splash.png"
             alt="Bisnis Urang"
-            className="w-full h-full object-contain max-w-lg mx-auto"
+            className="w-full h-full object-cover select-none"
           />
         ) : (
           <div className="flex flex-col items-center animate-fade-in select-none">

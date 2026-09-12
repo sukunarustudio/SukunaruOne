@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_bg_debug">#FFFFFF</color>
-    <color name="splash_status_bar_debug">#FFFFFF</color>
-    <color name="splash_nav_bar_debug">#FFFFFF</color>
+    <color name="splash_bg_debug">#FEAF46</color>
+    <color name="splash_status_bar_debug">#FEAF46</color>
+    <color name="splash_nav_bar_debug">#FEAF46</color>
 </resources>
