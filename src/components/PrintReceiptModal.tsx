@@ -53,7 +53,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
       setIsExportingPdf(true);
       const success = await downloadElementAsPdf('printable-receipt-area', {
         filename: `Struk-${transaction.receiptNumber}.pdf`,
-        format: paperWidth === '58mm' ? [58, 120] : [80, 160],
+        format: paperWidth === '58mm' ? [58, 0] : [80, 0],
         orientation: 'portrait',
         marginMm: paperWidth === '58mm' ? 2 : 3,
         scale: 3,
@@ -77,6 +77,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
         filename: `Struk-${transaction.receiptNumber}.jpg`,
         scale: 3,
         quality: 0.96,
+        paperSize: paperWidth,
       });
       if (success) {
         showToast(Capacitor.isNativePlatform() ? 'File berhasil disimpan' : 'Struk JPG berhasil diunduh', 'success');
@@ -97,11 +98,13 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
       `--------------------------------`,
       `No. Struk : *${transaction.receiptNumber}*`,
       `Tanggal   : ${formatDateTime(transaction.createdAt || transaction.date)}`,
-      `Pelanggan : ${transaction.customerName}`,
+      `Pelanggan : ${transaction.customerName || 'Umum'}`,
       `--------------------------------`,
-      ...transaction.items.map(
-        it => `${it.productName}\n  ${it.quantity}x @ ${formatRupiah(it.unitPrice)} = ${formatRupiah(it.subtotal)}`
-      ),
+      ...transaction.items.map(it => {
+        const uPrice = it.unitPrice ?? (it as any).price ?? 0;
+        const sub = it.subtotal ?? (it.quantity * uPrice);
+        return `${it.productName}\n  ${it.quantity}x @ ${formatRupiah(uPrice)} = ${formatRupiah(sub)}`;
+      }),
       `--------------------------------`,
       `Subtotal  : ${formatRupiah(transaction.subtotal)}`,
       transaction.discount > 0 ? `Diskon    : -${formatRupiah(transaction.discount)}` : null,
@@ -124,6 +127,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
         title: 'Struk Sukunaru Studio',
         text: generateWhatsappText(),
         phone: transaction.customerPhone,
+        paperSize: paperWidth,
       });
 
       if (result.success) {
@@ -154,7 +158,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
         <div id="receipt-modal-header" className="p-4 border-b border-[#BFC9D1]/40 flex items-center justify-between bg-[#EAEFEF]/50">
           <div>
             <h3 className="font-bold text-[#25343F] text-sm">Struk Kasir</h3>
-            <p className="text-[11px] text-[#898989] font-mono">#{transaction.receiptNumber} • {transaction.customerName}</p>
+            <p className="text-[11px] text-[#898989] font-mono">#{transaction.receiptNumber} • {transaction.customerName || 'Umum'}</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Paper Size selector */}
@@ -162,7 +166,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
               <button
                 type="button"
                 onClick={() => setPaperWidth('58mm')}
-                className={`px-2 py-1 rounded-md transition-colors cursor-pointer text-xs ${
+                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer text-xs ${
                   paperWidth === '58mm' ? 'bg-white text-[#25343F] shadow-md font-bold' : 'hover:text-[#25343F] text-zinc-600'
                 }`}
               >
@@ -171,7 +175,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
               <button
                 type="button"
                 onClick={() => setPaperWidth('80mm')}
-                className={`px-2 py-1 rounded-md transition-colors cursor-pointer text-xs ${
+                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer text-xs ${
                   paperWidth === '80mm' ? 'bg-white text-[#25343F] shadow-md font-bold' : 'hover:text-[#25343F] text-zinc-600'
                 }`}
               >
@@ -192,7 +196,7 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 bg-[#EAEFEF]/70 flex justify-center items-start">
           <div
             id="printable-receipt-area"
-            style={{ width: paperWidth === '58mm' ? '250px' : '330px' }}
+            style={{ width: paperWidth === '58mm' ? '280px' : '360px' }}
             className={`bg-white rounded-lg shadow-md text-[#25343F] font-mono border border-[#BFC9D1]/25 transition-all ${
               paperWidth === '58mm' ? 'p-3.5 text-[11px]' : 'p-5 text-xs'
             }`}
@@ -210,8 +214,12 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
               )}
               <h2 className="font-bold text-sm tracking-wider uppercase text-[#25343F]">{settings.businessName || 'SUKUNARU STUDIO'}</h2>
               <p className="text-[11px] text-zinc-600 mt-0.5 font-sans">{settings.tagline || 'Percetakan & Desain Grafis'}</p>
-              <p className="text-[10px] text-[#898989] mt-1 leading-tight">{settings.address}</p>
-              <p className="text-[10px] text-[#898989]">WA: {settings.whatsapp}</p>
+              {settings.address && (
+                <p className="text-[10px] text-[#898989] mt-1 leading-tight">{settings.address}</p>
+              )}
+              {settings.whatsapp && (
+                <p className="text-[10px] text-[#898989]">WA: {settings.whatsapp}</p>
+              )}
             </div>
 
             {/* Meta */}
@@ -230,40 +238,44 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-[#898989]">Pelanggan:</span>
-                <span className="font-medium truncate max-w-[170px]">{transaction.customerName}</span>
+                <span className="font-medium truncate max-w-[170px]">{transaction.customerName || 'Umum'}</span>
               </div>
             </div>
 
             {/* Items */}
             <div className="py-3 border-b border-dashed border-zinc-400 space-y-2">
-              {transaction.items.map((item, idx) => (
-                <div key={idx} className="space-y-0.5">
-                  <div className="font-medium text-[#25343F]">{item.productName}</div>
-                  <div className="flex justify-between text-zinc-600">
-                    <span>
-                      {item.quantity} × {formatRupiah(item.unitPrice)}
-                    </span>
-                    <span className="font-semibold text-[#25343F] font-mono">{formatRupiah(item.subtotal)}</span>
+              {transaction.items.map((item, idx) => {
+                const unitPrice = item.unitPrice ?? (item as any).price ?? 0;
+                const subtotal = item.subtotal ?? (item.quantity * unitPrice);
+                return (
+                  <div key={idx} className="space-y-0.5">
+                    <div className="font-medium text-[#25343F] leading-tight break-words">{item.productName}</div>
+                    <div className="flex justify-between items-baseline text-zinc-600 gap-2">
+                      <span>
+                        {item.quantity} × {formatRupiah(unitPrice)}
+                      </span>
+                      <span className="font-semibold text-[#25343F] font-mono tabular-nums">{formatRupiah(subtotal)}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Calculation */}
             <div className="py-2.5 border-b border-dashed border-zinc-400 space-y-1 text-[11px]">
               <div className="flex justify-between text-zinc-600">
                 <span>Subtotal:</span>
-                <span className="font-mono">{formatRupiah(transaction.subtotal)}</span>
+                <span className="font-mono tabular-nums">{formatRupiah(transaction.subtotal)}</span>
               </div>
               {transaction.discount > 0 && (
                 <div className="flex justify-between text-[#c45e00]">
                   <span>Diskon:</span>
-                  <span>-{formatRupiah(transaction.discount)}</span>
+                  <span className="font-mono tabular-nums">-{formatRupiah(transaction.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-sm text-[#25343F] pt-1">
                 <span>TOTAL:</span>
-                <span className="font-mono">{formatRupiah(transaction.totalAmount)}</span>
+                <span className="font-mono tabular-nums">{formatRupiah(transaction.totalAmount)}</span>
               </div>
               <div className="flex justify-between text-zinc-600 pt-1">
                 <span>Metode:</span>
@@ -271,11 +283,11 @@ export const PrintReceiptModal: React.FC<PrintReceiptModalProps> = ({
               </div>
               <div className="flex justify-between text-zinc-600">
                 <span>Bayar:</span>
-                <span className="font-mono">{formatRupiah(transaction.paidAmount)}</span>
+                <span className="font-mono tabular-nums">{formatRupiah(transaction.paidAmount)}</span>
               </div>
               <div className="flex justify-between text-zinc-600">
                 <span>Kembalian:</span>
-                <span className="font-mono">{formatRupiah(transaction.changeAmount)}</span>
+                <span className="font-mono tabular-nums">{formatRupiah(transaction.changeAmount)}</span>
               </div>
             </div>
 

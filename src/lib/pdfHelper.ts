@@ -69,15 +69,17 @@ export async function downloadElementAsPdf(
       return false;
     }
 
+    const isReceipt = targetElement.id === 'printable-receipt-area';
     const {
       filename = 'dokumen.pdf',
       format = 'a5',
       orientation = 'portrait',
-      marginMm = format === 'a5' ? 4 : 6,
-      scale = 2.5, // Crisp rendering for text, borders, and barcodes
+      marginMm = isReceipt
+        ? (Array.isArray(options.format) && options.format[0] === 58 ? 2 : 3)
+        : (format === 'a5' ? 4 : 6),
+      scale = 3, // Crisp rendering for text, borders, and barcodes
     } = options;
 
-    const isReceipt = targetElement.id === 'printable-receipt-area';
     const isLandscape = orientation === 'landscape';
     const isA5 = format === 'a5';
     const isA4 = format === 'a4';
@@ -86,7 +88,7 @@ export async function downloadElementAsPdf(
 
     let standardWidthPx = 794;
     if (isReceipt) {
-      standardWidthPx = targetElement.scrollWidth || (Array.isArray(format) && format[0] === 58 ? 250 : 330);
+      standardWidthPx = Array.isArray(format) && format[0] === 58 ? 280 : 360;
     } else if (isLandscape) {
       standardWidthPx = isA5 ? 794 : isF4 ? 1248 : isLetter ? 1056 : 1122;
     } else {
@@ -100,19 +102,23 @@ export async function downloadElementAsPdf(
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: isReceipt ? standardWidthPx : (isLandscape ? 1200 : (isA5 ? 600 : 1024)),
+      windowWidth: standardWidthPx,
       onclone: (_clonedDoc, clonedElement) => {
         clonedElement.style.margin = '0';
         clonedElement.style.boxShadow = 'none';
+        if (isReceipt) {
+          clonedElement.style.border = 'none';
+          clonedElement.style.borderRadius = '0';
+        }
+        clonedElement.style.backgroundColor = '#ffffff';
         clonedElement.style.transform = 'none';
         (clonedElement.style as any).webkitPrintColorAdjust = 'exact';
         (clonedElement.style as any).printColorAdjust = 'exact';
-        if (!isReceipt) {
-          const widthStr = `${standardWidthPx}px`;
-          clonedElement.style.width = widthStr;
-          clonedElement.style.maxWidth = widthStr;
-          clonedElement.style.minWidth = widthStr;
-        }
+        
+        const widthStr = `${standardWidthPx}px`;
+        clonedElement.style.width = widthStr;
+        clonedElement.style.maxWidth = widthStr;
+        clonedElement.style.minWidth = widthStr;
       },
     });
 
@@ -122,10 +128,11 @@ export async function downloadElementAsPdf(
     let targetFormat: 'a4' | 'a5' | 'letter' | [number, number] = format as any;
     if (format === 'f4') {
       targetFormat = isLandscape ? [330, 210] : [210, 330]; // F4 / Folio: 210 x 330 mm
-    } else if (isReceipt && Array.isArray(format)) {
-      const widthMm = format[0]; // e.g. 58 or 80
-      const printableWidth = widthMm - marginMm * 2;
-      const exactHeightMm = Math.ceil((canvas.height * printableWidth) / canvas.width + marginMm * 2);
+    } else if (isReceipt || Array.isArray(format)) {
+      const widthMm = Array.isArray(format) ? format[0] : 58;
+      const effectiveMargin = marginMm ?? (widthMm === 58 ? 2 : 3);
+      const printableWidth = widthMm - effectiveMargin * 2;
+      const exactHeightMm = Math.ceil((canvas.height * printableWidth) / canvas.width + effectiveMargin * 2);
       targetFormat = [widthMm, exactHeightMm];
     }
 
@@ -157,8 +164,8 @@ export async function downloadElementAsPdf(
     );
     heightLeft -= pageHeight - marginMm * 2;
 
-    // Multi-page handling if content exceeds 1 page
-    while (heightLeft > 0) {
+    // Multi-page handling only if content exceeds 1 page significantly (> 3mm)
+    while (heightLeft > 3.0) {
       position = heightLeft - imgHeightInMm + marginMm;
       pdf.addPage();
       pdf.addImage(
@@ -439,12 +446,17 @@ export async function downloadElementAsJpg(
       filename = 'struk.jpg',
       scale = 3,
       quality = 0.96,
-      paperSize = 'a5',
+      paperSize = '58mm',
     } = options;
 
     const isReceipt = targetElement.id === 'printable-receipt-area';
     const isA5 = paperSize === 'a5';
-    const standardWidthPx = isReceipt ? (targetElement.scrollWidth || 380) : isA5 ? 560 : 794;
+    let standardWidthPx = 794;
+    if (isReceipt) {
+      standardWidthPx = paperSize === '80mm' ? 360 : 280;
+    } else if (isA5) {
+      standardWidthPx = 560;
+    }
 
     const canvas = await html2canvas(targetElement, {
       scale: scale,
@@ -452,19 +464,23 @@ export async function downloadElementAsJpg(
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: isReceipt ? standardWidthPx : isA5 ? 600 : 1024,
+      windowWidth: standardWidthPx,
       onclone: (_clonedDoc, clonedElement) => {
         clonedElement.style.margin = '0';
         clonedElement.style.boxShadow = 'none';
+        if (isReceipt) {
+          clonedElement.style.border = 'none';
+          clonedElement.style.borderRadius = '0';
+        }
+        clonedElement.style.backgroundColor = '#ffffff';
         clonedElement.style.transform = 'none';
         (clonedElement.style as any).webkitPrintColorAdjust = 'exact';
         (clonedElement.style as any).printColorAdjust = 'exact';
-        if (!isReceipt) {
-          const widthStr = `${standardWidthPx}px`;
-          clonedElement.style.width = widthStr;
-          clonedElement.style.maxWidth = widthStr;
-          clonedElement.style.minWidth = widthStr;
-        }
+        
+        const widthStr = `${standardWidthPx}px`;
+        clonedElement.style.width = widthStr;
+        clonedElement.style.maxWidth = widthStr;
+        clonedElement.style.minWidth = widthStr;
       },
     });
 
@@ -521,14 +537,19 @@ export async function shareElementAsJpg(
       title = 'Struk Sukunaru Studio',
       text = 'Berikut struk transaksi Anda.',
       phone,
-      paperSize = 'a5',
+      paperSize = '58mm',
     } = options;
 
     const cleanFilename = sanitizeFilename(filename, '.jpg');
 
     const isReceipt = targetElement.id === 'printable-receipt-area';
     const isA5 = paperSize === 'a5';
-    const standardWidthPx = isReceipt ? (targetElement.scrollWidth || 380) : isA5 ? 560 : 794;
+    let standardWidthPx = 794;
+    if (isReceipt) {
+      standardWidthPx = paperSize === '80mm' ? 360 : 280;
+    } else if (isA5) {
+      standardWidthPx = 560;
+    }
 
     // Render HTML element to high-res canvas in memory (scale: 3 for crisp text & barcodes)
     const canvas = await html2canvas(targetElement, {
@@ -537,19 +558,23 @@ export async function shareElementAsJpg(
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: isReceipt ? standardWidthPx : isA5 ? 600 : 1024,
+      windowWidth: standardWidthPx,
       onclone: (_clonedDoc, clonedElement) => {
         clonedElement.style.margin = '0';
         clonedElement.style.boxShadow = 'none';
+        if (isReceipt) {
+          clonedElement.style.border = 'none';
+          clonedElement.style.borderRadius = '0';
+        }
+        clonedElement.style.backgroundColor = '#ffffff';
         clonedElement.style.transform = 'none';
         (clonedElement.style as any).webkitPrintColorAdjust = 'exact';
         (clonedElement.style as any).printColorAdjust = 'exact';
-        if (!isReceipt) {
-          const widthStr = `${standardWidthPx}px`;
-          clonedElement.style.width = widthStr;
-          clonedElement.style.maxWidth = widthStr;
-          clonedElement.style.minWidth = widthStr;
-        }
+        
+        const widthStr = `${standardWidthPx}px`;
+        clonedElement.style.width = widthStr;
+        clonedElement.style.maxWidth = widthStr;
+        clonedElement.style.minWidth = widthStr;
       },
     });
 
