@@ -1,29 +1,20 @@
 import React, { useState } from 'react';
 import {
   ArrowLeftIcon,
-  SunIcon,
-  MoonIcon,
-  ComputerDesktopIcon,
   ArrowPathIcon,
   CheckIcon,
   EyeIcon,
   ExclamationTriangleIcon,
   SparklesIcon,
-  PaintBrushIcon,
-  SwatchIcon,
-  RectangleStackIcon,
-  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
-import { ViewType, ThemeSettings, ThemeMode, ThemePreset } from '../types';
+import { ViewType, ThemeSettings, ThemePreset } from '../types';
 import {
   getThemeSettings,
   saveThemeSettings,
   resetThemeSettings,
-  ACCENT_PRESETS,
   HERO_PRESETS,
   THEME_PRESETS,
   getEffectiveMode,
-  HeroPresetItem,
 } from '../services/themeManager';
 import { useToast } from '../components/Toast';
 
@@ -46,45 +37,6 @@ export const AppearanceView: React.FC<AppearanceViewProps> = ({
       saveThemeSettings(next);
       return next;
     });
-  };
-
-  const handleModeChange = (mode: ThemeMode) => {
-    updateTheme(prev => ({ ...prev, mode }));
-    showToast(
-      `Mode tampilan diatur ke ${
-        mode === 'light' ? 'Terang' : mode === 'dark' ? 'Gelap' : 'Otomatis (Sistem)'
-      }`,
-      'info'
-    );
-  };
-
-  const handleAccentChange = (accentColor: string) => {
-    updateTheme(prev => ({
-      ...prev,
-      accentColor,
-    }));
-  };
-
-  const handleApplyHeroPreset = (hero: HeroPresetItem) => {
-    updateTheme(prev => ({
-      ...prev,
-      heroCard: {
-        ...prev.heroCard,
-        mode: 'auto',
-        presetId: hero.id,
-        lightStart: hero.lightStart,
-        lightEnd: hero.lightEnd,
-        darkStart: hero.darkStart,
-        darkEnd: hero.darkEnd,
-        sameInBothModes: false,
-        gradient: hero.gradient,
-        glow: hero.glow,
-        pattern: hero.pattern,
-        border: hero.border,
-        accent: hero.accent,
-        shadow: hero.shadow,
-      },
-    }));
   };
 
   const handleApplyPreset = (preset: ThemePreset) => {
@@ -152,7 +104,7 @@ export const AppearanceView: React.FC<AppearanceViewProps> = ({
               Tampilan &amp; Tema
             </h1>
             <p className="text-xs sm:text-[13px] text-[#898989] dark:text-slate-400 font-medium mt-0.5 truncate hidden sm:block">
-              Kustomisasi mode gelap, aksen warna, dan tema visual aplikasi
+              Pilih paket tema visual siap pakai untuk aplikasi
             </p>
           </div>
         </div>
@@ -179,7 +131,7 @@ export const AppearanceView: React.FC<AppearanceViewProps> = ({
                 Live Preview
               </span>
               <span className="text-[11px] text-[#898989] dark:text-slate-400">
-                Pratinjau langsung tampilan UI yang Anda pilih
+                Pratinjau langsung tema visual yang Anda pilih
               </span>
             </div>
           </div>
@@ -283,229 +235,26 @@ export const AppearanceView: React.FC<AppearanceViewProps> = ({
         </div>
       </div>
 
-      {/* ── 2. MODE TAMPILAN (APPLE DISPLAY & BRIGHTNESS STYLE) ── */}
-      <div className="bg-white dark:bg-[#151C24] rounded-3xl border border-[#BFC9D1]/25 dark:border-white/[0.08] shadow-xs p-4 sm:p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center">
-            <SunIcon className="w-4 h-4 stroke-[2.2]" />
-          </div>
-          <div>
-            <h3 className="font-extrabold text-sm text-[#25343F] dark:text-white leading-tight">
-              Mode Tampilan
-            </h3>
-            <p className="text-[11px] text-[#898989] dark:text-slate-400">
-              Pilih pencahayaan antarmuka sesuai preferensi kenyamanan mata
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
-          {/* Light Mode Mockup */}
-          <button
-            type="button"
-            onClick={() => handleModeChange('light')}
-            className={`group p-2.5 sm:p-3.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-2.5 relative ${
-              theme.mode === 'light'
-                ? 'border-[var(--color-accent)] bg-[#FF9B51]/5 dark:bg-[#FF9B51]/10 ring-2 ring-[var(--color-accent)] shadow-sm'
-                : 'border-[#BFC9D1]/30 dark:border-white/[0.08] bg-[#EAEFEF]/50 dark:bg-white/[0.03] hover:bg-[#EAEFEF] dark:hover:bg-white/[0.06]'
-            }`}
-          >
-            {/* Visual Phone Frame - Light */}
-            <div className="w-full aspect-[4/5] max-w-[120px] rounded-xl bg-white border border-slate-200 shadow-xs p-2 flex flex-col justify-between overflow-hidden">
-              <div className="space-y-1">
-                <div className="w-8 h-1.5 rounded-full bg-slate-200 mx-auto" />
-                <div className="w-full h-4 rounded-md bg-orange-100/70 border border-orange-200/50 flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-orange-600">BisnisUrang</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="w-full h-2 rounded-xs bg-slate-100" />
-                <div className="w-3/4 h-2 rounded-xs bg-slate-100" />
-              </div>
-              <div className="w-full h-2.5 rounded-md bg-slate-200" />
-            </div>
-
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-center gap-1">
-                <SunIcon className="w-3.5 h-3.5 text-amber-500 stroke-[2.5]" />
-                <span className="font-bold text-xs text-[#25343F] dark:text-white">Terang</span>
-              </div>
-              <span className="text-[10px] text-[#898989] dark:text-slate-400 block">Siang Hari</span>
-            </div>
-
-            {/* Apple Check Indicator */}
-            <div
-              className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
-                theme.mode === 'light'
-                  ? 'bg-[var(--color-accent)] text-white ring-2 ring-[var(--color-accent)]/30'
-                  : 'border border-slate-300 dark:border-slate-600 bg-transparent'
-              }`}
-            >
-              {theme.mode === 'light' && <CheckIcon className="w-2.5 h-2.5 stroke-[3]" />}
-            </div>
-          </button>
-
-          {/* Dark Mode Mockup */}
-          <button
-            type="button"
-            onClick={() => handleModeChange('dark')}
-            className={`group p-2.5 sm:p-3.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-2.5 relative ${
-              theme.mode === 'dark'
-                ? 'border-[var(--color-accent)] bg-[#FF9B51]/5 dark:bg-[#FF9B51]/10 ring-2 ring-[var(--color-accent)] shadow-sm'
-                : 'border-[#BFC9D1]/30 dark:border-white/[0.08] bg-[#EAEFEF]/50 dark:bg-white/[0.03] hover:bg-[#EAEFEF] dark:hover:bg-white/[0.06]'
-            }`}
-          >
-            {/* Visual Phone Frame - Dark */}
-            <div className="w-full aspect-[4/5] max-w-[120px] rounded-xl bg-[#0B0F17] border border-slate-800 shadow-xs p-2 flex flex-col justify-between overflow-hidden">
-              <div className="space-y-1">
-                <div className="w-8 h-1.5 rounded-full bg-slate-700 mx-auto" />
-                <div className="w-full h-4 rounded-md bg-orange-950/60 border border-orange-800/40 flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-orange-400">BisnisUrang</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="w-full h-2 rounded-xs bg-slate-800" />
-                <div className="w-3/4 h-2 rounded-xs bg-slate-800" />
-              </div>
-              <div className="w-full h-2.5 rounded-md bg-slate-800" />
-            </div>
-
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-center gap-1">
-                <MoonIcon className="w-3.5 h-3.5 text-indigo-400 stroke-[2.5]" />
-                <span className="font-bold text-xs text-[#25343F] dark:text-white">Gelap</span>
-              </div>
-              <span className="text-[10px] text-[#898989] dark:text-slate-400 block">Malam Hari</span>
-            </div>
-
-            {/* Apple Check Indicator */}
-            <div
-              className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
-                theme.mode === 'dark'
-                  ? 'bg-[var(--color-accent)] text-white ring-2 ring-[var(--color-accent)]/30'
-                  : 'border border-slate-300 dark:border-slate-600 bg-transparent'
-              }`}
-            >
-              {theme.mode === 'dark' && <CheckIcon className="w-2.5 h-2.5 stroke-[3]" />}
-            </div>
-          </button>
-
-          {/* System Mode Mockup */}
-          <button
-            type="button"
-            onClick={() => handleModeChange('system')}
-            className={`group p-2.5 sm:p-3.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center gap-2.5 relative ${
-              theme.mode === 'system'
-                ? 'border-[var(--color-accent)] bg-[#FF9B51]/5 dark:bg-[#FF9B51]/10 ring-2 ring-[var(--color-accent)] shadow-sm'
-                : 'border-[#BFC9D1]/30 dark:border-white/[0.08] bg-[#EAEFEF]/50 dark:bg-white/[0.03] hover:bg-[#EAEFEF] dark:hover:bg-white/[0.06]'
-            }`}
-          >
-            {/* Visual Phone Frame - Split System */}
-            <div className="w-full aspect-[4/5] max-w-[120px] rounded-xl border border-slate-300 dark:border-slate-700 shadow-xs p-2 flex flex-col justify-between overflow-hidden relative bg-gradient-to-r from-white via-white 50% to-[#0B0F17] 50%">
-              <div className="space-y-1 relative z-10">
-                <div className="w-8 h-1.5 rounded-full bg-slate-400 mx-auto" />
-                <div className="w-full h-4 rounded-md bg-white/80 dark:bg-black/80 backdrop-blur-xs border border-slate-300 dark:border-slate-700 flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-[#25343F] dark:text-white">Auto</span>
-                </div>
-              </div>
-              <div className="space-y-1 relative z-10">
-                <div className="w-full h-2 rounded-xs bg-slate-300/60 dark:bg-slate-700/60" />
-                <div className="w-3/4 h-2 rounded-xs bg-slate-300/60 dark:bg-slate-700/60" />
-              </div>
-              <div className="w-full h-2.5 rounded-md bg-slate-400/50" />
-            </div>
-
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-center gap-1">
-                <ComputerDesktopIcon className="w-3.5 h-3.5 text-sky-500 stroke-[2.5]" />
-                <span className="font-bold text-xs text-[#25343F] dark:text-white">Otomatis</span>
-              </div>
-              <span className="text-[10px] text-[#898989] dark:text-slate-400 block">Ikuti HP</span>
-            </div>
-
-            {/* Apple Check Indicator */}
-            <div
-              className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
-                theme.mode === 'system'
-                  ? 'bg-[var(--color-accent)] text-white ring-2 ring-[var(--color-accent)]/30'
-                  : 'border border-slate-300 dark:border-slate-600 bg-transparent'
-              }`}
-            >
-              {theme.mode === 'system' && <CheckIcon className="w-2.5 h-2.5 stroke-[3]" />}
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* ── 3. WARNA AKSEN APLIKASI (APPLE ACCENT PALETTE) ── */}
-      <div className="bg-white dark:bg-[#151C24] rounded-3xl border border-[#BFC9D1]/25 dark:border-white/[0.08] shadow-xs p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center">
-              <SwatchIcon className="w-4 h-4 stroke-[2.2]" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-[#25343F] dark:text-white leading-tight">
-                Warna Aksen Aplikasi
-              </h3>
-              <p className="text-[11px] text-[#898989] dark:text-slate-400">
-                Pilih warna utama untuk tombol aksi, indikator, dan navigasi
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 sm:gap-3">
-          {ACCENT_PRESETS.map(preset => {
-            const isSelected = theme.accentColor?.toLowerCase() === preset.hex.toLowerCase();
-            return (
-              <button
-                key={preset.hex}
-                type="button"
-                onClick={() => handleAccentChange(preset.hex)}
-                className={`group flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all cursor-pointer active:scale-90 ${
-                  isSelected
-                    ? 'bg-[#EAEFEF] dark:bg-white/[0.08] ring-1 ring-black/[0.08] dark:ring-white/[0.12]'
-                    : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.03]'
-                }`}
-                title={preset.label}
-              >
-                <div
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105 ${
-                    isSelected ? 'ring-3 ring-offset-2 ring-[var(--color-accent)] ring-offset-white dark:ring-offset-[#151C24]' : ''
-                  }`}
-                  style={{ backgroundColor: preset.hex }}
-                >
-                  {isSelected && <CheckIcon className="w-4 h-4 text-white stroke-[3] drop-shadow-xs" />}
-                </div>
-                <span className="text-[10px] font-bold text-[#25343F] dark:text-slate-300 truncate max-w-full text-center">
-                  {preset.label.split(' ')[0]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── 4. KOLEKSI TEMA STUDIO (CURATED THEME PRESETS) ── */}
-      <div className="bg-white dark:bg-[#151C24] rounded-3xl border border-[#BFC9D1]/25 dark:border-white/[0.08] shadow-xs p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
+      {/* ── 2. TEMA SIAP PAKAI (APPLE MINIMALIST INSET LIST) ── */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <SparklesIcon className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
               <h3 className="font-extrabold text-sm text-[#25343F] dark:text-white leading-tight">
-                Koleksi Tema Siap Pakai
+                Pilihan Tema Siap Pakai
               </h3>
               <p className="text-[11px] text-[#898989] dark:text-slate-400">
-                Paket kombinasi visual lengkap yang dirancang harmonis
+                Sentuh salah satu tema untuk langsung menerapkan warna &amp; tampilan
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Minimalist Apple Grouped Inset Card */}
+        <div className="bg-white dark:bg-[#151C24] rounded-3xl border border-[#BFC9D1]/25 dark:border-white/[0.08] shadow-xs divide-y divide-black/[0.04] dark:divide-white/[0.06] overflow-hidden">
           {THEME_PRESETS.map(p => {
             const isPresetActive = theme.presetId === p.id;
             return (
@@ -513,92 +262,56 @@ export const AppearanceView: React.FC<AppearanceViewProps> = ({
                 key={p.id}
                 type="button"
                 onClick={() => handleApplyPreset(p)}
-                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-3 group relative active:scale-[0.98] ${
+                className={`w-full p-3.5 sm:p-4 text-left transition-all cursor-pointer flex items-center justify-between gap-3.5 group relative ${
                   isPresetActive
-                    ? 'border-[#25343F] dark:border-white bg-[#EAEFEF]/90 dark:bg-white/[0.08] ring-2 ring-[#25343F] dark:ring-white shadow-xs'
-                    : 'border-[#BFC9D1]/30 dark:border-white/[0.08] bg-white dark:bg-[#121820] hover:bg-[#EAEFEF]/50 dark:hover:bg-white/[0.04]'
+                    ? 'bg-[#FF9B51]/[0.06] dark:bg-white/[0.04]'
+                    : 'hover:bg-black/[0.015] dark:hover:bg-white/[0.02] active:bg-black/[0.04] dark:active:bg-white/[0.05]'
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
+                {/* Left Swatch Preview */}
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div
+                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl shrink-0 relative overflow-hidden shadow-xs border border-black/[0.06] dark:border-white/[0.1] flex items-center justify-center transition-transform duration-200 group-hover:scale-105"
+                    style={{
+                      background: p.heroGradient || `linear-gradient(135deg, ${p.heroLightStart} 0%, ${p.heroLightEnd} 100%)`,
+                    }}
+                  >
+                    {/* Micro dot indicator on swatch */}
                     <div
-                      className="w-4 h-4 rounded-full shrink-0 shadow-2xs"
+                      className="w-3 h-3 rounded-full border border-white/60 shadow-xs"
                       style={{ backgroundColor: p.accentColor }}
                     />
-                    <span className="font-bold text-xs text-[#25343F] dark:text-white truncate">
-                      {p.name}
-                    </span>
                   </div>
-                  {isPresetActive && (
-                    <span className="text-[10px] font-black text-white bg-[#25343F] dark:bg-slate-700 px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
-                      <CheckIcon className="w-3 h-3 stroke-[3]" /> Aktif
-                    </span>
-                  )}
-                </div>
 
-                <p className="text-[11px] text-[#898989] dark:text-slate-400 line-clamp-2 leading-relaxed">
-                  {p.description}
-                </p>
-
-                {/* Theme Ribbon */}
-                <div
-                  className="h-2.5 rounded-full w-full opacity-90 shadow-2xs"
-                  style={{
-                    background: `linear-gradient(90deg, ${p.heroLightStart} 0%, ${p.accentColor} 50%, ${p.heroLightEnd} 100%)`,
-                  }}
-                />
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── 5. GAYA BANNER BERANDA (HERO CARDS) ── */}
-      <div className="bg-white dark:bg-[#151C24] rounded-3xl border border-[#BFC9D1]/25 dark:border-white/[0.08] shadow-xs p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <RectangleStackIcon className="w-4 h-4 stroke-[2.2]" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-[#25343F] dark:text-white leading-tight">
-                Gaya Banner Beranda
-              </h3>
-              <p className="text-[11px] text-[#898989] dark:text-slate-400">
-                Pilih gradasi kartu selamat datang pada halaman Dashboard
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-          {HERO_PRESETS.map(hero => {
-            const isHeroActive = theme.heroCard?.presetId === hero.id;
-            return (
-              <button
-                key={hero.id}
-                type="button"
-                onClick={() => handleApplyHeroPreset(hero)}
-                className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-2 relative active:scale-95 ${
-                  isHeroActive
-                    ? 'border-[var(--color-accent)] ring-2 ring-[var(--color-accent)] bg-[#EAEFEF] dark:bg-white/[0.08] shadow-xs'
-                    : 'border-[#BFC9D1]/30 dark:border-white/[0.08] bg-white dark:bg-[#121820] hover:bg-[#EAEFEF]/40'
-                }`}
-              >
-                <div
-                  className="h-10 rounded-xl w-full relative overflow-hidden shadow-xs flex items-center justify-center"
-                  style={{ background: hero.gradient }}
-                >
-                  {isHeroActive && (
-                    <div className="w-5 h-5 rounded-full bg-white/90 text-[#25343F] flex items-center justify-center shadow-xs">
-                      <CheckIcon className="w-3 h-3 stroke-[3]" />
+                  {/* Information */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-xs sm:text-sm text-[#25343F] dark:text-white truncate">
+                        {p.name}
+                      </span>
+                      {isPresetActive && (
+                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
+                          Aktif
+                        </span>
+                      )}
                     </div>
-                  )}
+                    <p className="text-[11px] sm:text-xs text-[#898989] dark:text-slate-400 font-medium truncate mt-0.5">
+                      {p.description}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between min-w-0">
-                  <span className="font-bold text-[11px] text-[#25343F] dark:text-white truncate">
-                    {hero.label.replace(/^\d+\.\s*/, '')}
-                  </span>
+
+                {/* Right Apple Radio Indicator */}
+                <div className="shrink-0 flex items-center">
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 ${
+                      isPresetActive
+                        ? 'bg-[var(--color-accent)] text-white shadow-xs scale-100 ring-2 ring-[var(--color-accent)]/25'
+                        : 'border border-slate-300 dark:border-slate-600 bg-transparent opacity-60 group-hover:opacity-100'
+                    }`}
+                  >
+                    {isPresetActive && <CheckIcon className="w-3.5 h-3.5 stroke-[3]" />}
+                  </div>
                 </div>
               </button>
             );
@@ -618,7 +331,7 @@ export const AppearanceView: React.FC<AppearanceViewProps> = ({
                 Atur Ulang Tampilan?
               </h3>
               <p className="text-xs text-[#898989] dark:text-slate-400 leading-relaxed">
-                Preferensi mode tampilan, warna aksen, dan tema akan dikembalikan ke setelan default aplikasi.
+                Preferensi tema visual akan dikembalikan ke setelan default aplikasi.
               </p>
             </div>
             <div className="flex items-center gap-2.5 pt-2">
