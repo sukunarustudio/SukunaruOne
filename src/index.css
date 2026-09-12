@@ -151,43 +151,40 @@ html.dark .apple-glass-notification {
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12) !important;
 }
 
-/* ── Apple Liquid Glass Dynamic Theme Accent Buttons & FABs ── */
+/* ── Apple Vibrant Glossy Glass Action Buttons & FABs ── */
 .apple-glass-fab,
 .apple-glass-pill-accent,
 .apple-glass-btn-accent {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(0, 0, 0, 0.04) 100%), rgba(var(--color-accent-rgb, 255, 106, 0), 0.72) !important;
-  backdrop-filter: blur(24px) saturate(200%) contrast(105%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(200%) contrast(105%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.12) 100%), var(--color-accent, #FF6A00) !important;
   color: #FFFFFF !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.65) !important;
-  box-shadow: 0 10px 32px -4px rgba(var(--color-accent-rgb, 255, 106, 0), 0.45), 0 4px 14px 0 rgba(0, 0, 0, 0.12), inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.85), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 10px 24px -4px rgba(var(--color-accent-rgb, 255, 106, 0), 0.48), 0 3px 8px 0 rgba(0, 0, 0, 0.10), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.50), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.22) !important;
   transition: transform 160ms var(--ease-apple-out), box-shadow 160ms var(--ease-apple-out), filter 160ms ease !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .apple-glass-fab:hover,
 .apple-glass-pill-accent:hover,
 .apple-glass-btn-accent:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.16) 50%, rgba(0, 0, 0, 0.04) 100%), rgba(var(--color-accent-rgb, 255, 106, 0), 0.80) !important;
-  transform: translateY(-1px) scale(1.03) !important;
-  filter: brightness(1.06);
-  box-shadow: 0 14px 38px -4px rgba(var(--color-accent-rgb, 255, 106, 0), 0.55), 0 6px 18px 0 rgba(0, 0, 0, 0.15), inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.15) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.08) 100%), var(--color-accent, #FF6A00) !important;
+  transform: translateY(-1px) scale(1.025) !important;
+  filter: brightness(1.05);
+  box-shadow: 0 14px 30px -4px rgba(var(--color-accent-rgb, 255, 106, 0), 0.58), 0 5px 12px 0 rgba(0, 0, 0, 0.14), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.60), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.22) !important;
 }
 
 .apple-glass-fab:active,
 .apple-glass-pill-accent:active,
 .apple-glass-btn-accent:active {
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(255, 255, 255, 0.10) 100%), rgba(var(--color-accent-rgb, 255, 106, 0), 0.82) !important;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%), var(--color-accent, #FF6A00) !important;
   transform: scale(0.95) !important;
-  box-shadow: 0 4px 14px -2px rgba(var(--color-accent-rgb, 255, 106, 0), 0.35), 0 2px 6px 0 rgba(0, 0, 0, 0.12), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 4px 12px -2px rgba(var(--color-accent-rgb, 255, 106, 0), 0.35), 0 2px 6px 0 rgba(0, 0, 0, 0.10), inset 0 1px 1px 0 rgba(0, 0, 0, 0.25) !important;
 }
 
 html.dark .apple-glass-fab,
 html.dark .apple-glass-pill-accent,
 html.dark .apple-glass-btn-accent {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(0, 0, 0, 0.15) 100%), rgba(var(--color-accent-rgb, 255, 106, 0), 0.68) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.38) !important;
-  box-shadow: 0 10px 32px -4px rgba(var(--color-accent-rgb, 255, 106, 0), 0.55), 0 4px 18px 0 rgba(0, 0, 0, 0.45), inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.60), inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.30) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.18) 100%), var(--color-accent, #FF6A00) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: 0 10px 28px -4px rgba(var(--color-accent-rgb, 255, 106, 0), 0.60), 0 4px 14px 0 rgba(0, 0, 0, 0.40), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.30) !important;
 }
 
 /* ── Scrollbar Utilities ── */
