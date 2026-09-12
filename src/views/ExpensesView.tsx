@@ -353,27 +353,24 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onRefreshDashboard }
                   placeholder="0"
                   className="w-full px-3 py-2 bg-white border border-[#BFC9D1]/25 rounded-xl text-base font-bold text-[#25343F] text-[#c45e00]"
                 />
-                {/* Quick Nominal Presets */}
+                {/* Quick Nominal Presets (Akumulatif) */}
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {[10000, 20000, 50000, 100000, 200000, 500000].map(val => (
                     <button
                       key={val}
                       type="button"
-                      onClick={() => setAmount(val)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer font-mono active:scale-95 ${
-                        amount === val
-                          ? 'bg-[#25343F] text-white border-[#25343F]'
-                          : 'bg-[#F8FAFC] hover:bg-[#EAEFEF] text-[#25343F] border-[#BFC9D1]/30'
-                      }`}
+                      onClick={() => setAmount(prev => (prev || 0) + val)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer font-mono active:scale-90 bg-[#F8FAFC] hover:bg-[#EAEFEF] text-[#25343F] border-[#BFC9D1]/30 hover:border-[#FF9B51]"
                     >
-                      {formatRupiah(val)}
+                      +{val.toLocaleString('id-ID')}
                     </button>
                   ))}
                   {amount > 0 && (
                     <button
                       type="button"
                       onClick={() => setAmount(0)}
-                      className="px-2 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all cursor-pointer active:scale-95"
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all cursor-pointer active:scale-90"
+                      title="Reset Nominal ke 0"
                     >
                       Reset
                     </button>
