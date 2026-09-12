@@ -479,9 +479,9 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
     setIsPaymentModalOpen(true);
   };
 
-  // Quick Amount preset
-  const setQuickNominal = (val: number) => {
-    setAmountPaid(val);
+  // Quick Amount preset (Additive)
+  const addQuickNominal = (val: number) => {
+    setAmountPaid(prev => (prev || 0) + val);
   };
 
   // Complete POS Transaction
@@ -1171,24 +1171,35 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
                   className="w-full px-4 py-2.5 bg-white border border-[#BFC9D1]/25 rounded-xl text-lg font-bold text-[#25343F] focus:outline-hidden focus:border-[#BFC9D1]"
                 />
 
-                {/* Quick Nominal Presets */}
+                {/* Quick Nominal Presets (Akumulatif) */}
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   <button
                     type="button"
-                    onClick={() => setQuickNominal(finalTotal)}
-                    className="px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] text-xs font-semibold cursor-pointer"
+                    onClick={() => setAmountPaid(finalTotal)}
+                    className="px-2.5 py-1 rounded-lg bg-[#25343F] text-white text-xs font-bold cursor-pointer active:scale-90 transition-all shadow-2xs"
                   >
                     Uang Pas
                   </button>
-                  {[10000, 20000, 50000, 100000, 200000].map(val => (
+                  {[5000, 10000, 20000, 50000, 100000, 200000, 500000].map(val => (
                     <button
                       key={val}
                       type="button"
-                      onClick={() => setQuickNominal(val)}
-                      className="px-2.5 py-1 rounded-lg bg-[#EAEFEF] hover:bg-[#EAEFEF] text-[#25343F] text-xs font-semibold cursor-pointer font-mono"
-                    >{formatRupiah(val)}
+                      onClick={() => addQuickNominal(val)}
+                      className="px-2.5 py-1 rounded-lg bg-[#F8FAFC] hover:bg-[#EAEFEF] text-[#25343F] text-xs font-bold border border-[#BFC9D1]/30 hover:border-[#FF9B51] cursor-pointer font-mono active:scale-90 transition-all"
+                    >
+                      +{val.toLocaleString('id-ID')}
                     </button>
                   ))}
+                  {amountPaid > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAmountPaid(0)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all cursor-pointer active:scale-90"
+                      title="Reset Nominal ke 0"
+                    >
+                      Reset
+                    </button>
+                  )}
                 </div>
               </div>
 

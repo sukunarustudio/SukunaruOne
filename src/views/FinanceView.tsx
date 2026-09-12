@@ -794,7 +794,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({ onRefreshDashboard, on
 
                 {/* Preset Nominal Cepat (Akumulatif / Menambah Otomatis) */}
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {[10000, 20000, 50000, 100000, 200000, 500000].map(val => (
+                  {[5000, 10000, 20000, 50000, 100000, 200000, 500000].map(val => (
                     <button
                       key={val}
                       type="button"
