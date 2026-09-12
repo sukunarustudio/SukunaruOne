@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { ArrowPathIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void> | void;
@@ -11,30 +11,32 @@ interface PullToRefreshProps {
   isRefreshing?: boolean;
 }
 
+type RefreshStatus = 'idle' | 'pulling' | 'refreshing' | 'completed';
+
 export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   onRefresh,
   children,
   disabled = false,
-  threshold = 64,
-  maxPullDistance = 96,
+  threshold = 60,
+  maxPullDistance = 110,
   className = '',
   isRefreshing: externalIsRefreshing,
 }) => {
   const [pullDistance, setPullDistance] = useState(0);
-  const [isPulling, setIsPulling] = useState(false);
-  const [internalIsRefreshing, setInternalIsRefreshing] = useState(false);
+  const [status, setStatus] = useState<RefreshStatus>('idle');
   const [hasTriggeredHaptic, setHasTriggeredHaptic] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number>(0);
   const touchStartX = useRef<number>(0);
   const canPullRef = useRef<boolean>(false);
-  const isRefreshingRef = useRef<boolean>(false);
+  const statusRef = useRef<RefreshStatus>('idle');
+  const pullDistanceRef = useRef<number>(0);
 
-  const isRefreshing = externalIsRefreshing !== undefined ? externalIsRefreshing : internalIsRefreshing;
-  isRefreshingRef.current = isRefreshing;
+  statusRef.current = status;
+  pullDistanceRef.current = pullDistance;
 
-  // Helper to find the nearest scrollable parent element
+  // Helper to find the scrollable container
   const getScrollParent = useCallback((): HTMLElement | null => {
     let el: HTMLElement | null = containerRef.current;
     while (el) {
@@ -50,169 +52,204 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
     return document.getElementById('main-content-scrollable') || document.documentElement;
   }, []);
 
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (disabled || isRefreshingRef.current) return;
-
-    const scrollEl = getScrollParent();
-    const scrollTop = scrollEl ? scrollEl.scrollTop : window.scrollY;
-
-    // Only allow pull-to-refresh if user is at the very top of the scroll container
-    if (scrollTop <= 1) {
-      canPullRef.current = true;
-      touchStartY.current = e.touches[0].clientY;
-      touchStartX.current = e.touches[0].clientX;
-      setHasTriggeredHaptic(false);
-    } else {
-      canPullRef.current = false;
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (disabled || isRefreshingRef.current || !canPullRef.current) return;
-
-    const currentY = e.touches[0].clientY;
-    const currentX = e.touches[0].clientX;
-    const deltaY = currentY - touchStartY.current;
-    const deltaX = currentX - touchStartX.current;
-
-    // Check if user has scrolled down while dragging
-    const scrollEl = getScrollParent();
-    const scrollTop = scrollEl ? scrollEl.scrollTop : window.scrollY;
-    if (scrollTop > 1) {
-      canPullRef.current = false;
-      setIsPulling(false);
-      setPullDistance(0);
-      return;
-    }
-
-    // Cancel if horizontal swipe dominates (e.g. carousel or swipe gestures)
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaY) < 15) {
-      canPullRef.current = false;
-      return;
-    }
-
-    // If pulling downwards from top
-    if (deltaY > 0) {
-      setIsPulling(true);
-
-      // Apply logarithmic / damped rubber-band physics
-      const dampedDistance = Math.min(Math.pow(deltaY, 0.8) * 1.1, maxPullDistance);
-      setPullDistance(dampedDistance);
-
-      // Light haptic feedback on reaching the threshold
-      if (dampedDistance >= threshold && !hasTriggeredHaptic) {
-        setHasTriggeredHaptic(true);
-        try {
-          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            navigator.vibrate(15);
-          }
-        } catch {}
-      } else if (dampedDistance < threshold && hasTriggeredHaptic) {
-        setHasTriggeredHaptic(false);
-      }
-    } else {
-      setIsPulling(false);
-      setPullDistance(0);
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    if (disabled || isRefreshingRef.current || !canPullRef.current) {
-      canPullRef.current = false;
-      setIsPulling(false);
-      setPullDistance(0);
-      return;
-    }
-
-    canPullRef.current = false;
-    setIsPulling(false);
-
-    if (pullDistance >= threshold) {
-      setInternalIsRefreshing(true);
-      setPullDistance(48); // Resting position for spinner & content
-
-      try {
-        await onRefresh();
-      } catch (err) {
-        console.error('Pull to refresh error:', err);
-      } finally {
-        // Smoothly return back to resting position
-        setTimeout(() => {
-          setInternalIsRefreshing(false);
+  // Sync external isRefreshing state safely
+  useEffect(() => {
+    if (externalIsRefreshing !== undefined) {
+      if (externalIsRefreshing && statusRef.current === 'idle') {
+        setStatus('refreshing');
+        setPullDistance(52);
+      } else if (!externalIsRefreshing && statusRef.current === 'refreshing') {
+        setStatus('completed');
+        const timer = setTimeout(() => {
           setPullDistance(0);
-        }, 250);
+          setTimeout(() => setStatus('idle'), 280);
+        }, 200);
+        return () => clearTimeout(timer);
       }
-    } else {
-      // Released before threshold: spring back to 0
-      setPullDistance(0);
     }
-  };
+  }, [externalIsRefreshing]);
 
-  const handleTouchCancel = () => {
-    canPullRef.current = false;
-    setIsPulling(false);
-    if (!isRefreshing) {
-      setPullDistance(0);
-    }
-  };
+  // Non-passive native touch event listeners for Capacitor / Android WebView smoothness
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || disabled) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (statusRef.current === 'refreshing' || statusRef.current === 'completed') return;
+
+      const scrollEl = getScrollParent();
+      const scrollTop = scrollEl ? scrollEl.scrollTop : window.scrollY;
+
+      if (scrollTop <= 1) {
+        canPullRef.current = true;
+        touchStartY.current = e.touches[0].clientY;
+        touchStartX.current = e.touches[0].clientX;
+        setHasTriggeredHaptic(false);
+      } else {
+        canPullRef.current = false;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!canPullRef.current || statusRef.current === 'refreshing' || statusRef.current === 'completed') return;
+
+      const currentY = e.touches[0].clientY;
+      const currentX = e.touches[0].clientX;
+      const deltaY = currentY - touchStartY.current;
+      const deltaX = currentX - touchStartX.current;
+
+      const scrollEl = getScrollParent();
+      const scrollTop = scrollEl ? scrollEl.scrollTop : window.scrollY;
+
+      if (scrollTop > 1) {
+        canPullRef.current = false;
+        setStatus('idle');
+        setPullDistance(0);
+        return;
+      }
+
+      // If user is pulling downwards
+      if (deltaY > 0) {
+        // Prevent default browser scroll conflict on WebView
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+
+        // Apple rubber-band damping curve: fast response initially, graceful resistance at end
+        const damped = Math.min(deltaY * 0.48, maxPullDistance);
+        setStatus('pulling');
+        setPullDistance(damped);
+
+        if (damped >= threshold && !hasTriggeredHaptic) {
+          setHasTriggeredHaptic(true);
+          try {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              navigator.vibrate(15);
+            }
+          } catch {}
+        } else if (damped < threshold && hasTriggeredHaptic) {
+          setHasTriggeredHaptic(false);
+        }
+      } else {
+        setStatus('idle');
+        setPullDistance(0);
+      }
+    };
+
+    const onTouchEnd = async () => {
+      if (!canPullRef.current || statusRef.current === 'refreshing' || statusRef.current === 'completed') {
+        canPullRef.current = false;
+        return;
+      }
+
+      canPullRef.current = false;
+
+      if (pullDistanceRef.current >= threshold) {
+        setStatus('refreshing');
+        setPullDistance(52); // Resting position for refresh indicator & dashboard content
+
+        const startTime = Date.now();
+        try {
+          await onRefresh();
+        } catch (err) {
+          console.error('PullToRefresh execution error:', err);
+        }
+
+        // Ensure minimum 350ms display so gesture feels intentional and stable
+        const elapsed = Date.now() - startTime;
+        const delay = Math.max(0, 350 - elapsed);
+
+        setTimeout(() => {
+          setStatus('completed');
+          setTimeout(() => {
+            setPullDistance(0);
+            setTimeout(() => setStatus('idle'), 280);
+          }, 180);
+        }, delay);
+      } else {
+        // Released before threshold: spring back to 0
+        setStatus('idle');
+        setPullDistance(0);
+      }
+    };
+
+    const onTouchCancel = () => {
+      canPullRef.current = false;
+      if (statusRef.current !== 'refreshing' && statusRef.current !== 'completed') {
+        setStatus('idle');
+        setPullDistance(0);
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchCancel, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchCancel);
+    };
+  }, [disabled, threshold, maxPullDistance, onRefresh, getScrollParent, hasTriggeredHaptic]);
 
   const progress = Math.min(pullDistance / threshold, 1);
   const isThresholdReached = pullDistance >= threshold;
-  const iconRotation = isRefreshing ? 0 : progress * 360;
+  const isPulling = status === 'pulling';
+  const isRefreshing = status === 'refreshing';
+  const isCompleted = status === 'completed';
 
-  // Active translation for content area
-  const contentTranslateY = isRefreshing ? 48 : pullDistance;
+  // Rotation while dragging
+  const iconRotation = isRefreshing ? 0 : progress * 360;
 
   return (
     <div
       ref={containerRef}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchCancel}
       className={`relative w-full ${className}`}
+      style={{ touchAction: 'pan-x pan-down pan-up' }}
     >
-      {/* ── Apple-Style Top Spinner Indicator ── */}
-      <div
-        className="pointer-events-none absolute left-0 right-0 top-0 z-20 flex justify-center items-center overflow-hidden"
-        style={{
-          height: isRefreshing ? 48 : Math.max(pullDistance, 0),
-          opacity: pullDistance > 8 || isRefreshing ? 1 : 0,
-          transition: isPulling
-            ? 'opacity 0.15s ease'
-            : 'height 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease',
-        }}
-      >
+      {/* ── Apple-Style Top Floating Indicator ── */}
+      {(pullDistance > 4 || isRefreshing || isCompleted) && (
         <div
-          className={`flex items-center justify-center rounded-full shadow-sm ${
-            isRefreshing || isThresholdReached
-              ? 'bg-white dark:bg-[#151D28] border border-[#FF9B51]/40 text-[#FF9B51]'
-              : 'bg-white/90 dark:bg-[#1a2332]/90 border border-black/[0.08] dark:border-white/[0.1] text-[#8E8E93]'
-          }`}
+          className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex justify-center items-center"
           style={{
-            width: 32,
-            height: 32,
-            transform: `scale(${isRefreshing ? 1 : 0.75 + progress * 0.25})`,
-            transition: isPulling ? 'none' : 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
+            transform: `translate3d(0, ${Math.max(pullDistance * 0.45 - 6, 8)}px, 0)`,
+            opacity: isRefreshing || isCompleted ? 1 : Math.min(pullDistance / 20, 1),
+            transition: isPulling ? 'none' : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease',
           }}
         >
-          <ArrowPathIcon
-            className={`w-4 h-4 stroke-[2.5] ${isRefreshing ? 'animate-spin' : ''}`}
-            style={{
-              transform: isRefreshing ? undefined : `rotate(${iconRotation}deg)`,
-              transition: isPulling ? 'none' : 'transform 0.2s ease',
-            }}
-          />
+          <div
+            className={`w-8 h-8 rounded-full shadow-md flex items-center justify-center transition-all duration-200 ${
+              isCompleted
+                ? 'bg-emerald-500 text-white border border-emerald-400 scale-105 shadow-emerald-500/20'
+                : isRefreshing || isThresholdReached
+                ? 'bg-white dark:bg-[#151D28] border border-[var(--color-accent,#FF6A00)] text-[var(--color-accent,#FF6A00)] scale-105 shadow-lg'
+                : 'bg-white/95 dark:bg-[#1a2332]/95 border border-black/10 dark:border-white/10 text-slate-500 scale-95'
+            }`}
+          >
+            {isCompleted ? (
+              <CheckIcon className="w-4 h-4 stroke-[3] animate-in zoom-in-50 duration-150" />
+            ) : (
+              <ArrowPathIcon
+                className={`w-4 h-4 stroke-[2.5] ${isRefreshing ? 'animate-spin' : ''}`}
+                style={{
+                  transform: isRefreshing ? undefined : `rotate(${iconRotation}deg)`,
+                  transition: isPulling ? 'none' : 'transform 0.2s ease',
+                }}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── Content Area — Translates fluidly with gesture ── */}
+      {/* ── Dashboard Content Area — Translates smoothly with gesture ── */}
       <div
         style={{
-          transform: contentTranslateY > 0 ? `translate3d(0, ${contentTranslateY}px, 0)` : undefined,
+          transform: pullDistance > 0 ? `translate3d(0, ${pullDistance}px, 0)` : 'translate3d(0, 0, 0)',
           transition: isPulling
             ? 'none'
-            : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)',
+            : 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
           willChange: isPulling || isRefreshing ? 'transform' : 'auto',
         }}
       >
@@ -221,3 +258,5 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
     </div>
   );
 };
+
+export default PullToRefresh;
