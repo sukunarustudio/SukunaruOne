@@ -7,6 +7,7 @@ import {
   ChartPieIcon,
   ArrowLeftIcon,
   CurrencyDollarIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import {
   ResponsiveContainer,
@@ -121,12 +122,40 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
     { name: 'Kemasan & Packaging', value: packagingCost, color: '#EC4899' },
   ].filter(d => d.value > 0);
 
+  // Reset calculation form
+  const handleReset = () => {
+    setCalculationName('');
+    setBatchQuantity(100);
+    if (materials.length > 0) {
+      setSelectedMaterialId(materials[0].id);
+      setMaterialUnitCost(materials[0].unitCost);
+    } else {
+      setSelectedMaterialId('');
+      setMaterialUnitCost(0);
+    }
+    setMaterialQtyPerUnit(1);
+    setInkCost(0);
+    setElectricityCost(0);
+    setLaborCost(0);
+    setMachineDepreciationCost(0);
+    setFinishingCost(0);
+    setPackagingCost(0);
+    setMarginPercent(50);
+    setCustomSellingPrice(0);
+    showToast('Kalkulator HPP berhasil direset', 'info');
+  };
+
   // Save to Product
   const handleSaveAsProduct = async () => {
     try {
+      if (!calculationName.trim()) {
+        showToast('Masukkan nama produk terlebih dahulu', 'warning');
+        return;
+      }
+
       const payload = {
         sku: `PRD-${Math.floor(1000 + Math.random() * 9000)}`,
-        name: calculationName,
+        name: calculationName.trim(),
         category: 'Umum',
         type: 'PHYSICAL' as const,
         unit: 'pcs',
@@ -141,7 +170,7 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
       };
 
       await api.createProduct(payload);
-      showToast(`Produk "${calculationName}" berhasil ditambahkan ke Katalog Produk!`, 'success');
+      showToast(`Produk "${calculationName.trim()}" berhasil ditambahkan ke Katalog Produk!`, 'success');
       if (onSavedToProducts) onSavedToProducts();
     } catch (err: any) {
       showToast(err.message || 'Gagal menyimpan ke produk', 'error');
@@ -170,6 +199,17 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
             </p>
           </div>
         </div>
+
+        <button
+          id="btn-reset-hpp"
+          type="button"
+          onClick={handleReset}
+          className="h-9 px-3.5 bg-white dark:bg-[#151C24] hover:bg-rose-50 hover:border-rose-300 text-[#25343F] hover:text-rose-600 dark:text-slate-200 dark:hover:text-rose-400 dark:hover:bg-rose-500/10 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 border border-[#BFC9D1]/40 dark:border-white/[0.08] shadow-xs"
+          title="Reset semua hitungan HPP"
+        >
+          <ArrowPathIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+          <span>Reset</span>
+        </button>
       </div>
 
       {/* ── TOP HIGHLIGHT SUMMARY CARD (Live Output) ── */}
@@ -475,16 +515,27 @@ export const HppCalculatorView: React.FC<HppCalculatorViewProps> = ({
               </div>
             </div>
 
-            {/* Simpan ke Katalog Produk Button */}
-            <button
-              id="btn-save-hpp-to-product"
-              type="button"
-              onClick={handleSaveAsProduct}
-              className="w-full mt-2 py-2.5 px-4 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
-            >
-              <DocumentCheckIcon className="w-4 h-4" />
-              <span>Simpan ke Katalog Produk</span>
-            </button>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="py-2.5 px-3.5 bg-white dark:bg-[#151C24] hover:bg-rose-50 hover:border-rose-300 text-[#898989] hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 border border-[#BFC9D1]/30 dark:border-white/[0.08] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                title="Reset Hitungan"
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+                <span>Reset</span>
+              </button>
+              <button
+                id="btn-save-hpp-to-product"
+                type="button"
+                onClick={handleSaveAsProduct}
+                className="flex-1 py-2.5 px-4 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
+              >
+                <DocumentCheckIcon className="w-4 h-4" />
+                <span>Simpan ke Katalog</span>
+              </button>
+            </div>
           </div>
 
           {/* Cost Composition Chart */}
