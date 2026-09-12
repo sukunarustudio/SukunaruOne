@@ -448,8 +448,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
         </div>
       )}
 
+      {/* ── TOP HEADER (BisnisUrang Brand & Clean Date Layout - Fixed/Sticky at top of Beranda) ── */}
+      <div className="sticky top-0 z-20 bg-[#EAEFEF]/95 dark:bg-[#0B0F17]/95 backdrop-blur-xl pt-1 pb-2 flex items-center justify-between gap-3 max-w-2xl lg:max-w-7xl mx-auto px-0.5 border-b border-black/[0.04] dark:border-white/[0.05]">
+        <div className="min-w-0">
+          <h1
+            id="dashboard-header-title"
+            className="dashboard-title-text text-2xl sm:text-3xl font-black tracking-tight leading-tight truncate text-[#25343F] dark:text-white"
+          >
+            BisnisUrang
+          </h1>
+          <p className="text-xs sm:text-[13px] font-medium text-[#898989] dark:text-slate-400 tracking-tight mt-0.5 truncate">
+            {dateLabel}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Quick Search trigger (Mobile) */}
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="flex md:hidden items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-black/[0.06] dark:border-white/[0.08] text-xs text-[#898989] hover:text-[#25343F] shadow-xs transition-all cursor-pointer active:scale-95"
+            title="Cari transaksi, produk, pelanggan..."
+          >
+            <MagnifyingGlassIcon className="w-4 h-4 text-zinc-500" />
+            <span className="font-semibold text-[11px]">Cari</span>
+          </button>
+        </div>
+      </div>
+
       <PullToRefresh onRefresh={() => loadData(true)} isRefreshing={refreshing}>
-        <div id="dashboard-view" className="space-y-4 max-w-2xl lg:max-w-7xl mx-auto pb-12 px-0.5">
+        <div id="dashboard-view" className="space-y-4 max-w-2xl lg:max-w-7xl mx-auto pb-12 px-0.5 pt-2">
 
           {isPro && isTrial && daysRemaining !== null && daysRemaining <= 5 && (
             <div className="bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 px-4 py-2.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-2xs">
@@ -465,34 +493,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
               </button>
             </div>
           )}
-
-          {/* ── TOP HEADER (BisnisUrang Brand & Clean Date Layout) ── */}
-          <div className="flex items-center justify-between gap-3 pt-1 pb-1">
-            <div className="min-w-0">
-              <h1
-                id="dashboard-header-title"
-                className="dashboard-title-text text-2xl sm:text-3xl font-black tracking-tight leading-tight truncate text-[#25343F] dark:text-white"
-              >
-                BisnisUrang
-              </h1>
-              <p className="text-xs sm:text-[13px] font-medium text-[#898989] dark:text-slate-400 tracking-tight mt-0.5 truncate">
-                {dateLabel}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Quick Search trigger (Mobile) */}
-              <button
-                type="button"
-                onClick={onOpenSearch}
-                className="flex md:hidden items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-black/[0.06] dark:border-white/[0.08] text-xs text-[#898989] hover:text-[#25343F] shadow-xs transition-all cursor-pointer active:scale-95"
-                title="Cari transaksi, produk, pelanggan..."
-              >
-                <MagnifyingGlassIcon className="w-4 h-4 text-zinc-500" />
-                <span className="font-semibold text-[11px]">Cari</span>
-              </button>
-            </div>
-          </div>
 
           {/* ── SALDO KAS UTAMA (Apple Wallet / FinTech Card) ── */}
           <div className="premium-fintech-card p-4.5 sm:p-6 text-white flex flex-col select-none relative overflow-hidden rounded-3xl">

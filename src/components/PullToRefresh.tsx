@@ -212,15 +212,20 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
         return;
       }
 
-      // If user is pulling downwards from top
-      if (deltaY > 0) {
+      // Android / iOS standard touch slop threshold (8px)
+      // Prevents micro-movements during taps on menu buttons from cancelling clicks
+      const TOUCH_SLOP = 8;
+
+      // If user is pulling downwards from top beyond touch slop threshold
+      if (deltaY > TOUCH_SLOP && deltaY > Math.abs(deltaX) * 1.1) {
         // Prevent default browser rubber-band conflict on WebView
         if (e.cancelable) {
           e.preventDefault();
         }
 
-        // Apple logarithmic damping curve: highly direct initially, gentle resistance near threshold
-        const damped = Math.min(deltaY * 0.46, maxPullDistance);
+        // Apple logarithmic damping curve starting smoothly after touch slop
+        const effectiveDelta = deltaY - TOUCH_SLOP;
+        const damped = Math.min(effectiveDelta * 0.46, maxPullDistance);
         const isReadyNow = damped >= threshold;
 
         setStatus(isReadyNow ? 'ready' : 'pulling');
@@ -236,7 +241,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
         } else if (!isReadyNow && hasTriggeredHaptic) {
           setHasTriggeredHaptic(false);
         }
-      } else {
+      } else if (deltaY <= 0) {
         setStatus('idle');
         setPullDistance(0);
       }
@@ -299,16 +304,18 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       }
     };
 
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
-    el.addEventListener('touchmove', onTouchMove, { passive: false });
-    el.addEventListener('touchend', onTouchEnd, { passive: true });
-    el.addEventListener('touchcancel', onTouchCancel, { passive: true });
+    const targetEl = getScrollParent() || el;
+
+    targetEl.addEventListener('touchstart', onTouchStart, { passive: true });
+    targetEl.addEventListener('touchmove', onTouchMove, { passive: false });
+    targetEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    targetEl.addEventListener('touchcancel', onTouchCancel, { passive: true });
 
     return () => {
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchmove', onTouchMove);
-      el.removeEventListener('touchend', onTouchEnd);
-      el.removeEventListener('touchcancel', onTouchCancel);
+      targetEl.removeEventListener('touchstart', onTouchStart);
+      targetEl.removeEventListener('touchmove', onTouchMove);
+      targetEl.removeEventListener('touchend', onTouchEnd);
+      targetEl.removeEventListener('touchcancel', onTouchCancel);
     };
   }, [disabled, threshold, maxPullDistance, onRefresh, getScrollParent, hasTriggeredHaptic]);
 
