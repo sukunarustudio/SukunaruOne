@@ -232,24 +232,26 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
               SLIDE 3: "Siap Mulai?"
           ════════════════════════════════════════════════════════════════ */}
           <div className="min-w-full w-full shrink-0 flex flex-col items-center justify-center px-6 text-center">
-            {/* Minimalist Launch Crest */}
+            {/* Minimalist Launch Crest with Bisnis Urang App Logo */}
             <div className="w-full max-w-xs aspect-[4/3] rounded-3xl bg-white dark:bg-[#151D2A] border border-black/[0.06] dark:border-white/[0.08] shadow-sm flex flex-col items-center justify-center p-6 relative overflow-hidden mb-8">
-              <div className="absolute inset-0 bg-gradient-to-b from-orange-500/[0.03] to-transparent pointer-events-none" />
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#FF9B51]/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[#25343F]/5 dark:bg-white/5 rounded-full blur-2xl pointer-events-none" />
 
-              <div className="relative mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF9B51] to-[#FF8C3A] text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
-                  <SparklesIcon className="w-8 h-8 stroke-[2]" />
+              <div className="relative mb-3.5">
+                <div className="w-20 h-20 rounded-2xl bg-white dark:bg-slate-800 p-2 shadow-md border border-black/[0.06] dark:border-white/[0.08] flex items-center justify-center">
+                  <img src={appLogo} alt="Bisnis Urang" className="w-full h-full object-contain rounded-xl" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center border-2 border-white dark:border-[#151D2A] shadow-xs">
                   <CheckCircleIcon className="w-4 h-4 stroke-[2.5]" />
                 </div>
               </div>
 
-              <span className="text-[11px] font-bold text-[#FF9B51] uppercase tracking-wider mb-1">
-                Bisnis Urang 2.0
-              </span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 dark:bg-orange-500/20 text-[#FF9B51] text-[11px] font-bold tracking-wide uppercase mb-1">
+                <SparklesIcon className="w-3.5 h-3.5" />
+                <span>Trial Pro 14 Hari Gratis</span>
+              </div>
               <p className="text-[11px] text-[#8E8E93] dark:text-slate-400 font-medium">
-                Siap mendukung pertumbuhan usaha Anda
+                Nikmati akses penuh ke seluruh fitur unggulan
               </p>
             </div>
 
@@ -315,20 +317,21 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
               <button
                 type="button"
                 onClick={handlePrev}
-                className="h-12 px-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.1] text-[#25343F] dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+                aria-label="Kembali"
+                className="h-12 px-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.1] text-[#25343F] dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-xs inline-flex items-center gap-1.5 transition cursor-pointer active:scale-95 shrink-0"
               >
                 <ChevronLeftIcon className="w-4 h-4 stroke-[2]" />
-                <span>Kembali</span>
+                <span className="hidden sm:inline">Kembali</span>
               </button>
 
               <button
                 type="button"
                 id="btn-onboarding-start"
                 onClick={() => onComplete('sign-up')}
-                className="flex-1 h-12 px-5 rounded-2xl bg-[#FF9B51] hover:bg-[#ff8c3a] active:scale-[0.98] text-[#25343F] font-bold text-xs sm:text-sm shadow-md shadow-orange-500/20 transition inline-flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 h-12 px-4 rounded-2xl bg-[#FF9B51] hover:bg-[#ff8c3a] active:scale-[0.98] text-[#25343F] font-bold text-xs sm:text-sm shadow-md shadow-orange-500/20 transition inline-flex items-center justify-center gap-2 cursor-pointer leading-tight text-center"
               >
-                <span>Mulai Sekarang</span>
-                <ArrowRightIcon className="w-4 h-4 stroke-[2.2]" />
+                <span>Mulai Daftar &amp; Dapatkan Trial Pro 14 Hari</span>
+                <ArrowRightIcon className="w-4 h-4 stroke-[2.2] shrink-0" />
               </button>
             </div>
 
