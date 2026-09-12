@@ -99,7 +99,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
           {/* ════════════════════════════════════════════════════════════════
-              SLIDE 1: "Kelola Usaha Lebih Mudah"
+              SLIDE 1: "Selamat Datang di Bisnis Urang"
           ════════════════════════════════════════════════════════════════ */}
           <div className="min-w-full w-full shrink-0 flex flex-col items-center justify-center px-6 text-center">
             {/* Hero Visual Card */}
@@ -108,8 +108,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#FF9B51]/10 rounded-full blur-2xl pointer-events-none" />
               <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[#25343F]/5 dark:bg-white/5 rounded-full blur-2xl pointer-events-none" />
 
-              <div className="w-20 h-20 rounded-2xl bg-white dark:bg-slate-800 p-2 shadow-sm border border-black/[0.06] dark:border-white/[0.08] flex items-center justify-center mb-4">
-                <img src={appLogo} alt="Bisnis Urang" className="w-full h-full object-contain" />
+              <div className="w-20 h-20 rounded-2xl bg-white dark:bg-slate-800 p-2 shadow-md border border-black/[0.06] dark:border-white/[0.08] flex items-center justify-center mb-3.5">
+                <img src={appLogo} alt="Bisnis Urang" className="w-full h-full object-contain rounded-xl" />
               </div>
 
               <div className="flex items-center gap-2">
@@ -125,10 +125,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
 
             {/* Typography */}
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#25343F] dark:text-white tracking-tight leading-tight mb-2.5">
-              Kelola Usaha Lebih Mudah
+              Selamat Datang di Bisnis<span className="text-[#FF9B51]">Urang</span>
             </h1>
             <p className="text-xs sm:text-sm text-[#8E8E93] dark:text-slate-400 leading-relaxed max-w-xs font-medium">
-              Semua aktivitas usaha tercatat dalam satu tempat.
+              Kelola usaha lebih mudah. Semua aktivitas operasional tercatat dalam satu tempat.
             </p>
           </div>
 
