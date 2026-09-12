@@ -30,6 +30,9 @@ import {
   CheckIcon,
   DocumentTextIcon,
   EllipsisVerticalIcon,
+  ArrowsRightLeftIcon,
+  EyeIcon,
+  ArrowTrendingDownIcon,
 } from '@heroicons/react/24/outline';
 import {
   ResponsiveContainer,
@@ -91,7 +94,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [showExcelDropdown, setShowExcelDropdown] = useState(false);
-  const [showPaperSettings, setShowPaperSettings] = useState(false);
 
   // ─── Paper Settings State ───────────────────────────────────────────────────
   const [paperSize, setPaperSize] = useState<PaperSize>('a4');
@@ -697,202 +699,225 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   };
 
   return (
-    <div id="reports-view" className="space-y-3.5 max-w-7xl mx-auto pb-28 md:pb-16 animate-fade-in text-slate-800 dark:text-slate-200">
-      {/* ── STICKY TOP HEADER: [ ← Judul ] ... [ Aksi Cepat (Excel/PDF/Cetak) ] ── */}
-      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/90 dark:bg-[#0B0F17]/90 backdrop-blur-xl py-2.5 -mx-3 px-3 sm:-mx-4 sm:px-4 transition-colors">
+    <div id="reports-view" className="space-y-4 max-w-7xl mx-auto pb-28 md:pb-16 animate-fade-in text-slate-800 dark:text-slate-200">
+      {/* ── STICKY TOP HEADER: [ ← Judul & Status ] ... [ Aksi Cepat (Excel/PDF/Cetak) ] ── */}
+      <div className="sticky -top-3 z-30 bg-[#EAEFEF]/95 dark:bg-[#0B0F17]/95 backdrop-blur-xl py-3 -mx-3 px-3 sm:-mx-4 sm:px-4 border-b border-[#BFC9D1]/20 dark:border-slate-800/80 transition-all">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => onNavigate?.('dashboard')}
-              className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
+              className="p-2 -ml-1 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
               title="Kembali ke Beranda"
             >
-              <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
+              <ArrowLeftIcon className="w-5 h-5 stroke-[2.4]" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
-                Laporan &amp; Analisis Bisnis
-              </h1>
-              <p className="text-[11px] sm:text-xs text-[#898989] dark:text-slate-400 font-medium mt-0.5 truncate hidden sm:block">
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-black text-[#25343F] dark:text-white leading-tight tracking-tight truncate">
+                  Laporan &amp; Analisis Bisnis
+                </h1>
+                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF9B51]/15 text-[#FF6A00] dark:text-[#FF9B51]">
+                  Live Data
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-[#898989] dark:text-slate-400 font-medium mt-0.5 truncate">
                 Rekapitulasi penjualan, laba rugi, valuasi stok, ekspor Excel &amp; cetak dokumen
               </p>
             </div>
           </div>
 
-          {/* Three-dot (⋮) Action Menu */}
-          <div className="relative" id="excel-dropdown-container">
+          {/* Header Action Tools */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Quick Refresh Button */}
             <button
               type="button"
-              onClick={() => setShowExcelDropdown(prev => !prev)}
-              className={`p-2 rounded-full transition-all cursor-pointer active:scale-90 relative ${
-                showExcelDropdown
-                  ? 'bg-black/10 dark:bg-white/15 text-[#25343F] dark:text-white'
-                  : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
-              }`}
-              title="Menu Opsi Laporan"
-              aria-label="Menu Opsi Laporan"
+              onClick={loadData}
+              disabled={loading}
+              className="p-2 rounded-full text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all cursor-pointer active:scale-90 disabled:opacity-50"
+              title="Segarkan Data Laporan"
+              aria-label="Segarkan Data Laporan"
             >
-              <EllipsisVerticalIcon className="w-5 h-5 stroke-[2.2]" />
+              <ArrowPathIcon className={`w-5 h-5 stroke-[2.2] ${loading ? 'animate-spin text-[#FF9B51]' : ''}`} />
             </button>
 
-            {/* Dropdown Menu Container */}
-            {showExcelDropdown && (
-              <div className="absolute right-0 top-full mt-1.5 w-72 bg-white dark:bg-slate-900 border border-[#BFC9D1]/40 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-800 dark:text-slate-200">
-                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[#898989] block">
-                    Aksi &amp; Ekspor Dokumen
-                  </span>
-                  <span className="text-[11px] font-bold text-[#25343F] dark:text-white">
-                    {reportTitles[activeTab]} ({PAPER_CONFIGS[paperSize].name} · {paperOrientation === 'landscape' ? 'Landscape' : 'Portrait'})
-                  </span>
-                </div>
+            {/* Three-dot (⋮) Action Menu */}
+            <div className="relative" id="excel-dropdown-container">
+              <button
+                type="button"
+                onClick={() => setShowExcelDropdown(prev => !prev)}
+                className={`p-2 rounded-full transition-all cursor-pointer active:scale-90 relative ${
+                  showExcelDropdown
+                    ? 'bg-black/10 dark:bg-white/15 text-[#25343F] dark:text-white'
+                    : 'text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10'
+                }`}
+                title="Menu Opsi & Ekspor Laporan"
+                aria-label="Menu Opsi & Ekspor Laporan"
+              >
+                <EllipsisVerticalIcon className="w-5 h-5 stroke-[2.2]" />
+              </button>
 
-                <div className="py-1 space-y-0.5">
-                  {/* Cetak / Print */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowExcelDropdown(false);
-                      handlePrint();
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-[#EAEFEF] dark:hover:bg-slate-800 text-[#25343F] dark:text-white flex items-center gap-2.5 transition cursor-pointer"
-                  >
-                    <PrinterIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
-                    <div>
-                      <div className="font-extrabold text-[11.5px]">Cetak Dokumen Laporan</div>
-                      <div className="text-[9.5px] text-[#898989] font-normal">Cetak via printer atau Simpan sebagai PDF</div>
-                    </div>
-                  </button>
+              {/* Dropdown Menu Container */}
+              {showExcelDropdown && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-[#BFC9D1]/40 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-slate-800 dark:text-slate-200">
+                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#898989] block">
+                      Aksi &amp; Ekspor Dokumen
+                    </span>
+                    <span className="text-[11px] font-bold text-[#25343F] dark:text-white">
+                      {reportTitles[activeTab]} ({PAPER_CONFIGS[paperSize].name} · {paperOrientation === 'landscape' ? 'Landscape' : 'Portrait'})
+                    </span>
+                  </div>
 
-                  {/* Unduh PDF Langsung */}
-                  <button
-                    type="button"
-                    disabled={isExportingPdf}
-                    onClick={() => {
-                      setShowExcelDropdown(false);
-                      handleDownloadPdf();
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-[#EAEFEF] dark:hover:bg-slate-800 text-[#25343F] dark:text-white flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
-                  >
-                    {isExportingPdf ? (
-                      <ArrowPathIcon className="w-4 h-4 animate-spin text-[#FF9B51] shrink-0" />
-                    ) : (
-                      <ArrowDownTrayIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
-                    )}
-                    <div>
-                      <div className="font-extrabold text-[11.5px]">Unduh File PDF</div>
-                      <div className="text-[9.5px] text-[#898989] font-normal">Simpan langsung berkas PDF beresolusi tinggi</div>
-                    </div>
-                  </button>
-
-                  <div className="h-px bg-[#BFC9D1]/30 dark:bg-slate-800 my-1 mx-2" />
-
-                  {/* Excel Tab Ini */}
-                  <button
-                    type="button"
-                    disabled={isExportingExcel}
-                    onClick={() => handleDownloadExcel('active')}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
-                  >
-                    <TableCellsIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <div className="font-extrabold text-[11.5px]">Unduh Excel ({reportTitles[activeTab].replace('Laporan-', '')})</div>
-                      <div className="text-[9.5px] text-[#898989] font-normal">Format spreadsheet .xls dengan formula &amp; rincian</div>
-                    </div>
-                  </button>
-
-                  {/* Excel Buku Besar Lengkap */}
-                  <button
-                    type="button"
-                    disabled={isExportingExcel}
-                    onClick={() => handleDownloadExcel('full')}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
-                  >
-                    <DocumentDuplicateIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <div className="font-extrabold text-[11.5px] text-emerald-700 dark:text-emerald-400">
-                        Buku Besar Lengkap (Multi-Sheet)
+                  <div className="py-1 space-y-0.5">
+                    {/* Cetak / Print */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowExcelDropdown(false);
+                        handlePrint();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-[#EAEFEF] dark:hover:bg-slate-800 text-[#25343F] dark:text-white flex items-center gap-2.5 transition cursor-pointer"
+                    >
+                      <PrinterIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
+                      <div>
+                        <div className="font-extrabold text-[11.5px]">Cetak Dokumen Laporan</div>
+                        <div className="text-[9.5px] text-[#898989] font-normal">Cetak via printer atau Simpan sebagai PDF</div>
                       </div>
-                      <div className="text-[9.5px] text-[#898989] font-normal">Kompilasi 5 Sheet: Penjualan, Laba, Stok &amp; Transaksi</div>
-                    </div>
-                  </button>
+                    </button>
 
-                  {/* CSV Export */}
-                  <button
-                    type="button"
-                    disabled={isExportingExcel}
-                    onClick={() => handleDownloadExcel('csv')}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer border-t border-slate-100 dark:border-slate-800/80 mt-1 pt-1.5 disabled:opacity-50"
-                  >
-                    <DocumentTextIcon className="w-4 h-4 text-[#898989] shrink-0" />
-                    <div>
-                      <div className="font-bold text-[11px]">Spreadsheet CSV (.csv)</div>
-                      <div className="text-[9.5px] text-[#898989] font-normal">Format teks universal standar UTF-8 BOM</div>
-                    </div>
-                  </button>
+                    {/* Unduh PDF Langsung */}
+                    <button
+                      type="button"
+                      disabled={isExportingPdf}
+                      onClick={() => {
+                        setShowExcelDropdown(false);
+                        handleDownloadPdf();
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-[#EAEFEF] dark:hover:bg-slate-800 text-[#25343F] dark:text-white flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isExportingPdf ? (
+                        <ArrowPathIcon className="w-4 h-4 animate-spin text-[#FF9B51] shrink-0" />
+                      ) : (
+                        <ArrowDownTrayIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
+                      )}
+                      <div>
+                        <div className="font-extrabold text-[11.5px]">Unduh File PDF</div>
+                        <div className="text-[9.5px] text-[#898989] font-normal">Simpan langsung berkas PDF beresolusi tinggi</div>
+                      </div>
+                    </button>
+
+                    <div className="h-px bg-[#BFC9D1]/30 dark:bg-slate-800 my-1 mx-2" />
+
+                    {/* Excel Tab Ini */}
+                    <button
+                      type="button"
+                      disabled={isExportingExcel}
+                      onClick={() => handleDownloadExcel('active')}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
+                    >
+                      <TableCellsIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <div className="font-extrabold text-[11.5px]">Unduh Excel ({reportTitles[activeTab].replace('Laporan-', '')})</div>
+                        <div className="text-[9.5px] text-[#898989] font-normal">Format spreadsheet .xls dengan formula &amp; rincian</div>
+                      </div>
+                    </button>
+
+                    {/* Excel Buku Besar Lengkap */}
+                    <button
+                      type="button"
+                      disabled={isExportingExcel}
+                      onClick={() => handleDownloadExcel('full')}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer disabled:opacity-50"
+                    >
+                      <DocumentDuplicateIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <div className="font-extrabold text-[11.5px] text-emerald-700 dark:text-emerald-400">
+                          Buku Besar Lengkap (Multi-Sheet)
+                        </div>
+                        <div className="text-[9.5px] text-[#898989] font-normal">Kompilasi 5 Sheet: Penjualan, Laba, Stok &amp; Transaksi</div>
+                      </div>
+                    </button>
+
+                    {/* CSV Export */}
+                    <button
+                      type="button"
+                      disabled={isExportingExcel}
+                      onClick={() => handleDownloadExcel('csv')}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 text-[#25343F] dark:text-slate-200 flex items-center gap-2.5 transition cursor-pointer border-t border-slate-100 dark:border-slate-800/80 mt-1 pt-1.5 disabled:opacity-50"
+                    >
+                      <DocumentTextIcon className="w-4 h-4 text-[#898989] shrink-0" />
+                      <div>
+                        <div className="font-bold text-[11px]">Spreadsheet CSV (.csv)</div>
+                        <div className="text-[9.5px] text-[#898989] font-normal">Format teks universal standar UTF-8 BOM</div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── FILTER PERIODE & REPORT TABS BAR ─────────────────────────────────── */}
-      <div className="no-print space-y-3 bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-[#BFC9D1]/25 dark:border-slate-800 shadow-md">
-        {/* Row 1: Report Type Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <div className="flex items-center p-1 bg-[#EAEFEF] dark:bg-slate-800 rounded-xl border border-[#BFC9D1]/25 dark:border-slate-700 text-xs overflow-x-auto scrollbar-none w-full sm:w-auto">
+      <div className="no-print space-y-3.5 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-[#BFC9D1]/25 dark:border-slate-800 shadow-sm">
+        {/* Row 1: Apple Segmented Control for Report Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3.5">
+          <div className="inline-flex p-1 bg-[#EAEFEF] dark:bg-slate-800 rounded-xl border border-[#BFC9D1]/25 dark:border-slate-700 text-xs w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setActiveTab('sales')}
-              className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center ${
+              className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center flex items-center justify-center gap-2 active:scale-95 ${
                 activeTab === 'sales'
                   ? 'bg-white dark:bg-slate-900 text-[#25343F] dark:text-white shadow-sm'
                   : 'text-[#898989] hover:text-[#25343F] dark:hover:text-white'
               }`}
             >
-              Penjualan
+              <ShoppingCartIcon className="w-4 h-4 text-[#FF9B51]" />
+              <span>Penjualan</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('profit')}
-              className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center ${
+              className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center flex items-center justify-center gap-2 active:scale-95 ${
                 activeTab === 'profit'
                   ? 'bg-white dark:bg-slate-900 text-[#25343F] dark:text-white shadow-sm'
                   : 'text-[#898989] hover:text-[#25343F] dark:hover:text-white'
               }`}
             >
-              Laba Rugi
+              <CurrencyDollarIcon className="w-4 h-4 text-emerald-600" />
+              <span>Laba Rugi</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('stock')}
-              className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center ${
+              className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap text-xs text-center flex items-center justify-center gap-2 active:scale-95 ${
                 activeTab === 'stock'
                   ? 'bg-white dark:bg-slate-900 text-[#25343F] dark:text-white shadow-sm'
                   : 'text-[#898989] hover:text-[#25343F] dark:hover:text-white'
               }`}
             >
-              Nilai Stok
+              <CubeIcon className="w-4 h-4 text-blue-600" />
+              <span>Nilai Stok</span>
             </button>
           </div>
 
-          {/* Active Period Badge Text */}
-          <div className="text-xs font-semibold text-[#898989] dark:text-slate-400 flex items-center gap-1.5">
-            <CalendarIcon className="w-4 h-4 text-[#FF9B51]" />
-            <span className="text-[#25343F] dark:text-slate-200 font-bold">{periodLabel}</span>
+          {/* Active Period Badge */}
+          <div className="text-xs font-semibold text-[#898989] dark:text-slate-400 flex items-center gap-2 bg-[#EAEFEF]/60 dark:bg-slate-800/60 px-3 py-1.5 rounded-xl border border-[#BFC9D1]/20 dark:border-slate-700/60 w-fit">
+            <CalendarIcon className="w-4 h-4 text-[#FF9B51] shrink-0" />
+            <span className="text-[#25343F] dark:text-slate-200 font-bold truncate">{periodLabel}</span>
           </div>
         </div>
 
         {/* Row 2: Period Selector Buttons */}
         {activeTab !== 'stock' && (
-          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={() => setPeriodType('weekly')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                   periodType === 'weekly'
                     ? 'bg-[#25343F] dark:bg-slate-700 text-white shadow-sm'
                     : 'bg-[#EAEFEF] dark:bg-slate-800 text-[#898989] hover:text-[#25343F] dark:hover:text-white'
@@ -904,7 +929,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPeriodType('monthly')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                   periodType === 'monthly'
                     ? 'bg-[#25343F] dark:bg-slate-700 text-white shadow-sm'
                     : 'bg-[#EAEFEF] dark:bg-slate-800 text-[#898989] hover:text-[#25343F] dark:hover:text-white'
@@ -916,7 +941,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPeriodType('yearly')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                   periodType === 'yearly'
                     ? 'bg-[#25343F] dark:bg-slate-700 text-white shadow-sm'
                     : 'bg-[#EAEFEF] dark:bg-slate-800 text-[#898989] hover:text-[#25343F] dark:hover:text-white'
@@ -928,7 +953,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPeriodType('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                   periodType === 'all'
                     ? 'bg-[#25343F] dark:bg-slate-700 text-white shadow-sm'
                     : 'bg-[#EAEFEF] dark:bg-slate-800 text-[#898989] hover:text-[#25343F] dark:hover:text-white'
@@ -940,7 +965,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPeriodType('custom')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                   periodType === 'custom'
                     ? 'bg-[#25343F] dark:bg-slate-700 text-white shadow-sm'
                     : 'bg-[#EAEFEF] dark:bg-slate-800 text-[#898989] hover:text-[#25343F] dark:hover:text-white'
@@ -953,29 +978,29 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             {/* Sub-controls based on active periodType */}
             <div className="flex items-center gap-2">
               {periodType === 'weekly' && (
-                <div className="flex items-center gap-1.5 bg-[#EAEFEF] dark:bg-slate-800 p-1 rounded-xl">
+                <div className="flex items-center gap-1.5 bg-[#EAEFEF] dark:bg-slate-800 p-1 rounded-xl border border-[#BFC9D1]/25 dark:border-slate-700">
                   <button
                     type="button"
                     onClick={() => changeWeek(-1)}
-                    className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-[#25343F] dark:text-white transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-[#25343F] dark:text-white transition-colors cursor-pointer active:scale-90"
                     title="Minggu Sebelumnya"
                   >
-                    <ChevronLeftIcon className="w-3.5 h-3.5" />
+                    <ChevronLeftIcon className="w-4 h-4 stroke-[2.5]" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setWeeklyAnchorDate(new Date())}
-                    className="px-2 py-0.5 text-[11px] font-bold text-[#25343F] dark:text-white hover:bg-white dark:hover:bg-slate-700 rounded-md transition-colors"
+                    className="px-2.5 py-1 text-[11px] font-bold text-[#25343F] dark:text-white hover:bg-white dark:hover:bg-slate-700 rounded-md transition-colors"
                   >
                     Minggu Ini
                   </button>
                   <button
                     type="button"
                     onClick={() => changeWeek(1)}
-                    className="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-[#25343F] dark:text-white transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-[#25343F] dark:text-white transition-colors cursor-pointer active:scale-90"
                     title="Minggu Berikutnya"
                   >
-                    <ChevronRightIcon className="w-3.5 h-3.5" />
+                    <ChevronRightIcon className="w-4 h-4 stroke-[2.5]" />
                   </button>
                 </div>
               )}
@@ -985,7 +1010,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   <select
                     value={selectedMonth}
                     onChange={e => setSelectedMonth(Number(e.target.value))}
-                    className="px-2.5 py-1.5 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-bold text-[#25343F] dark:text-white focus:outline-hidden focus:bg-white dark:focus:bg-slate-700 cursor-pointer"
+                    className="px-3 py-1.5 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-bold text-[#25343F] dark:text-white focus:outline-hidden focus:bg-white dark:focus:bg-slate-700 cursor-pointer shadow-2xs"
                   >
                     {MONTH_NAMES.map((name, idx) => (
                       <option key={idx} value={idx}>
@@ -997,7 +1022,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   <select
                     value={selectedYear}
                     onChange={e => setSelectedYear(Number(e.target.value))}
-                    className="px-2.5 py-1.5 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-bold text-[#25343F] dark:text-white focus:outline-hidden focus:bg-white dark:focus:bg-slate-700 cursor-pointer"
+                    className="px-3 py-1.5 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-bold text-[#25343F] dark:text-white focus:outline-hidden focus:bg-white dark:focus:bg-slate-700 cursor-pointer shadow-2xs"
                   >
                     {[2024, 2025, 2026, 2027, 2028].map(yr => (
                       <option key={yr} value={yr}>
@@ -1012,7 +1037,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 <select
                   value={selectedYear}
                   onChange={e => setSelectedYear(Number(e.target.value))}
-                  className="px-3 py-1.5 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-bold text-[#25343F] dark:text-white focus:outline-hidden focus:bg-white dark:focus:bg-slate-700 cursor-pointer"
+                  className="px-3.5 py-1.5 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-bold text-[#25343F] dark:text-white focus:outline-hidden focus:bg-white dark:focus:bg-slate-700 cursor-pointer shadow-2xs"
                 >
                   {[2024, 2025, 2026, 2027, 2028].map(yr => (
                     <option key={yr} value={yr}>
@@ -1028,14 +1053,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     type="date"
                     value={customStartDate}
                     onChange={e => setCustomStartDate(e.target.value)}
-                    className="px-2 py-1 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-medium text-[#25343F] dark:text-white focus:outline-hidden"
+                    className="px-2.5 py-1.5 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-medium text-[#25343F] dark:text-white focus:outline-hidden shadow-2xs"
                   />
                   <span className="text-[#898989] font-bold">-</span>
                   <input
                     type="date"
                     value={customEndDate}
                     onChange={e => setCustomEndDate(e.target.value)}
-                    className="px-2 py-1 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-medium text-[#25343F] dark:text-white focus:outline-hidden"
+                    className="px-2.5 py-1.5 bg-[#EAEFEF] dark:bg-slate-800 border border-[#BFC9D1]/25 dark:border-slate-700 rounded-xl text-xs font-medium text-[#25343F] dark:text-white focus:outline-hidden shadow-2xs"
                   />
                 </div>
               )}
@@ -1046,15 +1071,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
       {/* ── DOKUMEN & FORMAT CETAK SELECTOR BAR (A4, A5, F4 & Orientation) ── */}
       <div className="no-print bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-[#BFC9D1]/25 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-[#25343F] text-white flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#25343F] text-white flex items-center justify-center shrink-0 shadow-xs">
             <AdjustmentsHorizontalIcon className="w-4 h-4 text-[#FF9B51]" />
           </div>
           <div>
             <div className="font-extrabold text-[#25343F] dark:text-white flex items-center gap-1.5">
               <span>Pengaturan Format Kertas Dokumen</span>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#FF9B51]/20 text-[#FF6A00]">
-                {PAPER_CONFIGS[paperSize].name} · {paperOrientation === 'landscape' ? 'Mendatar (Landscape)' : 'Tegak (Portrait)'}
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#FF9B51]/15 text-[#FF6A00] dark:text-[#FF9B51]">
+                {PAPER_CONFIGS[paperSize].name} · {paperOrientation === 'landscape' ? 'Landscape' : 'Portrait'}
               </span>
             </div>
             <div className="text-[10.5px] text-[#898989] dark:text-slate-400">
@@ -1071,7 +1096,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 key={ps}
                 type="button"
                 onClick={() => setPaperSize(ps)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-extrabold transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-[11px] font-extrabold transition cursor-pointer active:scale-95 ${
                   paperSize === ps
                     ? 'bg-white dark:bg-slate-900 text-[#25343F] dark:text-white shadow-xs'
                     : 'text-[#898989] hover:text-[#25343F] dark:hover:text-white'
@@ -1088,7 +1113,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <button
               type="button"
               onClick={() => setPaperOrientation('portrait')}
-              className={`px-3 py-1 rounded-lg text-[11px] font-extrabold transition cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-[11px] font-extrabold transition cursor-pointer active:scale-95 ${
                 paperOrientation === 'portrait'
                   ? 'bg-white dark:bg-slate-900 text-[#25343F] dark:text-white shadow-xs'
                   : 'text-[#898989] hover:text-[#25343F] dark:hover:text-white'
@@ -1099,7 +1124,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <button
               type="button"
               onClick={() => setPaperOrientation('landscape')}
-              className={`px-3 py-1 rounded-lg text-[11px] font-extrabold transition cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-[11px] font-extrabold transition cursor-pointer active:scale-95 ${
                 paperOrientation === 'landscape'
                   ? 'bg-white dark:bg-slate-900 text-[#25343F] dark:text-white shadow-xs'
                   : 'text-[#898989] hover:text-[#25343F] dark:hover:text-white'
@@ -1547,12 +1572,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         </div>
       </div>
 
-      {/* ─── BOTTOM ACTION CONTAINER: UNDUH & CETAK LAPORAN ──────────────────── */}
-      <div className="no-print bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-[#BFC9D1]/25 dark:border-slate-800 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-slate-800 dark:text-slate-200">
+      {/* ─── BOTTOM FLOATING ACTION BAR: UNDUH & CETAK LAPORAN ──────────────────── */}
+      <div className="no-print bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 sm:p-4.5 rounded-2xl border border-[#BFC9D1]/30 dark:border-slate-800 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-slate-800 dark:text-slate-200">
         <div>
           <h4 className="font-extrabold text-sm text-[#25343F] dark:text-white flex items-center gap-2">
             <span>Cetak atau Ekspor Dokumen Laporan</span>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FF9B51]/20 text-[#FF6A00]">
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#FF9B51]/15 text-[#FF6A00] dark:text-[#FF9B51]">
               {PAPER_CONFIGS[paperSize].name} ({paperOrientation})
             </span>
           </h4>
@@ -1601,7 +1626,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             onClick={handlePrint}
             className="flex-1 sm:flex-initial min-h-[42px] px-5 rounded-xl bg-[#FF9B51] hover:bg-[#ff8c38] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-[#FF9B51]/25 transition-all cursor-pointer active:scale-95"
           >
-            <PrinterIcon className="w-4 h-4" />
+            <PrinterIcon className="w-4 h-4 stroke-[2.2]" />
             <span>Cetak ({PAPER_CONFIGS[paperSize].name})</span>
           </button>
         </div>
@@ -1609,3 +1634,5 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     </div>
   );
 };
+export default ReportsView;
+
