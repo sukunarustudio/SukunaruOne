@@ -440,7 +440,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                              🟢 Shift Dimulai
+                              Shift Dimulai
                             </span>
                             <span className="font-bold text-xs text-[#25343F]">
                               {item.cashierName}
@@ -468,7 +468,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                             <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
-                              🔴 Shift Selesai
+                              Shift Selesai
                             </span>
                             <span className="font-bold text-xs text-[#25343F]">
                               {item.cashierName}
@@ -781,7 +781,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                              🟢 Shift Dimulai
+                              Shift Dimulai
                             </span>
                             <span className="font-bold text-xs text-[#25343F]">
                               {item.cashierName}
@@ -809,7 +809,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ settings, onNavigate
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                             <span className="text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
-                              🔴 Shift Selesai
+                              Shift Selesai
                             </span>
                             <span className="font-bold text-xs text-[#25343F]">
                               {item.cashierName}
