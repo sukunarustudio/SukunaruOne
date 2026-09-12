@@ -749,6 +749,7 @@ function MainAppContent() {
           {currentView === 'app-info' && (
             <AppInfoView
               onNavigate={handleNavigate}
+              previousView={previousView}
             />
           )}
 

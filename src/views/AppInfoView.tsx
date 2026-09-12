@@ -23,9 +23,10 @@ import appLogo from '../assets/app-logo.png';
 
 interface AppInfoViewProps {
   onNavigate?: (view: ViewType) => void;
+  previousView?: ViewType;
 }
 
-export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
+export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate, previousView = 'dashboard' }) => {
   const currentYear = new Date().getFullYear();
   const { isPro, isTrial, daysRemaining } = useLicense();
 
@@ -76,9 +77,9 @@ export const AppInfoView: React.FC<AppInfoViewProps> = ({ onNavigate }) => {
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={() => onNavigate?.('profile')}
+            onClick={() => onNavigate?.(previousView || 'dashboard')}
             className="p-2 -ml-2 text-[#25343F] dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-all cursor-pointer active:scale-90 shrink-0"
-            title="Kembali ke Profil"
+            title="Kembali"
           >
             <ArrowLeftIcon className="w-5 h-5 stroke-[2.2]" />
           </button>

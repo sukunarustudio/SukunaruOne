@@ -42,7 +42,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
   onNavigate,
   onUpdateSettings,
   onRefreshDashboard,
-  previousView = 'profile',
+  previousView = 'dashboard',
 }) => {
   const { showToast } = useToast();
   const { isPro } = useLicense();
