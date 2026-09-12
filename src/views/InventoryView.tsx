@@ -1085,8 +1085,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onRefreshDashboard
         id="btn-add-material-fab"
         type="button"
         onClick={handleOpenAddMaterial}
-        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-xl border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
-        style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 12px))' }}
+        className="fixed right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full font-extrabold text-xs sm:text-sm flex items-center gap-2 apple-glass-fab cursor-pointer"
+        style={{ bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))' }}
         title="Tambah Bahan Baku Baru"
         aria-label="Tambah Bahan Baku Baru"
       >

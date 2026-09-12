@@ -142,7 +142,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onRefreshDashboard }
             id="btn-add-expense"
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="min-h-[38px] px-3.5 py-2 bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-colors cursor-pointer shrink-0"
+            className="min-h-[38px] px-3.5 py-2 apple-glass-pill-accent rounded-full text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0"
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
             <span>Catat Pengeluaran</span>
@@ -458,8 +458,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onRefreshDashboard }
         id="btn-add-expense-fab"
         type="button"
         onClick={() => setIsAddModalOpen(true)}
-        className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full bg-[#FF9B51] hover:bg-[#ff8c38] text-[#25343F] font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-xl border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
-        style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 12px))' }}
+        className="fixed right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full font-extrabold text-xs sm:text-sm flex items-center gap-2 apple-glass-fab cursor-pointer"
+        style={{ bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))' }}
         title="Catat Pengeluaran Baru"
         aria-label="Catat Pengeluaran Baru"
       >

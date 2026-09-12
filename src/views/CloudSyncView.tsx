@@ -403,7 +403,7 @@ export const CloudSyncView: React.FC<CloudSyncViewProps> = ({
           type="button"
           onClick={handleManualSync}
           disabled={syncState.status === 'SYNCING'}
-          className="h-9 px-4 bg-[#FF6A00] hover:bg-[#e65c00] text-white rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0 active:scale-95 disabled:opacity-60"
+          className="h-9 px-4 rounded-full text-xs font-extrabold flex items-center gap-1.5 apple-glass-pill-accent cursor-pointer shrink-0 disabled:opacity-60"
         >
           <ArrowPathIcon className={`w-3.5 h-3.5 ${syncState.status === 'SYNCING' ? 'animate-spin' : ''}`} />
           <span>{syncState.status === 'SYNCING' ? 'Menyinkronkan...' : 'Sinkronkan Sekarang'}</span>

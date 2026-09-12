@@ -380,7 +380,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
             <button
               type="button"
               onClick={() => goTo('business-profile')}
-              className="px-3 py-1.5 bg-[#FF6A00] hover:bg-[#e65c00] active:scale-95 text-white text-xs font-bold rounded-full shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              className="px-3 py-1.5 apple-glass-pill-accent text-xs font-bold rounded-full cursor-pointer whitespace-nowrap"
             >
               Lengkapi →
             </button>

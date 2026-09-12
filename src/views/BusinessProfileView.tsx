@@ -160,7 +160,7 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
           form="business-profile-form"
           type="submit"
           disabled={isSaving}
-          className="h-9 px-4 bg-[#FF6A00] hover:bg-[#e65c00] text-white rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50 shrink-0 active:scale-95"
+          className="h-9 px-4 rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 apple-glass-pill-accent cursor-pointer disabled:opacity-50 shrink-0"
         >
           <DocumentCheckIcon className="w-4 h-4 stroke-[2]" />
           <span>{isSaving ? 'Menyimpan...' : 'Simpan'}</span>
