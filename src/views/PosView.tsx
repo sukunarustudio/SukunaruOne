@@ -1087,17 +1087,26 @@ export const PosView: React.FC<PosViewProps> = ({ settings, onRefreshDashboard, 
             type="button"
             onClick={() => setMobileTab('cart')}
             aria-label="Lihat Rincian Pesanan / Keranjang"
-            className="h-11 pl-2.5 pr-4 rounded-full flex items-center gap-2 font-bold text-xs cursor-pointer apple-glass-fab"
+            style={{
+              backgroundColor: 'var(--color-accent)',
+              color: 'var(--color-accent-contrast)',
+              boxShadow: '0 8px 24px -4px var(--color-accent-soft, rgba(0,0,0,0.35))',
+            }}
+            className="h-11 pl-2.5 pr-4 rounded-full flex items-center gap-2 font-bold text-xs cursor-pointer border border-white/30 active:scale-95 transition-all"
           >
             <span
-              className="w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs border border-white/80 bg-white/90 text-[var(--color-accent,#FF6A00)]"
+              className="w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs"
+              style={{
+                backgroundColor: 'var(--color-accent-contrast)',
+                color: 'var(--color-accent)',
+              }}
             >
               {cart.reduce((s, i) => s + i.quantity, 0)}
             </span>
-            <span className="font-mono font-black text-xs">
+            <span className="font-mono font-black text-xs" style={{ color: 'var(--color-accent-contrast)' }}>
               {formatRupiah(finalTotal)}
             </span>
-            <span className="text-sm font-black leading-none">
+            <span className="text-sm font-black leading-none" style={{ color: 'var(--color-accent-contrast)' }}>
               &rarr;
             </span>
           </button>

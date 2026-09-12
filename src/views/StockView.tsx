@@ -1530,8 +1530,10 @@ export const StockView: React.FC<StockViewProps> = ({ onRefreshDashboard, onNavi
           id="btn-add-stock-fab"
           type="button"
           onClick={() => handleOpenCreateForm('GOODS')}
-          className="fixed right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-5 rounded-full font-extrabold text-xs sm:text-sm flex items-center gap-2 apple-glass-fab cursor-pointer"
+          className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-5 rounded-full text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-2xl border-2 border-white/60 transition-all cursor-pointer active:scale-95 hover:scale-105"
           style={{
+            backgroundColor: 'var(--color-accent, #FF9B51)',
+            color: 'var(--color-accent-contrast, #25343F)',
             bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))',
           }}
           title="Tambah Barang Baru"

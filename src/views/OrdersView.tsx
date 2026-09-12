@@ -2750,8 +2750,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           onClick={() => setViewMode('pos')}
           style={{
             bottom: 'calc(94px + env(safe-area-inset-bottom, 10px))',
+            backgroundColor: 'var(--color-accent)',
+            color: 'var(--color-accent-contrast)',
+            boxShadow: '0 10px 25px -4px var(--color-accent-soft, rgba(0,0,0,0.4))',
           }}
-          className="fixed right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full font-extrabold text-xs sm:text-sm flex items-center gap-2 apple-glass-fab cursor-pointer"
+          className="fixed right-4 sm:bottom-8 sm:right-8 z-30 h-12 px-4.5 sm:px-5 rounded-full font-extrabold text-xs sm:text-sm flex items-center gap-2 border-2 border-white transition-all cursor-pointer active:scale-95 hover:scale-105"
           title="Buat Pesanan Baru"
           aria-label="Buat Pesanan Baru"
         >
@@ -2759,7 +2762,11 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
           <span>Tambah Pesanan</span>
           {newOrderItems.length > 0 && (
             <span
-              className="min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-black flex items-center justify-center border border-white/80 bg-white/90 text-[var(--color-accent,#FF6A00)] ml-0.5 shadow-xs"
+              className="min-w-[20px] h-[20px] px-1.5 rounded-full text-[10px] font-black flex items-center justify-center border border-white ml-0.5"
+              style={{
+                backgroundColor: 'var(--color-accent-contrast)',
+                color: 'var(--color-accent)',
+              }}
             >
               {newOrderItems.reduce((s, i) => s + i.quantity, 0)}
             </span>
