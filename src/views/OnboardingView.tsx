@@ -80,22 +80,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
       onTouchEnd={handleTouchEnd}
     >
       {/* Top Bar Header */}
-      <header className="w-full max-w-md mx-auto px-6 pt-2 flex items-center justify-between z-20 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl overflow-hidden shadow-xs border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-slate-800 flex items-center justify-center p-0.5">
-            <img src={appLogo} alt="Bisnis Urang" className="w-full h-full object-contain rounded-lg" />
-          </div>
-          <div>
-            <span className="font-bold text-xs tracking-tight block text-[#25343F] dark:text-white leading-none">
-              Bisnis<span className="text-[#FF9B51]">Urang</span>
-            </span>
-            <span className="text-[10px] text-[#8E8E93] dark:text-slate-400 font-medium">
-              2.0
-            </span>
-          </div>
-        </div>
-
-        {currentSlide < 2 ? (
+      <header className="w-full max-w-md mx-auto px-6 pt-2 flex items-center justify-end z-20 shrink-0 min-h-[36px]">
+        {currentSlide < 2 && (
           <button
             type="button"
             onClick={handleSkip}
@@ -103,8 +89,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onComplete }) =>
           >
             Lewati
           </button>
-        ) : (
-          <div className="w-12" />
         )}
       </header>
 
