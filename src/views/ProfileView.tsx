@@ -133,9 +133,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         onUpdateSettings(res.settings);
       }
       setIsCropperOpen(false);
-      showToast('Foto profil bisnis berhasil diperbarui!', 'success');
+      showToast('Foto profil berhasil diperbarui.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Gagal mengunggah foto profil bisnis', 'error');
+      showToast(err.message || 'Foto profil gagal diunggah. Silakan coba lagi.', 'error');
     } finally {
       setIsCropperSaving(false);
       setIsUploadingLogo(false);

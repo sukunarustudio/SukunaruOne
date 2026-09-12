@@ -90,9 +90,9 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
       setFormData(prev => ({ ...prev, logoUrl: res.logoUrl }));
       onUpdateSettings(res.settings);
       setIsCropperOpen(false);
-      showToast('Foto profil bisnis 1:1 berhasil disimpan!', 'success');
+      showToast('Foto profil berhasil diperbarui.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Gagal mengunggah foto profil bisnis', 'error');
+      showToast(err.message || 'Foto profil gagal diunggah. Silakan coba lagi.', 'error');
     } finally {
       setIsCropperSaving(false);
       setIsUploadingLogo(false);
@@ -111,9 +111,9 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
       const res = await api.deleteBusinessLogo();
       setFormData(prev => ({ ...prev, logoUrl: '' }));
       onUpdateSettings(res.settings);
-      showToast('Foto profil bisnis berhasil dihapus.', 'success');
+      showToast('Foto profil berhasil dihapus.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Gagal menghapus foto profil', 'error');
+      showToast(err.message || 'Foto profil gagal dihapus. Silakan coba lagi.', 'error');
     } finally {
       setIsDeletingLogo(false);
     }
@@ -125,9 +125,9 @@ export const BusinessProfileView: React.FC<BusinessProfileViewProps> = ({
       setIsSaving(true);
       const updated = await api.updateSettings(formData);
       onUpdateSettings(updated);
-      showToast('Profil bisnis berhasil disimpan!', 'success');
+      showToast('Profil bisnis berhasil diperbarui.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Gagal menyimpan profil bisnis', 'error');
+      showToast(err.message || 'Profil bisnis gagal diperbarui. Silakan coba lagi.', 'error');
     } finally {
       setIsSaving(false);
     }
