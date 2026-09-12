@@ -324,7 +324,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
   const isRefreshing = status === 'refreshing';
   const isCompleted = status === 'completed';
   const isError = status === 'error';
-  const isVisible = pullDistance > 4 || isRefreshing || isCompleted || isError;
+  const isVisible = (pullDistance > 6 && (status === 'pulling' || status === 'ready')) || isRefreshing || isCompleted || isError;
 
   return (
     <div

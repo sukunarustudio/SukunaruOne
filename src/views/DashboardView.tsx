@@ -448,185 +448,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
         </div>
       )}
 
-      {/* ── STICKY TOPBAR & MENU BERANDA (Fixed at top of Beranda) ── */}
-      <div className="sticky top-0 z-20 bg-[#EAEFEF]/95 dark:bg-[#0B0F17]/95 backdrop-blur-xl pt-1 pb-3 max-w-2xl lg:max-w-7xl mx-auto px-0.5 space-y-2.5 border-b border-black/[0.04] dark:border-white/[0.05]">
-        {/* Top Header */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1
-              id="dashboard-header-title"
-              className="dashboard-title-text text-2xl sm:text-3xl font-black tracking-tight leading-tight truncate text-[#25343F] dark:text-white"
-            >
-              BisnisUrang
-            </h1>
-            <p className="text-xs sm:text-[13px] font-medium text-[#898989] dark:text-slate-400 tracking-tight mt-0.5 truncate">
-              {dateLabel}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Quick Search trigger (Mobile) */}
-            <button
-              type="button"
-              onClick={onOpenSearch}
-              className="flex md:hidden items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-black/[0.06] dark:border-white/[0.08] text-xs text-[#898989] hover:text-[#25343F] shadow-xs transition-all cursor-pointer active:scale-95"
-              title="Cari transaksi, produk, pelanggan..."
-            >
-              <MagnifyingGlassIcon className="w-4 h-4 text-zinc-500" />
-              <span className="font-semibold text-[11px]">Cari</span>
-            </button>
-          </div>
-        </div>
-
-        {/* ── PUSAT AKSI CEPAT / SHORTCUT MENU (Menu Beranda) ── */}
-        <div className="space-y-2">
-          {/* Bento Grid: 4 Primary Hero Actions */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-            {/* 1. Kasir POS */}
-            <button
-              type="button"
-              onClick={() => goTo('pos')}
-              className="apple-card p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent hover:from-emerald-500/15 hover:via-emerald-500/10 border border-emerald-500/25 dark:border-emerald-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[86px] active:scale-98 transition-transform"
-            >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-                <BuildingStorefrontSolid className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-              </div>
-              <div className="mt-2">
-                <h3 className="text-xs sm:text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
-                  Kasir POS
-                </h3>
-              </div>
-            </button>
-
-            {/* 2. Pesanan */}
-            <button
-              type="button"
-              onClick={() => goTo('orders', 'filter:SEMUA:table')}
-              className="apple-card p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-[#FF6A00]/10 via-[#FF6A00]/5 to-transparent hover:from-[#FF6A00]/15 hover:via-[#FF6A00]/10 border border-[#FF6A00]/25 dark:border-[#FF6A00]/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[86px] active:scale-98 transition-transform"
-            >
-              <div className="flex items-center justify-between">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#FF6A00] text-white flex items-center justify-center shadow-md shadow-[#FF6A00]/25 group-hover:scale-105 transition-transform">
-                  <ClipboardDocumentListSolid className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                </div>
-                {activeOrders.length > 0 && (
-                  <span className="text-[10px] font-extrabold text-[#FF6A00] dark:text-[#FF9B51] bg-[#FF9B51]/20 px-2 py-0.5 rounded-full animate-pulse">
-                    {activeOrders.length} Aktif
-                  </span>
-                )}
-              </div>
-              <div className="mt-2">
-                <h3 className="text-xs sm:text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
-                  Pesanan & SPK
-                </h3>
-              </div>
-            </button>
-
-            {/* 3. Stok Barang */}
-            <button
-              type="button"
-              onClick={() => goTo('inventory')}
-              className="apple-card p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent hover:from-indigo-500/15 hover:via-indigo-500/10 border border-indigo-500/25 dark:border-indigo-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[86px] active:scale-98 transition-transform"
-            >
-              <div className="flex items-center justify-between">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-                  <Square3StackSolid className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                </div>
-                {stats.lowStockItemsCount > 0 && (
-                  <span className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded-full">
-                    {stats.lowStockItemsCount} Menipis
-                  </span>
-                )}
-              </div>
-              <div className="mt-2">
-                <h3 className="text-xs sm:text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
-                  Stok Barang
-                </h3>
-              </div>
-            </button>
-
-            {/* 4. Arus Kas & Biaya */}
-            <button
-              type="button"
-              onClick={() => goTo('finance')}
-              className="apple-card p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-teal-500/10 via-teal-500/5 to-transparent hover:from-teal-500/15 hover:via-teal-500/10 border border-teal-500/25 dark:border-teal-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[86px] active:scale-98 transition-transform"
-            >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 group-hover:scale-105 transition-transform">
-                <WalletSolid className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-              </div>
-              <div className="mt-2">
-                <h3 className="text-xs sm:text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
-                  Buku Kas
-                </h3>
-              </div>
-            </button>
-          </div>
-
-          {/* Secondary Tools Grid (Apple Control Center 4-column quick action grid) */}
-          <div className="grid grid-cols-4 gap-1.5 sm:gap-2 pt-0.5">
-            {[
-              {
-                label: 'Hitung HPP',
-                icon: <CalculatorSolid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />,
-                bg: 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20',
-                onClick: () => goTo('hpp'),
-              },
-              {
-                label: 'Pelanggan',
-                icon: <UsersSolid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500" />,
-                bg: 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20',
-                onClick: () => goTo('customers'),
-              },
-              {
-                label: 'Katalog',
-                icon: <CubeSolid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500" />,
-                bg: 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20',
-                onClick: () => goTo('products'),
-              },
-              {
-                label: 'Laporan',
-                icon: <ArrowTrendingUpSolid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500" />,
-                bg: 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20',
-                onClick: () => goTo('sales-report'),
-              },
-              {
-                label: 'Cloud Sync',
-                icon: <CloudArrowUpSolid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />,
-                bg: 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20',
-                onClick: () => goTo('backup'),
-              },
-              {
-                label: 'Tema Visual',
-                icon: <SparklesSolid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />,
-                bg: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20',
-                onClick: () => goTo('appearance'),
-              },
-              {
-                label: 'Info Versi',
-                icon: <InformationCircleSolid className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500" />,
-                bg: 'bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20',
-                onClick: () => goTo('app-info'),
-              },
-            ].map(tool => (
-              <button
-                key={tool.label}
-                type="button"
-                onClick={tool.onClick}
-                className={`apple-press p-1.5 sm:p-2 rounded-xl sm:rounded-2xl border ${tool.bg} flex flex-col items-center justify-center gap-1 text-center cursor-pointer transition-all shadow-2xs`}
-              >
-                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center shrink-0">
-                  {tool.icon}
-                </div>
-                <span className="text-[9.5px] sm:text-[11px] font-bold text-[#25343F] dark:text-white leading-tight tracking-tight text-center w-full truncate">
-                  {tool.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <PullToRefresh onRefresh={() => loadData(true)} isRefreshing={refreshing}>
-        <div id="dashboard-view" className="space-y-4 max-w-2xl lg:max-w-7xl mx-auto pb-12 px-0.5 pt-3">
+        <div id="dashboard-view" className="space-y-4 max-w-2xl lg:max-w-7xl mx-auto pb-12 px-0.5">
 
           {isPro && isTrial && daysRemaining !== null && daysRemaining <= 5 && (
             <div className="bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 px-4 py-2.5 rounded-2xl flex items-center justify-between gap-3 text-xs shadow-2xs">
@@ -642,6 +465,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
               </button>
             </div>
           )}
+
+          {/* ── TOP HEADER (BisnisUrang Brand & Clean Date Layout) ── */}
+          <div className="flex items-center justify-between gap-3 pt-1 pb-1">
+            <div className="min-w-0">
+              <h1
+                id="dashboard-header-title"
+                className="dashboard-title-text text-2xl sm:text-3xl font-black tracking-tight leading-tight truncate text-[#25343F] dark:text-white"
+              >
+                BisnisUrang
+              </h1>
+              <p className="text-xs sm:text-[13px] font-medium text-[#898989] dark:text-slate-400 tracking-tight mt-0.5 truncate">
+                {dateLabel}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Quick Search trigger (Mobile) */}
+              <button
+                type="button"
+                onClick={onOpenSearch}
+                className="flex md:hidden items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-black/[0.06] dark:border-white/[0.08] text-xs text-[#898989] hover:text-[#25343F] shadow-xs transition-all cursor-pointer active:scale-95"
+                title="Cari transaksi, produk, pelanggan..."
+              >
+                <MagnifyingGlassIcon className="w-4 h-4 text-zinc-500" />
+                <span className="font-semibold text-[11px]">Cari</span>
+              </button>
+            </div>
+          </div>
 
           {/* ── SALDO KAS UTAMA (Apple Wallet / FinTech Card) ── */}
           <div className="premium-fintech-card p-4.5 sm:p-6 text-white flex flex-col select-none relative overflow-hidden rounded-3xl">
@@ -786,6 +637,152 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onOpen
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* ── PUSAT AKSI CEPAT / SHORTCUT MENU (Apple Control Center & Bento Style) ── */}
+          <div className="space-y-2.5">
+            {/* Bento Grid: 4 Primary Hero Actions */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              {/* 1. Kasir POS */}
+              <button
+                type="button"
+                onClick={() => goTo('pos')}
+                className="apple-card p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent hover:from-emerald-500/15 hover:via-emerald-500/10 border border-emerald-500/25 dark:border-emerald-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[92px]"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
+                  <BuildingStorefrontSolid className="w-5 h-5" />
+                </div>
+                <div className="mt-2.5">
+                  <h3 className="text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
+                    Kasir POS
+                  </h3>
+                </div>
+              </button>
+
+              {/* 2. Pesanan */}
+              <button
+                type="button"
+                onClick={() => goTo('orders', 'filter:SEMUA:table')}
+                className="apple-card p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-[#FF6A00]/10 via-[#FF6A00]/5 to-transparent hover:from-[#FF6A00]/15 hover:via-[#FF6A00]/10 border border-[#FF6A00]/25 dark:border-[#FF6A00]/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[92px]"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-2xl bg-[#FF6A00] text-white flex items-center justify-center shadow-md shadow-[#FF6A00]/25 group-hover:scale-105 transition-transform">
+                    <ClipboardDocumentListSolid className="w-5 h-5" />
+                  </div>
+                  {activeOrders.length > 0 && (
+                    <span className="text-[10px] font-extrabold text-[#FF6A00] dark:text-[#FF9B51] bg-[#FF9B51]/20 px-2 py-0.5 rounded-full animate-pulse">
+                      {activeOrders.length} Aktif
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2.5">
+                  <h3 className="text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
+                    Pesanan & SPK
+                  </h3>
+                </div>
+              </button>
+
+              {/* 3. Stok Barang */}
+              <button
+                type="button"
+                onClick={() => goTo('inventory')}
+                className="apple-card p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent hover:from-indigo-500/15 hover:via-indigo-500/10 border border-indigo-500/25 dark:border-indigo-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[92px]"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+                    <Square3StackSolid className="w-5 h-5" />
+                  </div>
+                  {stats.lowStockItemsCount > 0 && (
+                    <span className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded-full">
+                      {stats.lowStockItemsCount} Menipis
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2.5">
+                  <h3 className="text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
+                    Stok Barang
+                  </h3>
+                </div>
+              </button>
+
+              {/* 4. Arus Kas & Biaya */}
+              <button
+                type="button"
+                onClick={() => goTo('finance')}
+                className="apple-card p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-teal-500/10 via-teal-500/5 to-transparent hover:from-teal-500/15 hover:via-teal-500/10 border border-teal-500/25 dark:border-teal-500/30 text-left cursor-pointer flex flex-col justify-between group shadow-2xs min-h-[92px]"
+              >
+                <div className="w-10 h-10 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/25 group-hover:scale-105 transition-transform">
+                  <WalletSolid className="w-5 h-5" />
+                </div>
+                <div className="mt-2.5">
+                  <h3 className="text-sm font-extrabold text-[#25343F] dark:text-white tracking-tight">
+                    Buku Kas
+                  </h3>
+                </div>
+              </button>
+            </div>
+
+            {/* Secondary Tools Grid (Apple Control Center 4-column quick action grid) */}
+            <div className="grid grid-cols-4 gap-2 sm:gap-2.5 pt-1">
+              {[
+                {
+                  label: 'Hitung HPP',
+                  icon: <CalculatorSolid className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
+                  bg: 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20',
+                  onClick: () => goTo('hpp'),
+                },
+                {
+                  label: 'Pelanggan',
+                  icon: <UsersSolid className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+                  bg: 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20',
+                  onClick: () => goTo('customers'),
+                },
+                {
+                  label: 'Katalog',
+                  icon: <CubeSolid className="w-4 h-4 sm:w-5 sm:h-5 text-sky-500" />,
+                  bg: 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20',
+                  onClick: () => goTo('products'),
+                },
+                {
+                  label: 'Laporan',
+                  icon: <ArrowTrendingUpSolid className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500" />,
+                  bg: 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20',
+                  onClick: () => goTo('sales-report'),
+                },
+                {
+                  label: 'Cloud Sync',
+                  icon: <CloudArrowUpSolid className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+                  bg: 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20',
+                  onClick: () => goTo('backup'),
+                },
+                {
+                  label: 'Tema Visual',
+                  icon: <SparklesSolid className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />,
+                  bg: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20',
+                  onClick: () => goTo('appearance'),
+                },
+                {
+                  label: 'Info Versi',
+                  icon: <InformationCircleSolid className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
+                  bg: 'bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20',
+                  onClick: () => goTo('app-info'),
+                },
+              ].map(tool => (
+                <button
+                  key={tool.label}
+                  type="button"
+                  onClick={tool.onClick}
+                  className={`apple-press p-2 sm:p-2.5 rounded-2xl border ${tool.bg} flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer transition-all shadow-2xs`}
+                >
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white dark:bg-slate-800 shadow-2xs flex items-center justify-center shrink-0">
+                    {tool.icon}
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-[#25343F] dark:text-white leading-tight tracking-tight text-center w-full truncate">
+                    {tool.label}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
 
