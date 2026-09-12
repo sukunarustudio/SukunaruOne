@@ -140,73 +140,57 @@ async function generateAssets() {
   fs.writeFileSync(path.join(anydpiDir, 'ic_launcher_round.xml'), adaptiveXml, 'utf-8');
   console.log('Generated mipmap-anydpi-v26 XML definitions.');
 
-  // 4. Android System Splash Drawables (Minimal: Orange brand + Logo Mark Type B in center)
+  // 4. Android System Splash Drawables using SPLASH1_SRC (splash1.png)
   const drawableDir = path.join(DEBUG_RES_DIR, 'drawable');
   ensureDir(drawableDir);
 
-  // splash_icon_debug.png (for Android 12+ SplashScreen API: 288x288 crisp icon)
+  // splash_icon_debug.png (for Android 12+ SplashScreen API: 288x288 crisp icon on white background)
   await sharp(LOGO_SRC)
     .resize(288, 288, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toFile(path.join(drawableDir, 'splash_icon_debug.png'));
 
-  // Default drawable/splash.png
-  const defLogo = await sharp(LOGO_SRC)
-    .resize(280, 280, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .toBuffer();
-
-  const defBgBuf = Buffer.from(bgSvg(1280, 1920));
-  await sharp(defBgBuf)
-    .composite([{ input: defLogo, gravity: 'center' }])
+  // Default drawable/splash.png from splash1.png
+  await sharp(SPLASH1_SRC)
+    .resize(1080, 1920, { fit: 'contain', background: '#FFFFFF' })
     .png()
     .toFile(path.join(drawableDir, 'splash.png'));
+  console.log('Generated drawable/splash.png from splash1.png');
 
-  // Generate density-specific drawables for portrait & landscape
+  // Generate density-specific drawables for portrait & landscape from SPLASH1_SRC
   for (const s of SPLASH_PORT_SIZES) {
     const dDir = path.join(DEBUG_RES_DIR, s.folder);
     ensureDir(dDir);
 
-    const logoSize = Math.round(Math.min(s.w, s.h) * 0.28);
-    const logoBuf = await sharp(LOGO_SRC)
-      .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .toBuffer();
-
-    const bgBuf = Buffer.from(bgSvg(s.w, s.h));
-    await sharp(bgBuf)
-      .composite([{ input: logoBuf, gravity: 'center' }])
+    await sharp(SPLASH1_SRC)
+      .resize(s.w, s.h, { fit: 'contain', background: '#FFFFFF' })
       .png()
       .toFile(path.join(dDir, 'splash.png'));
 
-    console.log(`Generated ${s.folder}/splash.png (${s.w}x${s.h})`);
+    console.log(`Generated ${s.folder}/splash.png (${s.w}x${s.h}) from splash1.png`);
   }
 
   for (const s of SPLASH_LAND_SIZES) {
     const dDir = path.join(DEBUG_RES_DIR, s.folder);
     ensureDir(dDir);
 
-    const logoSize = Math.round(Math.min(s.w, s.h) * 0.35);
-    const logoBuf = await sharp(LOGO_SRC)
-      .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .toBuffer();
-
-    const bgBuf = Buffer.from(bgSvg(s.w, s.h));
-    await sharp(bgBuf)
-      .composite([{ input: logoBuf, gravity: 'center' }])
+    await sharp(SPLASH1_SRC)
+      .resize(s.w, s.h, { fit: 'contain', background: '#FFFFFF' })
       .png()
       .toFile(path.join(dDir, 'splash.png'));
 
-    console.log(`Generated ${s.folder}/splash.png (${s.w}x${s.h})`);
+    console.log(`Generated ${s.folder}/splash.png (${s.w}x${s.h}) from splash1.png`);
   }
 
-  // 5. XML Values for DEBUG Theme and Splash Colors
+  // 5. XML Values for DEBUG Theme and Splash Colors (White matching splash1.png)
   const valuesDir = path.join(DEBUG_RES_DIR, 'values');
   ensureDir(valuesDir);
 
   const colorsXml = `<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_bg_debug">#FF9B51</color>
-    <color name="splash_status_bar_debug">#FFD254</color>
-    <color name="splash_nav_bar_debug">#FF872D</color>
+    <color name="splash_bg_debug">#FFFFFF</color>
+    <color name="splash_status_bar_debug">#FFFFFF</color>
+    <color name="splash_nav_bar_debug">#FFFFFF</color>
 </resources>
 `;
   fs.writeFileSync(path.join(valuesDir, 'colors.xml'), colorsXml, 'utf-8');
@@ -233,7 +217,7 @@ async function generateAssets() {
 `;
   fs.writeFileSync(path.join(valuesDir, 'styles.xml'), stylesXml, 'utf-8');
 
-  // 6. Generate Web App Logo and Splash (public/app-logo.png, src/assets/app-logo.png, public/splash.png)
+  // 6. Generate Web App Logo and Splash from LOGO_SRC and SPLASH2_SRC
   const webLogoBuf = await sharp(LOGO_SRC)
     .resize(512, 512, { fit: 'contain' })
     .png()
@@ -243,41 +227,17 @@ async function generateAssets() {
   fs.writeFileSync(path.join(ROOT_DIR, 'src/assets/app-logo.png'), webLogoBuf);
   console.log('Updated public/app-logo.png and src/assets/app-logo.png with Logo Mark Type B.');
 
-  // Create Web Splash Screen (1080x2400) with warm orange gradient, Logo Mark Type B, typography, tagline & version
-  const webLogoLarge = await sharp(LOGO_SRC)
-    .resize(280, 280, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  // Create Web/App Splash Screen from SPLASH2_SRC (splash2.png)
+  const splash2Buf = await sharp(SPLASH2_SRC)
+    .resize(1080, 2400, { fit: 'contain', background: '#FF9B51' })
+    .png()
     .toBuffer();
 
-  const webSplashSvg = `
-    <svg width="1080" height="2400" viewBox="0 0 1080 2400" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="webGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#FFD254"/>
-          <stop offset="45%" stop-color="#FFAF37"/>
-          <stop offset="100%" stop-color="#FF872D"/>
-        </linearGradient>
-      </defs>
-      <rect width="1080" height="2400" fill="url(#webGrad)"/>
-      <g transform="translate(540, 1340)" text-anchor="middle">
-        <text font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="76" font-weight="900" font-style="italic" fill="#25343F" letter-spacing="-1.5">Bisnis<tspan fill="#ffffff">Urang</tspan></text>
-        <text y="70" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="30" font-weight="700" fill="#25343F" opacity="0.85" letter-spacing="-0.5">Usaha tercatat, Kelola jadi mudah.</text>
-      </g>
-      <g transform="translate(540, 2260)" text-anchor="middle">
-        <line x1="-50" y1="-20" x2="50" y2="-20" stroke="#25343F" stroke-width="3" stroke-linecap="round" opacity="0.2"/>
-        <text y="14" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="24" font-weight="600" fill="#25343F" opacity="0.65">Version 2.0</text>
-      </g>
-    </svg>
-  `;
-
-  await sharp(Buffer.from(webSplashSvg))
-    .composite([
-      { input: webLogoLarge, top: 920, left: Math.round((1080 - 280) / 2) }
-    ])
-    .png()
-    .toFile(path.join(ROOT_DIR, 'public/splash.png'));
-
-  console.log('Updated public/splash.png with new branding.');
-  console.log('--- ALL ANDROID DEBUG ASSETS & WEB BRANDING GENERATED SUCCESSFULLY ---');
+  fs.writeFileSync(path.join(ROOT_DIR, 'public/splash.png'), splash2Buf);
+  fs.writeFileSync(path.join(ROOT_DIR, 'public/splash2.png'), splash2Buf);
+  fs.writeFileSync(path.join(ROOT_DIR, 'src/assets/splash.png'), splash2Buf);
+  console.log('Updated public/splash.png and public/splash2.png directly from splash2.png.');
+  console.log('--- ALL ANDROID DEBUG ASSETS & DUAL SPLASH SCREENS GENERATED SUCCESSFULLY ---');
 }
 
 generateAssets().catch(err => {

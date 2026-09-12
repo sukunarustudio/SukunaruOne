@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { User } from '@supabase/supabase-js';
 import { api } from './services/api';
@@ -473,27 +474,38 @@ function MainAppContent() {
     }
   };
 
-  // ── 1. Web Preview Splash Screen Gate (Smooth initial presentation & session resolution) ───
+  // ── 1. Dual Splash Screen Gate (Native Android uses splash2.png, Web preview uses clean logo) ───
   if (isSplashVisible || authUser === undefined) {
+    const isNative = Capacitor.isNativePlatform();
     return (
       <div
-        className={`fixed inset-0 z-[9999] bg-white dark:bg-[#0B0F17] flex flex-col items-center justify-center transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[9999] ${
+          isNative ? 'bg-[#FF9B51]' : 'bg-white dark:bg-[#0B0F17]'
+        } flex items-center justify-center transition-opacity duration-400 ease-in-out select-none ${
           isSplashFading ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
-        <div className="flex flex-col items-center animate-fade-in select-none">
+        {isNative ? (
           <img
-            src="/app-logo.png"
-            alt="BisnisUrang"
-            className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-3xl shadow-xl mb-4"
+            src="/splash.png"
+            alt="Bisnis Urang"
+            className="w-full h-full object-contain max-w-lg mx-auto"
           />
-          <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white tracking-tight">
-            Bisnis<span className="text-[#FF9B51]">Urang</span>
-          </h1>
-          <p className="text-xs text-[#898989] font-medium mt-1">
-            Usaha tercatat, Kelola jadi mudah.
-          </p>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center animate-fade-in select-none">
+            <img
+              src="/app-logo.png"
+              alt="BisnisUrang"
+              className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-3xl shadow-xl mb-4"
+            />
+            <h1 className="text-xl sm:text-2xl font-black text-[#25343F] dark:text-white tracking-tight">
+              Bisnis<span className="text-[#FF9B51]">Urang</span>
+            </h1>
+            <p className="text-xs text-[#898989] font-medium mt-1">
+              Usaha tercatat, Kelola jadi mudah.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
